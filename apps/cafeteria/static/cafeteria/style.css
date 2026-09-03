@@ -111,6 +111,226 @@
   background: #fff0ec;
   color: #8d3b29;
 }
+
+.booking-workspace {
+  max-width: 980px;
+}
+
+.booking-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0 20px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.booking-guide span:last-child {
+  flex-basis: 100%;
+  margin-top: 2px;
+}
+
+.booking-guide-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.booking-guide-dot.reserved {
+  background: var(--forest);
+}
+
+.booking-guide-dot.empty {
+  border: 2px solid #8d9b96;
+}
+
+.joint-booking-grid {
+  gap: 18px;
+}
+
+.joint-child-card {
+  padding: 20px;
+  background: #fff;
+}
+
+.selection-help {
+  margin: 13px 0 9px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.meal-day-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(104px, 1fr));
+  gap: 10px;
+  margin: 14px 0 17px;
+}
+
+.meal-day-card {
+  position: relative;
+  display: grid;
+  min-height: 122px;
+  align-content: start;
+  gap: 2px;
+  padding: 13px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.meal-day-card:hover {
+  border-color: #7da99d;
+}
+
+.meal-day-card.is-booked {
+  border-color: #9dccbe;
+  background: #eff9f5;
+}
+
+.meal-day-card.is-empty {
+  background: #fff;
+}
+
+.meal-day-card.is-excursion {
+  background: #fff8e8;
+  border-color: #ebce85;
+}
+
+.meal-day-card.is-unavailable,
+.meal-day-card.is-locked {
+  cursor: not-allowed;
+  opacity: .62;
+  background: #f1f2ef;
+}
+
+.meal-day-card .meal-day-name {
+  color: var(--muted);
+  font-size: .73rem;
+  font-weight: 700;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.meal-day-card strong {
+  font-size: 1.45rem;
+  line-height: 1.12;
+}
+
+.meal-day-card small {
+  color: var(--forest-dark);
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.meal-day-card.is-empty small,
+.meal-day-card.is-unavailable small,
+.meal-day-card.is-locked small {
+  color: var(--muted);
+}
+
+.meal-day-card em {
+  margin-top: 3px;
+  color: #8a5a00;
+  font-size: .71rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.meal-day-card input[type="checkbox"] {
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--forest);
+}
+
+.meal-day-card:has(input:checked) {
+  border: 3px solid #256da6;
+  padding: 11px 8px;
+  background: #eaf5ff;
+  box-shadow: 0 0 0 3px rgba(37, 109, 166, .12);
+}
+
+.meal-day-card:has(input:checked)::after {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #256da6;
+  color: #fff;
+  content: attr(data-selected-label);
+  font-size: .62rem;
+  font-weight: 800;
+}
+
+.diet-choice {
+  display: grid;
+  gap: 5px;
+  max-width: 390px;
+  color: var(--ink);
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.copy-choice {
+  display: grid;
+  grid-template-columns: auto 1fr minmax(180px, auto);
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 13px 15px;
+  border: 1px solid #c9e2d9;
+  border-radius: 12px;
+  background: #f5fbf8;
+  cursor: pointer;
+}
+
+.copy-choice span {
+  display: grid;
+  gap: 2px;
+}
+
+.copy-choice small {
+  color: var(--muted);
+}
+
+.booking-action-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--forest-dark);
+  color: #fff;
+}
+
+.booking-action-panel > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.booking-action-panel > div:first-child span {
+  color: #cbe4dc;
+  font-size: .9rem;
+}
+
+.booking-action-panel .button-row {
+  margin: 0;
+}
+
+.booking-action-panel .button.danger {
+  border-color: #f5b8a9;
+  background: #fff5f2;
+  color: #a4412e;
+}
 * {
   box-sizing: border-box;
 }
@@ -1317,5 +1537,82 @@ td small {
   }
   .calendar-management .month-nav h2 {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .booking-workspace {
+    padding: 15px;
+  }
+
+  .booking-guide {
+    gap: 6px;
+    font-size: .82rem;
+  }
+
+  .joint-child-card {
+    padding: 15px;
+  }
+
+  .meal-day-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 12px 0 16px;
+  }
+
+  .meal-day-card {
+    min-height: 98px;
+    padding: 10px 5px;
+    border-radius: 10px;
+  }
+
+  .meal-day-card:has(input:checked) {
+    padding: 8px 3px;
+  }
+
+  .meal-day-card .meal-day-name {
+    font-size: .59rem;
+  }
+
+  .meal-day-card strong {
+    font-size: 1.15rem;
+  }
+
+  .meal-day-card small,
+  .meal-day-card em {
+    font-size: .58rem;
+    line-height: 1.1;
+  }
+
+  .meal-day-card input[type="checkbox"] {
+    top: 7px;
+    right: 5px;
+    width: 17px;
+    height: 17px;
+  }
+
+  .meal-day-card:has(input:checked)::after {
+    right: 4px;
+    bottom: 5px;
+    font-size: .5rem;
+  }
+
+  .copy-choice {
+    grid-template-columns: auto 1fr;
+  }
+
+  .copy-choice select {
+    grid-column: 2;
+  }
+
+  .booking-action-panel,
+  .booking-action-panel .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .booking-action-panel .button-row {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }

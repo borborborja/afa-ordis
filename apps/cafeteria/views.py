@@ -101,7 +101,14 @@ def _ordinary_diet():
     return diet
 
 
-def _return_to_calendar(family_id, selected_dates):
+def _return_to_calendar(family_id, selected_dates, week_start=None):
+    if week_start:
+        try:
+            selected_week = date.fromisoformat(week_start)
+        except ValueError:
+            selected_week = None
+        if selected_week:
+            return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?week={selected_week:%Y-%m-%d}")
     month = selected_dates[0].strftime("%Y-%m") if selected_dates else timezone.localdate().strftime("%Y-%m")
     return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?month={month}")
 
@@ -390,7 +397,7 @@ def family_bulk_booking(request, family_id):
             )
             if result == "reason_required":
                 messages.error(request, _("Cal indicar el motiu de qualsevol canvi després de l'hora límit."))
-                return _return_to_calendar(family.id, all_dates)
+                return _return_to_calendar(family.id, all_dates, request.POST.get("return_week"))
             if changed:
                 success += 1
             elif result != "unchanged":
@@ -399,7 +406,9 @@ def family_bulk_booking(request, family_id):
         messages.success(request, _("S'han actualitzat %(count)s reserves de menjador.") % {"count": success})
     if skipped:
         messages.warning(request, _("S'han ignorat %(count)s dies no disponibles o bloquejats.") % {"count": skipped})
-    return _return_to_calendar(family.id, all_dates)
+    if not all_dates:
+        messages.info(request, _("Selecciona com a mínim un dia abans d'escollir una acció."))
+    return _return_to_calendar(family.id, all_dates, request.POST.get("return_week"))
 
 
 @login_required

@@ -3,38 +3,40 @@
 {% block page_context %}{% translate "Reserva de menjador" %}{% endblock %}
 {% block content %}
 <section class="page-heading compact">
-  <div><p class="eyebrow">{{ family.name }}</p><h1>{% translate "Reserva de menjador" %}</h1><p>{% translate "Tria els dies per a cada infant. La dieta predeterminada s'aplica si no en selecciones cap altra." %}</p></div>
+  <div><p class="eyebrow">{{ family.name }}</p><h1>{% translate "Reserva de menjador" %}</h1><p>{% translate "Tria els dies que vols modificar. Veuràs l'estat de cada reserva abans de confirmar cap canvi." %}</p></div>
   <a class="button secondary" href="{% url 'cafeteria:dashboard' %}">← {% translate "Torna" %}</a>
 </section>
 {% if today_change_notice %}<section class="deadline-notice {% if not today_change_notice.open %}closed{% endif %}" role="status">{% if today_change_notice.open %}<strong>{% translate "Canvis d'avui" %}</strong><span>{% translate "Encara pots modificar la reserva d'avui:" %} {{ today_change_notice.hours }} {% translate "hores" %} {% translate "i" %} {{ today_change_notice.minutes }} {% translate "minuts" %}.</span>{% else %}<strong>{% translate "Canvis d'avui tancats" %}</strong><span>{% translate "El termini de canvis d'avui ha acabat a les" %} {{ today_change_notice.cutoff|time:"H:i" }}.</span>{% endif %}</section>{% endif %}
 
-<section class="card">
+<section class="card booking-workspace">
   <nav class="month-nav"><a href="?week={{ previous_week|date:'Y-m-d' }}">←</a><h2>{% translate "Setmana del" %} {{ week_start|date:"d/m" }}</h2><a href="?week={{ next_week|date:'Y-m-d' }}">→</a></nav>
-  {% if has_siblings %}<p class="hint">{% translate "Pots marcar dies per a tots els infants a la mateixa pantalla, o copiar els dies marcats d'un infant als altres." %}</p>{% endif %}
-  <form method="post" action="{% url 'cafeteria:family_bulk_booking' family.id %}" class="joint-booking-form">{% csrf_token %}
+  <div class="booking-guide"><span class="booking-guide-dot reserved"></span><span>{% translate "Reserva existent" %}</span><span class="booking-guide-dot empty"></span><span>{% translate "Sense reserva" %}</span><span>{% translate "Toca només els dies que vols modificar; apareixeran marcats en blau." %}</span></div>
+  <form method="post" action="{% url 'cafeteria:family_bulk_booking' family.id %}" class="joint-booking-form">{% csrf_token %}<input type="hidden" name="return_week" value="{{ week_start|date:'Y-m-d' }}">
     <div class="joint-booking-grid">
       {% for calendar in weekly_calendars %}
-      <article class="weekly-card joint-child-card">
+      <article class="joint-child-card">
         <div class="student-title"><div><h2>{{ calendar.student.full_name }}</h2><p>{{ calendar.student.course_group|default:"—" }} · {% translate "Dieta habitual" %}: {{ calendar.student.default_diet }}</p></div><a href="{% url 'cafeteria:student_edit' calendar.student.id %}">{% translate "Fitxa" %}</a></div>
-        <div class="week-days">{% for cell in calendar.days %}
-          <label class="week-day {% if cell.booking and cell.booking.status == 'active' %}selected{% endif %} {% if not cell.available or cell.locked %}disabled{% endif %}">
-            <span>{{ cell.date|date:"D" }}</span><b>{{ cell.date|date:"d" }}</b>
-            {% if cell.excursion %}<em title="{{ cell.excursion.title }}">{% translate "Exc." %}</em>{% endif %}
-            {% if cell.available %}<input type="checkbox" name="dates_{{ calendar.student.id }}" value="{{ cell.date|date:'Y-m-d' }}" {% if cell.booking and cell.booking.status == 'active' %}checked{% endif %} {% if cell.locked %}disabled{% endif %}>{% endif %}
+        <p class="selection-help">{% translate "Selecciona els dies d'aquest infant que vols reservar, anul·lar o actualitzar." %}</p>
+        <div class="meal-day-grid">{% for cell in calendar.days %}
+          <label class="meal-day-card {% if cell.booking and cell.booking.status == 'active' %}is-booked{% else %}is-empty{% endif %} {% if cell.excursion %}is-excursion{% endif %} {% if not cell.available %}is-unavailable{% elif cell.locked %}is-locked{% endif %}" data-selected-label="{% translate 'Seleccionat' %}">
+            <span class="meal-day-name">{{ cell.date|date:"D" }}</span><strong>{{ cell.date|date:"d" }}</strong>
+            {% if cell.booking and cell.booking.status == 'active' %}<small>{% if cell.booking.meal_type == 'packed_lunch' %}{% translate "Carmanyola" %}{% else %}{% translate "Reservat" %}{% endif %}</small>{% elif cell.available %}<small>{% translate "Sense reserva" %}</small>{% else %}<small>{% translate "Sense servei" %}</small>{% endif %}
+            {% if cell.excursion %}<em title="{{ cell.excursion.title }}">{% translate "Excursió" %}</em>{% endif %}
+            {% if cell.available %}<input type="checkbox" name="dates_{{ calendar.student.id }}" value="{{ cell.date|date:'Y-m-d' }}" {% if cell.locked %}disabled{% endif %} aria-label="{% blocktranslate with day=cell.date|date:'l d F' child=calendar.student.full_name %}Selecciona {{ day }} per a {{ child }}{% endblocktranslate %}">{% endif %}
           </label>{% endfor %}
         </div>
-        <label>{% translate "Dieta per als dies marcats" %}<select name="diet_{{ calendar.student.id }}"><option value="">{% translate "Dieta predeterminada" %}</option>{% for diet in diets %}<option value="{{ diet.id }}">{{ diet.name }}</option>{% endfor %}</select></label>
+        <label class="diet-choice">{% translate "Dieta per als dies seleccionats" %}<select name="diet_{{ calendar.student.id }}"><option value="">{% translate "Mantén la dieta habitual" %}: {{ calendar.student.default_diet }}</option>{% for diet in diets %}<option value="{{ diet.id }}">{{ diet.name }}</option>{% endfor %}</select></label>
       </article>{% empty %}<p>{% translate "No hi ha infants actius en aquesta família." %}</p>{% endfor %}
     </div>
-    {% if has_siblings %}<label class="checkbox-line"><input type="checkbox" name="copy_to_all" value="1"> {% translate "Copia els dies i la dieta d'aquest infant a tots els altres" %} <select name="copy_from">{% for calendar in weekly_calendars %}<option value="{{ calendar.student.id }}">{{ calendar.student.full_name }}</option>{% endfor %}</select></label>{% endif %}
+    {% if has_siblings %}<label class="copy-choice"><input type="checkbox" name="copy_to_all" value="1"> <span><strong>{% translate "Aplica els mateixos dies a la resta d'infants" %}</strong><small>{% translate "Copia els dies seleccionats i la dieta escollida des de" %}</small></span><select name="copy_from">{% for calendar in weekly_calendars %}<option value="{{ calendar.student.id }}">{{ calendar.student.full_name }}</option>{% endfor %}</select></label>{% endif %}
     {% if is_staff %}<label>{% translate "Motiu del canvi fora de termini" %}<input type="text" name="override_reason"></label>{% endif %}
-    <div class="button-row"><button class="button primary" name="action" value="add">{% translate "Desa les reserves marcades" %}</button><button class="button danger" name="action" value="cancel">{% translate "Anul·la les reserves marcades" %}</button></div>
+    <div class="booking-action-panel"><div><strong>{% translate "Quan hagis marcat els dies" %}</strong><span>{% translate "Tria si vols reservar-los o anul·lar-los." %}</span></div><div class="button-row"><button class="button primary" name="action" value="add">{% translate "Reserva els dies seleccionats" %}</button><button class="button danger" name="action" value="cancel">{% translate "Anul·la els dies seleccionats" %}</button></div></div>
   </form>
 </section>
 
 <section class="card calendar-overview">
   <nav class="month-nav"><a href="?month={{ previous_month|date:'Y-m' }}">← {{ previous_month|date:"F" }}</a><h2>{{ month_start|date:"F Y" }}</h2><a href="?month={{ next_month|date:'Y-m' }}">{{ next_month|date:"F" }} →</a></nav>
-  <p class="hint">{% translate "Vista mensual: les reserves amb excursió apareixen amb la marca de carmanyola quan s'han desat." %}</p>
+  <p class="hint">{% translate "Vista mensual de consulta. Les reserves amb excursió apareixen com a carmanyola." %}</p>
   <div class="calendar-scroll"><table class="calendar-grid"><thead><tr><th>{% translate "Infant" %}</th><th>Dl</th><th>Dt</th><th>Dc</th><th>Dj</th><th>Dv</th><th>Ds</th><th>Dg</th></tr></thead><tbody>
   {% for calendar in student_calendars %}{% for week in calendar.weeks %}<tr>{% if forloop.first %}<th rowspan="{{ calendar.weeks|length }}">{{ calendar.student.first_name }}</th>{% endif %}{% for cell in week %}<td class="{% if not cell.current_month %}outside{% elif not cell.available %}unavailable{% elif cell.booking and cell.booking.status == 'active' %}booked{% endif %}"><span>{{ cell.date.day }}</span>{% if cell.excursion %}<small title="{{ cell.excursion.title }}">E</small>{% endif %}{% if cell.booking and cell.booking.status == 'active' %}<small>{% if cell.booking.meal_type == 'packed_lunch' %}C{% else %}✓{% endif %}</small>{% endif %}</td>{% endfor %}</tr>{% endfor %}{% endfor %}
   </tbody></table></div>
