@@ -152,6 +152,19 @@ class CafeteriaFlowTests(TestCase):
             with self.subTest(route=route):
                 self.assertEqual(self.client.get(reverse(route)).status_code, 200)
 
+    def test_first_academic_year_can_be_created_from_the_calendar(self):
+        AcademicYear.objects.all().delete()
+        admin = User.objects.create_superuser("first-year@example.com", "first-year@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        calendar_url = reverse("cafeteria:school_calendar")
+        response = self.client.get(calendar_url)
+        self.assertContains(response, "Crea el primer curs acadèmic")
+        response = self.client.post(reverse("cafeteria:academic_year_create"), {
+            "name": "2026-2027", "starts_on": "2026-09-01", "ends_on": "2027-06-30", "is_active": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(AcademicYear.objects.filter(name="2026-2027", is_active=True).exists())
+
     def test_member_dashboard_and_responsive_booking_view_render(self):
         self.client.force_login(self.user)
         with translation.override("ca"):
