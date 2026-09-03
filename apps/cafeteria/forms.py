@@ -13,9 +13,11 @@ from .models import (
     Invitation,
     MealSettings,
     MealPlan,
+    PortalSettings,
     PriceRule,
     Role,
     Student,
+    TeacherMealProfile,
 )
 
 
@@ -23,13 +25,14 @@ class InvitationForm(forms.ModelForm):
     class Meta:
         model = Invitation
         fields = ("email", "role", "family")
+        labels = {"email": _("Correu electrònic"), "role": _("Tipus d'accés"), "family": _("Família")}
 
     def clean(self):
         cleaned = super().clean()
         role = cleaned.get("role")
         family = cleaned.get("family")
         if role == Role.TUTOR and not family:
-            self.add_error("family", _("Cal seleccionar una família per convidar un tutor."))
+            self.add_error("family", _("Cal seleccionar una família per convidar una persona tutora."))
         if role != Role.TUTOR and family:
             self.add_error("family", _("Les invitacions de personal no es vinculen a una família."))
         return cleaned
@@ -83,6 +86,19 @@ class StaffStudentForm(forms.ModelForm):
         }
 
 
+class TeacherMealProfileForm(forms.ModelForm):
+    class Meta:
+        model = TeacherMealProfile
+        fields = ("default_diet", "meal_plan", "active", "notes")
+        widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
+        labels = {
+            "default_diet": _("Dieta predeterminada"),
+            "meal_plan": _("Modalitat"),
+            "active": _("Actiu"),
+            "notes": _("Observacions"),
+        }
+
+
 class AcademicYearForm(forms.ModelForm):
     class Meta:
         model = AcademicYear
@@ -119,6 +135,14 @@ class MealSettingsForm(forms.ModelForm):
         }
 
 
+class PortalSettingsForm(forms.ModelForm):
+    class Meta:
+        model = PortalSettings
+        fields = ("school_menu_url",)
+        labels = {"school_menu_url": _("Enllaç al menú de l'escola")}
+        widgets = {"school_menu_url": forms.URLInput(attrs={"placeholder": "https://…"})}
+
+
 class DailyReportRecipientForm(forms.ModelForm):
     class Meta:
         model = DailyReportRecipient
@@ -149,6 +173,12 @@ class PriceRuleForm(forms.ModelForm):
     class Meta:
         model = PriceRule
         fields = ("scholarship", "meal_plan", "effective_from", "amount")
+        labels = {
+            "scholarship": _("Amb ajut de menjador"),
+            "meal_plan": _("Modalitat"),
+            "effective_from": _("Vàlida des de"),
+            "amount": _("Preu per àpat (€)"),
+        }
         widgets = {"effective_from": forms.DateInput(attrs={"type": "date"})}
 
 

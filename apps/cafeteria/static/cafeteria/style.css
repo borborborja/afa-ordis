@@ -12,6 +12,86 @@
   --shadow: 0 12px 36px rgba(36, 62, 53, 0.09);
   --radius: 18px;
 }
+
+.joint-booking-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.joint-child-card {
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.joint-booking-form > label,
+.joint-child-card > label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.checkbox-line {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.week-day em {
+  font-size: .62rem;
+  color: var(--forest);
+  font-style: normal;
+}
+
+.calendar-overview {
+  margin-top: 20px;
+}
+
+.calendar-grid small {
+  display: block;
+  color: var(--forest);
+  font-weight: 800;
+}
+
+.planning-list,
+.daily-booking-list {
+  display: grid;
+  gap: 8px;
+}
+
+.planning-list article,
+.daily-booking-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.planning-list small,
+.daily-booking-list span {
+  color: var(--muted);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--mint);
+  color: var(--forest);
+  font-size: .75rem;
+}
 * {
   box-sizing: border-box;
 }

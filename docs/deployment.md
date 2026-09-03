@@ -51,6 +51,8 @@ SMTP_USE_TLS=true
 DEFAULT_FROM_EMAIL=Menjador AFA Ordis <menjador@exemple.cat>
 ```
 
+SMTP és opcional per poder començar: sense `SMTP_HOST`, les invitacions i els enllaços de restauració es generen igualment i l'administració els pot copiar des del portal. Configura'l abans d'activar enviaments automàtics d'informes o resums.
+
 El superusuari només es crea si la base de dades no conté usuaris. Després de la primera arrencada, es pot treure `SUPERUSER_PASSWORD` del fitxer; no es tornarà a aplicar ni a imprimir als logs.
 
 ## 3. Arrencar i comprovar

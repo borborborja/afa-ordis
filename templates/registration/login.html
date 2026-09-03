@@ -2,9 +2,9 @@
 {% block title %}Entrar · AFA Ordis{% endblock %}
 {% block content %}
 <section class="auth-card card">
-  <p class="eyebrow">Portal de famílies</p>
-  <h1>Benvinguda, benvingut</h1>
-  <p>Entra per gestionar les reserves de menjador de la teva família.</p>
+  <p class="eyebrow">Portal de menjador</p>
+  <h1>Benvinguda</h1>
+  <p>Entra per gestionar les reserves de menjador vinculades al teu compte.</p>
   <form method="post" class="stack-form">{% csrf_token %}
     {{ form.non_field_errors }}
     <label>Correu electrònic {{ form.username }}</label>

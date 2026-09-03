@@ -6,7 +6,7 @@ Portal autogestionat per a la gestió de reserves de menjador, famílies, dietes
 
 - Docker Engine amb Docker Compose.
 - Traefik ja operatiu, amb una xarxa Docker externa `proxy`, entrada `websecure` i un resolutor TLS.
-- Un compte SMTP per enviar invitacions, informes i resums.
+- Un compte SMTP (opcional al principi) per enviar invitacions, recuperacions de contrasenya, informes i resums.
 
 ## Posada en marxa
 
@@ -31,19 +31,21 @@ Per a un servidor públic, consulta la [guia de desplegament](docs/deployment.md
 ## Configuració inicial recomanada
 
 1. Entra a **Gestió → Calendari** amb el superusuari, crea o activa el curs `2026-2027`, afegeix els grups/classes i usa **Genera dies lectius**. Després marca els festius i excursions necessaris.
-2. A **Gestió → Configuració** crea el catàleg de dietes, l'hora límit, l'activació dels informes diaris i els correus destinataris de cuina. A **Tarifes** crea les quatre combinacions: becat/no becat × fix/esporàdic.
-3. Afegeix famílies i alumnes individualment a **Famílies i alumnes**, o baixa la plantilla i valida una importació a **Importa CSV**. La importació no envia invitacions ni aplica canvis fins que es confirma la previsualització.
-4. Des de **Invitacions**, l'administració pot convidar tutors, gestors o altres administradors. Els tutors reben un enllaç d’un sol ús o se’ls pot compartir manualment.
-5. Revisa els informes i resums mensuals abans de tancar-los i enviar-los a cada família.
+2. A **Gestió → Configuració** crea el catàleg de dietes (cada infant en necessita una de predeterminada), l'hora límit, l'activació dels informes diaris i els correus destinataris de cuina. A **Tarifes** crea les quatre combinacions: amb/sense ajut de menjador × fix/esporàdic.
+3. Afegeix famílies i alumnat individualment a **Famílies i alumnat**, o baixa la plantilla i valida una importació a **Importa CSV**. La importació no envia invitacions ni aplica canvis fins que es confirma la previsualització.
+4. Des de **Invitacions**, l'administració pot convidar persones tutores, gestió de menjador, personal docent o administració. Cada invitació crea un enllaç d’un sol ús; si no hi ha SMTP, es pot copiar i compartir de forma segura.
+5. Des de **Comptes**, l'administració consulta les persones registrades i pot generar un enllaç personal de restauració de contrasenya. Des de **Enllaç del menú**, administració i gestió de menjador actualitzen la pàgina pública del menú escolar.
+6. Revisa els informes i resums mensuals abans de tancar-los i enviar-los a cada família o persona del personal docent.
 
-Els gestors poden operar el menjador, preus, informes i resums; no poden crear famílies, alumnes ni invitacions. Els tutors poden editar la fitxa dels seus infants, menys la condició de beca.
+Gestió de menjador pot operar les reserves, preus, llistats, planificació mensual, resums i l'enllaç del menú; no pot crear famílies, alumnat ni invitacions. Les persones tutores poden editar la fitxa dels infants vinculats, menys la condició d'ajut de menjador.
 
 ## Operativa
 
-- Els tutors veuen targetes setmanals fàcils d'usar des del mòbil i una graella mensual a l'escriptori. Els dies no lectius, excursions del curs i períodes bloquejats no es poden reservar.
+- Les persones tutores veuen una graella setmanal conjunta per marcar àpats de tots els infants d'una família, amb opció de copiar els dies seleccionats, i una vista mensual de consulta. Poden canviar la dieta només als dies necessaris.
 - En arribar a l’hora límit, es genera i s’envia el llistat diari. Canvis posteriors només els poden fer gestor o administració, amb motiu i auditoria; el llistat queda marcat per reenviar-lo com a correcció.
-- Les excursions anul·len automàticament les reserves del curs, no les facturen i avisen les famílies afectades.
-- Els resums mensuals es preparen automàticament en el dia/hora configurats. S’han de tancar abans d’enviar-los per correu; es poden consultar, imprimir com a PDF des del navegador o exportar a CSV.
+- Les excursions es marquen al calendari i permeten reservar l'àpat. Les reserves afectades es mostren com a **carmanyola** i conserven la mateixa tarifa.
+- El personal docent té reserves i resum mensual propis, amb les tarifes estàndard de fix o esporàdic.
+- Els llistats diaris es poden consultar per a qualsevol data i la planificació mensual mostra les reserves programades. Els resums mensuals es preparen automàticament en el dia/hora configurats; s’han de tancar abans d’enviar-los per correu i les famílies els poden exportar a CSV.
 
 ## Manteniment
 

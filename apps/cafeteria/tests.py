@@ -23,14 +23,17 @@ from .models import (
     FamilyImportBatch,
     Invitation,
     MealBooking,
+    MealType,
     MealPlan,
     MealSettings,
     PriceRule,
     ServiceDay,
     StatementStatus,
     Student,
+    TeacherMealBooking,
+    TeacherMealProfile,
 )
-from .services import prepare_monthly_statement
+from .services import prepare_monthly_statement, prepare_teacher_monthly_statement
 from .tasks import send_daily_report
 
 
@@ -73,12 +76,29 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(booking.unit_price, Decimal("6.50"))
         self.assertEqual(booking.diet_name, "Ordinària")
 
+    def test_joint_booking_copies_to_siblings_and_marks_packed_lunch(self):
+        sibling = Student.objects.create(
+            family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
+            default_diet=self.diet, meal_plan=MealPlan.FIXED,
+        )
+        CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió")
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:family_bulk_booking", args=[self.family.id]), {
+            f"dates_{self.student.id}": [self.today.isoformat()],
+            "copy_to_all": "1", "copy_from": self.student.id, "action": "add",
+        })
+        self.assertEqual(response.status_code, 302)
+        bookings = MealBooking.objects.filter(student__in=[self.student, sibling], date=self.today)
+        self.assertEqual(bookings.count(), 2)
+        self.assertTrue(all(booking.meal_type == MealType.PACKED_LUNCH for booking in bookings))
+
     def test_tutor_cannot_change_scholarship_status(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
             "first_name": "Núria",
             "last_name": "Puig",
             "course_group": self.group.id,
+            "default_diet": self.diet.id,
             "meal_plan": MealPlan.SPORADIC,
             "is_scholarship": "on",
             "active": "on",
@@ -88,12 +108,12 @@ class CafeteriaFlowTests(TestCase):
         self.assertFalse(self.student.is_scholarship)
         self.assertEqual(self.student.meal_plan, MealPlan.SPORADIC)
 
-    @patch("apps.cafeteria.tasks.send_course_closure_notification")
-    def test_course_closure_cancels_existing_bookings(self, delayed_email):
+    def test_course_closure_keeps_existing_booking(self):
         booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
         CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió")
         booking.refresh_from_db()
-        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(booking.status, BookingStatus.ACTIVE)
+        self.assertEqual(booking.meal_type, MealType.PACKED_LUNCH)
 
     def test_monthly_statement_uses_booked_price(self):
         MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
@@ -109,11 +129,39 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["cuina@example.com"])
 
+    @override_settings(EMAIL_HOST="mail.example.test")
     def test_password_reset_uses_the_namespaced_portal_url(self):
         response = self.client.post(reverse("cafeteria:password_reset"), {"email": self.user.email})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("/ca/comptes/contrasenya/", mail.outbox[0].body)
+
+    @override_settings(EMAIL_HOST="")
+    def test_administration_can_copy_a_reset_link_without_smtp(self):
+        admin = User.objects.create_superuser("reset@example.com", "reset@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("cafeteria:account_reset_link", args=[self.user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "/comptes/contrasenya/")
+
+    def test_teacher_invitation_creates_profile_booking_and_statement(self):
+        admin = User.objects.create_superuser("teacher-admin@example.com", "teacher-admin@example.com", "correct-horse-battery-staple")
+        invitation = Invitation.objects.create(email="teacher@example.com", role="teacher", created_by=admin)
+        self.client.post(reverse("cafeteria:invitation_accept", args=[invitation.token]), {
+            "first_name": "Alex", "last_name": "Ferrer",
+            "new_password1": "another-correct-horse-battery-staple",
+            "new_password2": "another-correct-horse-battery-staple",
+        })
+        profile = TeacherMealProfile.objects.get(user__email="teacher@example.com")
+        PriceRule.objects.create(scholarship=False, meal_plan=MealPlan.SPORADIC, effective_from=self.today - timedelta(days=1), amount=Decimal("7.00"))
+        response = self.client.post(reverse("cafeteria:teacher_bulk_booking"), {
+            "dates": [self.today.isoformat()], "action": "add",
+        })
+        self.assertEqual(response.status_code, 302)
+        booking = TeacherMealBooking.objects.get(teacher=profile, date=self.today)
+        self.assertEqual(booking.unit_price, Decimal("7.00"))
+        statement = prepare_teacher_monthly_statement(profile, self.today.year, self.today.month)
+        self.assertEqual(statement.total, Decimal("7.00"))
 
     def test_public_django_admin_route_is_disabled(self):
         self.assertEqual(self.client.get("/ca/admin/").status_code, 404)

@@ -1,0 +1,7 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Menjador del personal docent" %}{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">{% translate "Personal docent" %}</p><h1>{% translate "Les meves reserves" %}</h1><p>{% translate "Reserva els teus àpats i consulta els resums mensuals des d'un sol lloc." %}</p></div><a class="button primary" href="{% url 'cafeteria:teacher_calendar' %}">{% translate "Gestiona les reserves" %}</a></section>
+<section class="card"><h2>{% translate "Properes reserves" %}</h2><ul class="simple-list">{% for booking in upcoming %}<li><strong>{{ booking.date|date:"D d/m" }}</strong> · {% if booking.meal_type == 'packed_lunch' %}{% translate "Carmanyola" %}{% else %}{{ booking.diet_name }}{% endif %}</li>{% empty %}<li>{% translate "Encara no hi ha cap reserva programada." %}</li>{% endfor %}</ul></section>
+{% endblock %}

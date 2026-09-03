@@ -16,17 +16,22 @@
       <a class="brand" href="{% url 'cafeteria:dashboard' %}"><img class="school-logo" src="{% static 'cafeteria/images/logo-escola-maria-pages-ordis.png' %}" alt="Escola Maria Pagès i Texer, Ordis"><span>AFA Ordis<small>Menjador</small></span></a>
       <nav class="main-nav">
         <a href="{% url 'cafeteria:dashboard' %}"><span>⌂</span>{% translate "Inici" %}</a>
+        <a href="{{ school_menu_url }}" target="_blank" rel="noopener"><span>▤</span>{% translate "Menú" %}</a>
         {% if can_administer %}
           <a href="{% url 'cafeteria:management_dashboard' %}"><span>▦</span>{% translate "Gestió" %}</a>
           <a href="{% url 'cafeteria:people' %}"><span>♧</span>{% translate "Famílies i alumnes" %}</a>
+          <a href="{% url 'cafeteria:accounts' %}"><span>◉</span>{% translate "Comptes" %}</a>
           <a href="{% url 'cafeteria:school_calendar' %}"><span>▣</span>{% translate "Calendari" %}</a>
           <a href="{% url 'cafeteria:meal_configuration' %}"><span>◒</span>{% translate "Configuració" %}</a>
           <a href="{% url 'cafeteria:family_import' %}"><span>⇧</span>{% translate "Importa CSV" %}</a>
         {% endif %}
         {% if can_manage_meals %}
           <a href="{% url 'cafeteria:daily_reports' %}"><span>☷</span>{% translate "Llistats diaris" %}</a>
+          <a href="{% url 'cafeteria:monthly_planning' %}"><span>▦</span>{% translate "Planificació mensual" %}</a>
           <a href="{% url 'cafeteria:price_rules' %}"><span>€</span>{% translate "Tarifes" %}</a>
+          <a href="{% url 'cafeteria:menu_settings' %}"><span>↗</span>{% translate "Enllaç del menú" %}</a>
         {% endif %}
+        {% if is_teacher_user and not can_manage_meals %}<a href="{% url 'cafeteria:teacher_calendar' %}"><span>▦</span>{% translate "Les meves reserves" %}</a>{% endif %}
         <a href="{% url 'cafeteria:monthly_statements' %}"><span>▤</span>{% translate "Resums" %}</a>
         {% if can_administer %}<a href="{% url 'cafeteria:invitation_create' %}"><span>✉</span>{% translate "Invitacions" %}</a>{% endif %}
       </nav>
@@ -38,8 +43,10 @@
           <summary aria-label="Obre el menú">☰ <span>{% translate "Menú" %}</span></summary>
           <nav>
             <a href="{% url 'cafeteria:dashboard' %}">{% translate "Inici" %}</a>
-            {% if can_administer %}<a href="{% url 'cafeteria:management_dashboard' %}">{% translate "Gestió" %}</a><a href="{% url 'cafeteria:people' %}">{% translate "Famílies i alumnes" %}</a><a href="{% url 'cafeteria:school_calendar' %}">{% translate "Calendari" %}</a><a href="{% url 'cafeteria:meal_configuration' %}">{% translate "Configuració" %}</a>{% endif %}
-            {% if can_manage_meals %}<a href="{% url 'cafeteria:daily_reports' %}">{% translate "Llistats diaris" %}</a><a href="{% url 'cafeteria:price_rules' %}">{% translate "Tarifes" %}</a>{% endif %}
+            <a href="{{ school_menu_url }}" target="_blank" rel="noopener">{% translate "Menú" %}</a>
+            {% if can_administer %}<a href="{% url 'cafeteria:management_dashboard' %}">{% translate "Gestió" %}</a><a href="{% url 'cafeteria:people' %}">{% translate "Famílies i alumnat" %}</a><a href="{% url 'cafeteria:accounts' %}">{% translate "Comptes" %}</a><a href="{% url 'cafeteria:school_calendar' %}">{% translate "Calendari" %}</a><a href="{% url 'cafeteria:meal_configuration' %}">{% translate "Configuració" %}</a>{% endif %}
+            {% if can_manage_meals %}<a href="{% url 'cafeteria:daily_reports' %}">{% translate "Llistats diaris" %}</a><a href="{% url 'cafeteria:monthly_planning' %}">{% translate "Planificació mensual" %}</a><a href="{% url 'cafeteria:price_rules' %}">{% translate "Tarifes" %}</a><a href="{% url 'cafeteria:menu_settings' %}">{% translate "Enllaç del menú" %}</a>{% endif %}
+            {% if is_teacher_user and not can_manage_meals %}<a href="{% url 'cafeteria:teacher_calendar' %}">{% translate "Les meves reserves" %}</a>{% endif %}
             <a href="{% url 'cafeteria:monthly_statements' %}">{% translate "Resums" %}</a>
           </nav>
         </details>

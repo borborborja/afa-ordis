@@ -14,9 +14,10 @@ from django.utils import timezone
 
 
 class Role(models.TextChoices):
-    ADMIN = "admin", "Administrador"
-    MANAGER = "manager", "Gestor de menjador"
-    TUTOR = "tutor", "Tutor"
+    ADMIN = "admin", "Administració"
+    MANAGER = "manager", "Gestió de menjador"
+    TUTOR = "tutor", "Persona tutora"
+    TEACHER = "teacher", "Personal docent"
 
 
 STAFF_ROLES = {Role.ADMIN, Role.MANAGER}
@@ -43,6 +44,27 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return self.user.get_full_name() or self.user.email
+
+
+class PortalSettings(models.Model):
+    """Single shared setting for links that are useful to every account."""
+
+    school_menu_url = models.URLField(default="https://agora.xtec.cat/esc-mariapages-ordis/")
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="updated_portal_settings",
+    )
+
+    class Meta:
+        verbose_name = "Configuració del portal"
+
+    def clean(self):
+        if self.pk and type(self).objects.exclude(pk=self.pk).exists():
+            raise ValidationError("Només pot existir una configuració del portal.")
+
+    def __str__(self) -> str:
+        return "Configuració del portal"
 
 
 class AcademicYear(models.Model):
@@ -123,7 +145,7 @@ class Family(models.Model):
 class FamilyMembership(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_memberships")
-    label = models.CharField(max_length=80, blank=True, help_text="Exemple: mare, pare, tutor legal")
+    label = models.CharField(max_length=80, blank=True, help_text="Exemple: persona tutora o contacte principal")
     is_primary_contact = models.BooleanField(default=False)
 
     class Meta:
@@ -138,6 +160,11 @@ class MealPlan(models.TextChoices):
     SPORADIC = "sporadic", "Esporàdic"
 
 
+class MealType(models.TextChoices):
+    REGULAR = "regular", "Menú convencional"
+    PACKED_LUNCH = "packed_lunch", "Carmanyola"
+
+
 class Student(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="students")
     course_group = models.ForeignKey(CourseGroup, null=True, blank=True, on_delete=models.SET_NULL, related_name="students")
@@ -147,9 +174,9 @@ class Student(models.Model):
     contact_email = models.EmailField(blank=True)
     contact_phone = models.CharField(max_length=32, blank=True)
     contact_notes = models.TextField(blank=True)
-    default_diet = models.ForeignKey(Diet, null=True, blank=True, on_delete=models.SET_NULL, related_name="students")
+    default_diet = models.ForeignKey(Diet, on_delete=models.PROTECT, related_name="students")
     dietary_notes = models.TextField(blank=True)
-    is_scholarship = models.BooleanField(default=False, verbose_name="Alumne becat")
+    is_scholarship = models.BooleanField(default=False, verbose_name="Ajut de menjador")
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices, default=MealPlan.FIXED)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -167,6 +194,28 @@ class Student(models.Model):
         return f"{'scholarship' if self.is_scholarship else 'standard'}_{self.meal_plan}"
 
     def __str__(self) -> str:
+        return self.full_name
+
+
+class TeacherMealProfile(models.Model):
+    """Dining profile for a member of the teaching staff, never tied to a family."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="teacher_meal_profile")
+    default_diet = models.ForeignKey(Diet, on_delete=models.PROTECT, related_name="teacher_profiles")
+    meal_plan = models.CharField(max_length=12, choices=MealPlan.choices, default=MealPlan.SPORADIC)
+    active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user__first_name", "user__last_name", "user__email"]
+
+    @property
+    def full_name(self):
+        return self.user.get_full_name() or self.user.email
+
+    def __str__(self):
         return self.full_name
 
 
@@ -249,17 +298,21 @@ class PriceRule(models.Model):
         constraints = [models.UniqueConstraint(fields=["scholarship", "meal_plan", "effective_from"], name="unique_price_effectivity")]
 
     def __str__(self) -> str:
-        benefit = "Becat" if self.scholarship else "No becat"
+        benefit = "Amb ajut de menjador" if self.scholarship else "Sense ajut de menjador"
         return f"{benefit} · {self.get_meal_plan_display()} · {self.amount} € des de {self.effective_from:%d/%m/%Y}"
 
     @classmethod
-    def amount_for(cls, student: Student, service_date: date) -> Decimal | None:
+    def amount_for_category(cls, scholarship: bool, meal_plan: str, service_date: date) -> Decimal | None:
         rule = cls.objects.filter(
-            scholarship=student.is_scholarship,
-            meal_plan=student.meal_plan,
+            scholarship=scholarship,
+            meal_plan=meal_plan,
             effective_from__lte=service_date,
         ).order_by("-effective_from").first()
         return rule.amount if rule else None
+
+    @classmethod
+    def amount_for(cls, student: Student, service_date: date) -> Decimal | None:
+        return cls.amount_for_category(student.is_scholarship, student.meal_plan, service_date)
 
 
 class BookingStatus(models.TextChoices):
@@ -272,6 +325,7 @@ class MealBooking(models.Model):
     date = models.DateField()
     diet = models.ForeignKey(Diet, null=True, blank=True, on_delete=models.SET_NULL, related_name="bookings")
     diet_name = models.CharField(max_length=80, blank=True)
+    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
     status = models.CharField(max_length=12, choices=BookingStatus.choices, default=BookingStatus.ACTIVE)
     unit_price = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_bookings")
@@ -285,8 +339,7 @@ class MealBooking(models.Model):
         constraints = [models.UniqueConstraint(fields=["student", "date"], name="unique_meal_booking")]
 
     def clean(self):
-        if self.student.course_group and CourseClosure.objects.filter(course_group=self.student.course_group, date=self.date).exists():
-            raise ValidationError("L'alumne té una excursió aquest dia.")
+        return super().clean()
 
     def save(self, *args, **kwargs):
         if self.diet and not self.diet_name:
@@ -297,6 +350,35 @@ class MealBooking(models.Model):
 
     def __str__(self) -> str:
         return f"{self.student} · {self.date:%d/%m/%Y}"
+
+
+class TeacherMealBooking(models.Model):
+    teacher = models.ForeignKey(TeacherMealProfile, on_delete=models.CASCADE, related_name="bookings")
+    date = models.DateField()
+    diet = models.ForeignKey(Diet, null=True, blank=True, on_delete=models.SET_NULL, related_name="teacher_bookings")
+    diet_name = models.CharField(max_length=80, blank=True)
+    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
+    status = models.CharField(max_length=12, choices=BookingStatus.choices, default=BookingStatus.ACTIVE)
+    unit_price = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_teacher_bookings")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="updated_teacher_bookings")
+    override_reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["date", "teacher__user__first_name", "teacher__user__last_name"]
+        constraints = [models.UniqueConstraint(fields=["teacher", "date"], name="unique_teacher_meal_booking")]
+
+    def save(self, *args, **kwargs):
+        if self.diet and not self.diet_name:
+            self.diet_name = self.diet.name
+        if self.unit_price is None and self.status == BookingStatus.ACTIVE:
+            self.unit_price = PriceRule.amount_for_category(False, self.teacher.meal_plan, self.date)
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.teacher} · {self.date:%d/%m/%Y}"
 
 
 class DailyReport(models.Model):
@@ -348,6 +430,7 @@ class StatementLine(models.Model):
     student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="statement_lines")
     service_date = models.DateField()
     diet_name = models.CharField(max_length=80, blank=True)
+    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices)
     scholarship = models.BooleanField(default=False)
     unit_price = models.DecimalField(max_digits=7, decimal_places=2)
@@ -358,6 +441,38 @@ class StatementLine(models.Model):
 
     def __str__(self) -> str:
         return f"{self.student} · {self.service_date:%d/%m/%Y}"
+
+
+class TeacherMonthlyStatement(models.Model):
+    teacher = models.ForeignKey(TeacherMealProfile, on_delete=models.CASCADE, related_name="statements")
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    status = models.CharField(max_length=12, choices=StatementStatus.choices, default=StatementStatus.PREPARED)
+    total = models.DecimalField(max_digits=9, decimal_places=2, default=Decimal("0.00"))
+    prepared_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="closed_teacher_statements")
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-year", "-month", "teacher__user__first_name"]
+        constraints = [models.UniqueConstraint(fields=["teacher", "year", "month"], name="unique_teacher_monthly_statement")]
+
+    def __str__(self):
+        return f"{self.teacher} · {self.month:02d}/{self.year}"
+
+
+class TeacherStatementLine(models.Model):
+    statement = models.ForeignKey(TeacherMonthlyStatement, on_delete=models.CASCADE, related_name="lines")
+    service_date = models.DateField()
+    diet_name = models.CharField(max_length=80, blank=True)
+    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
+    meal_plan = models.CharField(max_length=12, choices=MealPlan.choices)
+    unit_price = models.DecimalField(max_digits=7, decimal_places=2)
+
+    class Meta:
+        ordering = ["service_date"]
+        constraints = [models.UniqueConstraint(fields=["statement", "service_date"], name="unique_teacher_statement_line")]
 
 
 class Invitation(models.Model):

@@ -9,14 +9,19 @@ from io import StringIO
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.encoding import force_bytes
 from django.utils import timezone
+from django.utils.http import urlsafe_base64_encode
 from django.utils import translation
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
@@ -35,6 +40,8 @@ from .forms import (
     PriceRuleForm,
     StaffStudentForm,
     TutorStudentForm,
+    PortalSettingsForm,
+    TeacherMealProfileForm,
 )
 from .models import (
     AcademicYear,
@@ -50,20 +57,29 @@ from .models import (
     FamilyMembership,
     Invitation,
     MealBooking,
+    MealType,
     MealSettings,
     MealPlan,
     MonthlyStatement,
+    PortalSettings,
     PriceRule,
     Role,
     ServiceDay,
     StatementStatus,
     Student,
+    TeacherMealBooking,
+    TeacherMealProfile,
+    TeacherMonthlyStatement,
     ensure_role_groups,
     log_event,
     user_has_role,
 )
-from .services import is_service_day, is_tutor_locked, prepare_monthly_statement, reprice_open_bookings
-from .tasks import send_daily_report, send_monthly_statement
+from .services import (
+    bookings_for_day, is_service_day, is_tutor_locked,
+    prepare_statements_for_month, reprice_open_bookings,
+    teacher_bookings_for_day,
+)
+from .tasks import send_daily_report, send_monthly_statement, send_teacher_monthly_statement
 
 
 def _is_staff(user):
@@ -72,6 +88,66 @@ def _is_staff(user):
 
 def _is_admin(user):
     return user_has_role(user, Role.ADMIN)
+
+
+def _is_teacher(user):
+    return user_has_role(user, Role.TEACHER)
+
+
+def _ordinary_diet():
+    diet, _created = Diet.objects.get_or_create(
+        name="Ordinària", defaults={"description": "Dieta habitual", "active": True}
+    )
+    return diet
+
+
+def _return_to_calendar(family_id, selected_dates):
+    month = selected_dates[0].strftime("%Y-%m") if selected_dates else timezone.localdate().strftime("%Y-%m")
+    return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?month={month}")
+
+
+def _update_student_booking(*, actor, student, service_date, action, diet, reason=""):
+    """Apply one requested meal without silently changing dates outside the service."""
+    locked = is_tutor_locked(service_date)
+    if locked and not _is_staff(actor):
+        return False, "locked"
+    if locked and _is_staff(actor) and not reason:
+        return False, "reason_required"
+    if not is_service_day(service_date, student):
+        return False, "unavailable"
+    booking = MealBooking.objects.filter(student=student, date=service_date).first()
+    if action == "cancel":
+        if not booking or booking.status != BookingStatus.ACTIVE:
+            return False, "unchanged"
+        booking.status = BookingStatus.CANCELLED
+        booking.updated_by = actor
+        booking.override_reason = reason
+        booking.save(update_fields=["status", "updated_by", "override_reason", "updated_at"])
+        log_event(actor, "booking.cancelled", booking, {"after_cutoff": locked, "reason": reason})
+    else:
+        selected_diet = diet or student.default_diet or _ordinary_diet()
+        excursion = CourseClosure.objects.filter(course_group=student.course_group, date=service_date).exists()
+        meal_type = MealType.PACKED_LUNCH if excursion else MealType.REGULAR
+        if booking:
+            booking.status = BookingStatus.ACTIVE
+            booking.diet = selected_diet
+            booking.diet_name = selected_diet.name
+            booking.meal_type = meal_type
+            booking.updated_by = actor
+            booking.override_reason = reason
+            booking.unit_price = PriceRule.amount_for(student, service_date)
+            booking.save()
+        else:
+            booking = MealBooking.objects.create(
+                student=student, date=service_date, diet=selected_diet,
+                diet_name=selected_diet.name, meal_type=meal_type, created_by=actor,
+                updated_by=actor, override_reason=reason,
+            )
+        log_event(actor, "booking.created_or_updated", booking, {
+            "after_cutoff": locked, "reason": reason, "meal_type": meal_type,
+        })
+    DailyReport.objects.filter(date=service_date, sent_at__isnull=False).update(is_outdated=True)
+    return True, "updated"
 
 
 def staff_required(view):
@@ -107,21 +183,33 @@ def healthcheck(request):
 def dashboard(request):
     today = timezone.localdate()
     if _is_staff(request.user):
-        active_bookings = MealBooking.objects.filter(date=today, status=BookingStatus.ACTIVE).select_related("student", "diet")
+        active_bookings = bookings_for_day(today)
+        staff_bookings = teacher_bookings_for_day(today)
         diets = {}
-        for booking in active_bookings:
-            name = booking.diet_name or _("Ordinària")
+        for booking in list(active_bookings) + list(staff_bookings):
+            name = _("Carmanyola") if booking.meal_type == MealType.PACKED_LUNCH else (booking.diet_name or _("Ordinària"))
             diets[name] = diets.get(name, 0) + 1
         context = {
             "is_staff": True,
             "today": today,
             "today_bookings": active_bookings[:12],
-            "today_total": active_bookings.count(),
+            "today_total": active_bookings.count() + staff_bookings.count(),
             "diet_totals": sorted(diets.items()),
             "pending_statements": MonthlyStatement.objects.filter(status=StatementStatus.PREPARED).count(),
             "outdated_reports": DailyReport.objects.filter(is_outdated=True).count(),
         }
         return render(request, "cafeteria/dashboard_staff.html", context)
+
+    if _is_teacher(request.user):
+        profile, _created = TeacherMealProfile.objects.get_or_create(
+            user=request.user, defaults={"default_diet": _ordinary_diet()}
+        )
+        upcoming = TeacherMealBooking.objects.filter(
+            teacher=profile, date__gte=today, status=BookingStatus.ACTIVE,
+        ).select_related("diet").order_by("date")[:8]
+        return render(request, "cafeteria/dashboard_teacher.html", {
+            "profile": profile, "upcoming": upcoming, "today": today,
+        })
 
     families = Family.objects.filter(memberships__user=request.user, active=True).prefetch_related("students__default_diet")
     upcoming = MealBooking.objects.filter(
@@ -144,7 +232,10 @@ def family_calendar(request, family_id):
     students = list(family.students.filter(active=True).select_related("default_diet", "course_group"))
     existing = MealBooking.objects.filter(student__in=students, date__range=(month_start, month_end)).select_related("diet")
     booking_map = {(booking.student_id, booking.date): booking for booking in existing}
-    global_days = {day.date: day for day in ServiceDay.objects.filter(date__range=(month_start, month_end))}
+    closures = {
+        (closure.course_group_id, closure.date): closure
+        for closure in CourseClosure.objects.filter(date__range=(month_start, month_end))
+    }
     weeks = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
     student_calendars = []
     for student in students:
@@ -160,6 +251,7 @@ def family_calendar(request, family_id):
                     "current_month": day.month == month_start.month,
                     "booking": booking,
                     "locked": is_tutor_locked(day) and not _is_staff(request.user),
+                    "excursion": closures.get((student.course_group_id, day)),
                 })
             grid.append(week_cells)
         student_calendars.append({"student": student, "weeks": grid})
@@ -182,6 +274,7 @@ def family_calendar(request, family_id):
             days.append({
                 "date": service_date, "available": is_service_day(service_date, student), "booking": booking,
                 "locked": is_tutor_locked(service_date) and not _is_staff(request.user),
+                "excursion": closures.get((student.course_group_id, service_date)),
             })
         weekly_calendars.append({"student": student, "days": days})
 
@@ -199,6 +292,7 @@ def family_calendar(request, family_id):
         "next_week": week_start + timedelta(days=7),
         "weekly_calendars": weekly_calendars,
         "is_staff": _is_staff(request.user),
+        "has_siblings": len(students) > 1,
     })
 
 
@@ -218,57 +312,156 @@ def bulk_booking(request, family_id):
     reason = request.POST.get("override_reason", "").strip()
     success, skipped = 0, 0
     for service_date in selected_dates:
-        locked = is_tutor_locked(service_date)
-        if locked and not _is_staff(request.user):
-            skipped += 1
-            continue
-        if locked and _is_staff(request.user) and not reason:
+        changed, result = _update_student_booking(
+            actor=request.user, student=student, service_date=service_date,
+            action=action, diet=diet, reason=reason,
+        )
+        if result == "reason_required":
             messages.error(request, _("Cal indicar el motiu de qualsevol canvi després de l'hora límit."))
-            return redirect(f"{reverse('cafeteria:family_calendar', args=[family.id])}?month={service_date:%Y-%m}")
-        if not is_service_day(service_date, student):
+            return _return_to_calendar(family.id, selected_dates)
+        if changed:
+            success += 1
+        elif result != "unchanged":
             skipped += 1
-            continue
-
-        booking = MealBooking.objects.filter(student=student, date=service_date).first()
-        if action == "cancel":
-            if booking and booking.status == BookingStatus.ACTIVE:
-                booking.status = BookingStatus.CANCELLED
-                booking.updated_by = request.user
-                booking.override_reason = reason
-                booking.save(update_fields=["status", "updated_by", "override_reason", "updated_at"])
-                log_event(request.user, "booking.cancelled", booking, {"after_cutoff": locked, "reason": reason})
-                success += 1
-            continue
-
-        selected_diet = diet or student.default_diet
-        if booking:
-            booking.status = BookingStatus.ACTIVE
-            booking.diet = selected_diet
-            booking.diet_name = selected_diet.name if selected_diet else _("Ordinària")
-            booking.updated_by = request.user
-            booking.override_reason = reason
-            booking.unit_price = PriceRule.amount_for(student, service_date)
-            booking.save()
-        else:
-            booking = MealBooking.objects.create(
-                student=student,
-                date=service_date,
-                diet=selected_diet,
-                diet_name=selected_diet.name if selected_diet else _("Ordinària"),
-                created_by=request.user,
-                updated_by=request.user,
-                override_reason=reason,
-            )
-        log_event(request.user, "booking.created_or_updated", booking, {"after_cutoff": locked, "reason": reason})
-        success += 1
-        DailyReport.objects.filter(date=service_date, sent_at__isnull=False).update(is_outdated=True)
 
     if success:
         messages.success(request, _("S'han actualitzat %(count)s dies de menjador.") % {"count": success})
     if skipped:
         messages.warning(request, _("S'han ignorat %(count)s dies no disponibles o bloquejats.") % {"count": skipped})
-    month = selected_dates[0].strftime("%Y-%m") if selected_dates else timezone.localdate().strftime("%Y-%m")
-    return redirect(f"{reverse('cafeteria:family_calendar', args=[family.id])}?month={month}")
+    return _return_to_calendar(family.id, selected_dates)
+
+
+@require_POST
+@login_required
+def family_bulk_booking(request, family_id):
+    """Joint weekly form: each child has independent days, with an optional copy action."""
+    family = _family_for_user_or_404(request.user, family_id)
+    students = list(family.students.filter(active=True).select_related("default_diet"))
+    action = request.POST.get("action")
+    reason = request.POST.get("override_reason", "").strip()
+    date_sets = {}
+    diets = {}
+    for student in students:
+        parsed = []
+        for raw_date in request.POST.getlist(f"dates_{student.id}"):
+            try:
+                parsed.append(date.fromisoformat(raw_date))
+            except ValueError:
+                pass
+        date_sets[student.id] = parsed
+        diets[student.id] = Diet.objects.filter(pk=request.POST.get(f"diet_{student.id}"), active=True).first()
+    source_id = request.POST.get("copy_from")
+    if request.POST.get("copy_to_all") == "1" and source_id and source_id.isdigit() and int(source_id) in date_sets:
+        source_dates, source_diet = date_sets[int(source_id)], diets[int(source_id)]
+        for student in students:
+            if student.id != int(source_id):
+                date_sets[student.id], diets[student.id] = source_dates, source_diet
+
+    success = skipped = 0
+    all_dates = []
+    for student in students:
+        for service_date in date_sets[student.id]:
+            all_dates.append(service_date)
+            changed, result = _update_student_booking(
+                actor=request.user, student=student, service_date=service_date, action=action,
+                diet=diets[student.id], reason=reason,
+            )
+            if result == "reason_required":
+                messages.error(request, _("Cal indicar el motiu de qualsevol canvi després de l'hora límit."))
+                return _return_to_calendar(family.id, all_dates)
+            if changed:
+                success += 1
+            elif result != "unchanged":
+                skipped += 1
+    if success:
+        messages.success(request, _("S'han actualitzat %(count)s reserves de menjador.") % {"count": success})
+    if skipped:
+        messages.warning(request, _("S'han ignorat %(count)s dies no disponibles o bloquejats.") % {"count": skipped})
+    return _return_to_calendar(family.id, all_dates)
+
+
+@login_required
+def teacher_calendar(request):
+    if not _is_teacher(request.user):
+        return HttpResponseForbidden(_("Aquesta pàgina és per al personal docent."))
+    profile, _created = TeacherMealProfile.objects.get_or_create(
+        user=request.user, defaults={"default_diet": _ordinary_diet()}
+    )
+    try:
+        week_start = date.fromisoformat(request.GET.get("week", ""))
+        week_start -= timedelta(days=week_start.weekday())
+    except ValueError:
+        today = timezone.localdate()
+        week_start = today - timedelta(days=today.weekday())
+    bookings = {booking.date: booking for booking in TeacherMealBooking.objects.filter(
+        teacher=profile, date__range=(week_start, week_start + timedelta(days=4))
+    ).select_related("diet")}
+    days = [
+        {
+            "date": week_start + timedelta(days=offset),
+            "available": is_service_day(week_start + timedelta(days=offset)),
+            "booking": bookings.get(week_start + timedelta(days=offset)),
+            "locked": is_tutor_locked(week_start + timedelta(days=offset)),
+        }
+        for offset in range(5)
+    ]
+    return render(request, "cafeteria/teacher_calendar.html", {
+        "profile": profile, "days": days, "diets": Diet.objects.filter(active=True),
+        "week_start": week_start, "previous_week": week_start - timedelta(days=7),
+        "next_week": week_start + timedelta(days=7),
+    })
+
+
+@require_POST
+@login_required
+def teacher_bulk_booking(request):
+    if not _is_teacher(request.user):
+        return HttpResponseForbidden(_("No tens permís per modificar aquestes reserves."))
+    profile, _created = TeacherMealProfile.objects.get_or_create(
+        user=request.user, defaults={"default_diet": _ordinary_diet()}
+    )
+    selected_dates = []
+    for raw_date in request.POST.getlist("dates"):
+        try:
+            selected_dates.append(date.fromisoformat(raw_date))
+        except ValueError:
+            pass
+    action = request.POST.get("action")
+    diet = Diet.objects.filter(pk=request.POST.get("diet_id"), active=True).first() or profile.default_diet
+    updated = skipped = 0
+    for service_date in selected_dates:
+        if is_tutor_locked(service_date) or not is_service_day(service_date):
+            skipped += 1
+            continue
+        booking = TeacherMealBooking.objects.filter(teacher=profile, date=service_date).first()
+        if action == "cancel":
+            if booking and booking.status == BookingStatus.ACTIVE:
+                booking.status = BookingStatus.CANCELLED
+                booking.updated_by = request.user
+                booking.save(update_fields=["status", "updated_by", "updated_at"])
+                updated += 1
+        elif booking:
+            booking.status = BookingStatus.ACTIVE
+            booking.diet = diet
+            booking.diet_name = diet.name
+            booking.meal_type = MealType.REGULAR
+            booking.updated_by = request.user
+            booking.unit_price = PriceRule.amount_for_category(False, profile.meal_plan, service_date)
+            booking.save()
+            updated += 1
+        else:
+            TeacherMealBooking.objects.create(
+                teacher=profile, date=service_date, diet=diet, diet_name=diet.name,
+                created_by=request.user, updated_by=request.user,
+            )
+            updated += 1
+        DailyReport.objects.filter(date=service_date, sent_at__isnull=False).update(is_outdated=True)
+    if updated:
+        messages.success(request, _("S'han actualitzat %(count)s reserves.") % {"count": updated})
+    if skipped:
+        messages.warning(request, _("Alguns dies no es poden modificar perquè no hi ha servei o ja s'ha tancat el termini."))
+    target = selected_dates[0].strftime("%Y-%m-%d") if selected_dates else timezone.localdate().strftime("%Y-%m-%d")
+    return redirect(f"{reverse('cafeteria:teacher_calendar')}?week={target}")
 
 
 @login_required
@@ -326,6 +519,8 @@ def _finish_invitation(invitation, user):
         user.save(update_fields=["is_staff"])
     if invitation.role == Role.TUTOR:
         FamilyMembership.objects.get_or_create(family=invitation.family, user=user)
+    if invitation.role == Role.TEACHER:
+        TeacherMealProfile.objects.get_or_create(user=user, defaults={"default_diet": _ordinary_diet()})
     invitation.accepted_at = timezone.now()
     invitation.save(update_fields=["accepted_at"])
     log_event(user, "invitation.accepted", invitation, {"role": invitation.role})
@@ -374,8 +569,23 @@ def price_rules(request):
 
 @staff_required
 def daily_reports(request):
+    try:
+        selected_date = date.fromisoformat(request.GET.get("date", ""))
+    except ValueError:
+        selected_date = timezone.localdate()
+    student_bookings = bookings_for_day(selected_date)
+    teacher_bookings = teacher_bookings_for_day(selected_date)
+    diet_totals = {}
+    for booking in list(student_bookings) + list(teacher_bookings):
+        name = _("Carmanyola") if booking.meal_type == MealType.PACKED_LUNCH else (booking.diet_name or _("Ordinària"))
+        diet_totals[name] = diet_totals.get(name, 0) + 1
     reports = DailyReport.objects.all()[:50]
-    return render(request, "cafeteria/daily_reports.html", {"reports": reports, "today": timezone.localdate()})
+    return render(request, "cafeteria/daily_reports.html", {
+        "reports": reports, "today": timezone.localdate(), "selected_date": selected_date,
+        "student_bookings": student_bookings, "teacher_bookings": teacher_bookings,
+        "diet_totals": sorted(diet_totals.items()),
+        "daily_total": student_bookings.count() + teacher_bookings.count(),
+    })
 
 
 @staff_required
@@ -391,7 +601,46 @@ def daily_report_send(request, service_date):
         messages.error(request, _("No s'ha pogut enviar l'informe. Revisa la configuració SMTP."))
     else:
         messages.success(request, _("S'ha enviat l'informe.") if sent else _("No hi ha configuració de destinataris per a aquest dia."))
-    return redirect("cafeteria:daily_reports")
+    return redirect(f"{reverse('cafeteria:daily_reports')}?date={report_date.isoformat()}")
+
+
+@staff_required
+def monthly_planning(request):
+    try:
+        month_start = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date().replace(day=1)
+    except ValueError:
+        month_start = timezone.localdate().replace(day=1)
+    month_end = month_start.replace(day=calendar.monthrange(month_start.year, month_start.month)[1])
+    student_bookings = MealBooking.objects.filter(
+        date__range=(month_start, month_end), status=BookingStatus.ACTIVE,
+    ).select_related("student", "diet")
+    teacher_bookings = TeacherMealBooking.objects.filter(
+        date__range=(month_start, month_end), status=BookingStatus.ACTIVE,
+    ).select_related("teacher__user", "diet")
+    grouped = {}
+    for booking in student_bookings:
+        day = grouped.setdefault(booking.date, {"students": [], "teachers": [], "diets": {}, "packed": 0})
+        day["students"].append(booking)
+        label = _("Carmanyola") if booking.meal_type == MealType.PACKED_LUNCH else (booking.diet_name or _("Ordinària"))
+        day["diets"][label] = day["diets"].get(label, 0) + 1
+        day["packed"] += booking.meal_type == MealType.PACKED_LUNCH
+    for booking in teacher_bookings:
+        day = grouped.setdefault(booking.date, {"students": [], "teachers": [], "diets": {}, "packed": 0})
+        day["teachers"].append(booking)
+        label = _("Carmanyola") if booking.meal_type == MealType.PACKED_LUNCH else (booking.diet_name or _("Ordinària"))
+        day["diets"][label] = day["diets"].get(label, 0) + 1
+        day["packed"] += booking.meal_type == MealType.PACKED_LUNCH
+    days = []
+    for offset in range((month_end - month_start).days + 1):
+        current = month_start + timedelta(days=offset)
+        data = grouped.get(current, {"students": [], "teachers": [], "diets": {}, "packed": 0})
+        if is_service_day(current) or data["students"] or data["teachers"]:
+            days.append({"date": current, **data, "total": len(data["students"]) + len(data["teachers"])})
+    return render(request, "cafeteria/monthly_planning.html", {
+        "month_start": month_start,
+        "previous_month": (month_start - timedelta(days=1)).replace(day=1),
+        "next_month": (month_end + timedelta(days=1)).replace(day=1), "days": days,
+    })
 
 
 def _statement_is_visible_to_user(statement, user):
@@ -401,9 +650,17 @@ def _statement_is_visible_to_user(statement, user):
 @login_required
 def monthly_statements(request):
     statements = MonthlyStatement.objects.select_related("family")
-    if not _is_staff(request.user):
+    teacher_statements = TeacherMonthlyStatement.objects.select_related("teacher__user")
+    if _is_teacher(request.user) and not _is_staff(request.user):
+        statements = statements.none()
+        teacher_statements = teacher_statements.filter(teacher__user=request.user)
+    elif not _is_staff(request.user):
         statements = statements.filter(family__memberships__user=request.user)
-    return render(request, "cafeteria/monthly_statements.html", {"statements": statements[:100], "is_staff": _is_staff(request.user)})
+        teacher_statements = teacher_statements.none()
+    return render(request, "cafeteria/monthly_statements.html", {
+        "statements": statements[:100], "teacher_statements": teacher_statements[:100],
+        "is_staff": _is_staff(request.user), "is_teacher": _is_teacher(request.user),
+    })
 
 
 @staff_required
@@ -417,11 +674,8 @@ def statement_prepare(request):
     except (KeyError, ValueError):
         messages.error(request, _("Mes no vàlid."))
         return redirect("cafeteria:monthly_statements")
-    count = 0
-    for family in Family.objects.filter(active=True):
-        prepare_monthly_statement(family, year, month)
-        count += 1
-    messages.success(request, _("S'han preparat %(count)s resums familiars.") % {"count": count})
+    count = prepare_statements_for_month(year, month)
+    messages.success(request, _("S'han preparat %(count)s resums mensuals.") % {"count": count})
     return redirect("cafeteria:monthly_statements")
 
 
@@ -474,10 +728,53 @@ def statement_csv(request, statement_id):
     writer = csv.writer(response)
     writer.writerow(["Data", "Alumne", "Dieta", "Modalitat", "Becat", "Import"])
     for line in statement.lines.select_related("student"):
-        writer.writerow([line.service_date.isoformat(), line.student.full_name, line.diet_name, line.get_meal_plan_display(), "Sí" if line.scholarship else "No", line.unit_price])
+        diet = "Carmanyola" if line.meal_type == MealType.PACKED_LUNCH else line.diet_name
+        writer.writerow([line.service_date.isoformat(), line.student.full_name, diet, line.get_meal_plan_display(), "Sí" if line.scholarship else "No", line.unit_price])
     writer.writerow([])
     writer.writerow(["Total", "", "", "", "", statement.total])
     return response
+
+
+def _teacher_statement_is_visible_to_user(statement, user):
+    return user.is_superuser or _is_staff(user) or statement.teacher.user_id == user.id
+
+
+@login_required
+def teacher_statement_detail(request, statement_id):
+    statement = get_object_or_404(TeacherMonthlyStatement.objects.select_related("teacher__user"), pk=statement_id)
+    if not _teacher_statement_is_visible_to_user(statement, request.user):
+        return HttpResponseForbidden(_("No tens permís per veure aquest resum."))
+    return render(request, "cafeteria/teacher_statement_detail.html", {"statement": statement, "is_staff": _is_staff(request.user)})
+
+
+@staff_required
+@require_POST
+def teacher_statement_close(request, statement_id):
+    statement = get_object_or_404(TeacherMonthlyStatement, pk=statement_id)
+    if statement.status == StatementStatus.PREPARED:
+        statement.status = StatementStatus.CLOSED
+        statement.closed_at = timezone.now()
+        statement.closed_by = request.user
+        statement.save(update_fields=["status", "closed_at", "closed_by"])
+    return redirect("cafeteria:teacher_statement_detail", statement_id=statement.id)
+
+
+@staff_required
+@require_POST
+def teacher_statement_send(request, statement_id):
+    statement = get_object_or_404(TeacherMonthlyStatement, pk=statement_id)
+    if statement.status == StatementStatus.PREPARED:
+        messages.error(request, _("Cal tancar el resum abans d'enviar-lo."))
+    elif not settings.EMAIL_HOST:
+        messages.warning(request, _("No hi ha SMTP configurat. Pots descarregar o consultar el resum des del portal."))
+    else:
+        try:
+            sent = send_teacher_monthly_statement(statement.id, request.user.id)
+        except Exception:
+            messages.error(request, _("No s'ha pogut enviar el resum. Revisa la configuració SMTP."))
+        else:
+            messages.success(request, _("S'ha enviat el resum.") if sent else _("La persona no té cap correu configurat."))
+    return redirect("cafeteria:teacher_statement_detail", statement_id=statement.id)
 
 
 @admin_required
@@ -497,6 +794,105 @@ def set_language(request):
         profile.language = language
         profile.save(update_fields=["language"])
     return redirect(request.POST.get("next") or reverse("cafeteria:dashboard"))
+
+
+def password_reset_request(request):
+    """Password reset that remains safe and usable before SMTP is configured."""
+    form = PasswordResetForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if settings.EMAIL_HOST:
+            try:
+                form.save(
+                    request=request,
+                    use_https=request.is_secure(),
+                    email_template_name="registration/password_reset_email.txt",
+                    subject_template_name="registration/password_reset_subject.txt",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                )
+            except Exception:
+                messages.warning(request, _("No s'ha pogut enviar el correu de recuperació. Torna-ho a provar o contacta amb ARAM (lleure@aramemporda.com)."))
+        else:
+            messages.info(request, _("La recuperació per correu encara no està configurada. Demana a l'administració un enllaç personal de restauració."))
+        return redirect("cafeteria:password_reset_done")
+    return render(request, "registration/password_reset_form.html", {"form": form, "smtp_configured": bool(settings.EMAIL_HOST)})
+
+
+def _password_reset_url(request, user):
+    path = reverse("cafeteria:password_reset_confirm", args=[
+        urlsafe_base64_encode(force_bytes(user.pk)), default_token_generator.make_token(user),
+    ])
+    return f"{settings.APP_BASE_URL}{path}" if settings.APP_BASE_URL else request.build_absolute_uri(path)
+
+
+def _accounts_context(request):
+    query = request.GET.get("q", "").strip()
+    users = User.objects.select_related("profile", "teacher_meal_profile").prefetch_related("groups", "family_memberships__family")
+    if query:
+        users = users.filter(
+            Q(email__icontains=query) | Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)
+        )
+    return {"accounts": users.order_by("first_name", "last_name", "email")[:250], "query": query}
+
+
+@admin_required
+def accounts(request):
+    return render(request, "cafeteria/accounts.html", _accounts_context(request))
+
+
+@admin_required
+@require_POST
+def account_reset_link(request, user_id):
+    account = get_object_or_404(User, pk=user_id, is_active=True)
+    reset_url = _password_reset_url(request, account)
+    context = _accounts_context(request)
+    context.update({"reset_url": reset_url, "reset_account": account})
+    if settings.EMAIL_HOST and account.email:
+        try:
+            PasswordResetForm({"email": account.email}).save(
+                request=request, use_https=request.is_secure(),
+                email_template_name="registration/password_reset_email.txt",
+                subject_template_name="registration/password_reset_subject.txt",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+            )
+            messages.success(request, _("S'ha enviat l'enllaç de restauració a %(email)s.") % {"email": account.email})
+        except Exception:
+            messages.warning(request, _("No s'ha pogut enviar el correu. Copia l'enllaç manualment."))
+    else:
+        messages.info(request, _("Copia l'enllaç i comparteix-lo de manera segura amb la persona registrada."))
+    log_event(request.user, "account.reset_link_created", account, {"email": account.email})
+    return render(request, "cafeteria/accounts.html", context)
+
+
+@admin_required
+def teacher_profile_edit(request, profile_id):
+    profile = get_object_or_404(TeacherMealProfile.objects.select_related("user"), pk=profile_id)
+    form = TeacherMealProfileForm(request.POST or None, instance=profile)
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        reprice_open_bookings()
+        log_event(request.user, "teacher_meal_profile.updated", saved)
+        messages.success(request, _("S'ha actualitzat el perfil de menjador."))
+        return redirect("cafeteria:accounts")
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Perfil de menjador de %(name)s") % {"name": profile.full_name},
+        "back_url": reverse("cafeteria:accounts"),
+    })
+
+
+@staff_required
+def menu_settings(request):
+    portal, _created = PortalSettings.objects.get_or_create()
+    form = PortalSettingsForm(request.POST or None, instance=portal)
+    if request.method == "POST" and form.is_valid():
+        portal = form.save(commit=False)
+        portal.updated_by = request.user
+        portal.save()
+        log_event(request.user, "portal.menu_url_updated", portal)
+        messages.success(request, _("S'ha actualitzat l'enllaç al menú de l'escola."))
+        return redirect("cafeteria:menu_settings")
+    return render(request, "cafeteria/menu_settings.html", {"form": form})
 
 
 def _active_year_or_none():
@@ -657,7 +1053,7 @@ def course_closure_save(request):
     if form.is_valid():
         saved = form.save()
         log_event(request.user, "course_closure.created", saved)
-        messages.success(request, _("S'ha registrat l'excursió i s'han anul·lat les reserves afectades."))
+        messages.success(request, _("S'ha registrat l'excursió. Les reserves es mantenen i, si cal, es mostraran com a carmanyola."))
     else:
         messages.error(request, _("No s'ha pogut desar l'excursió."))
     return redirect(request.POST.get("next") or "cafeteria:school_calendar")
@@ -739,7 +1135,7 @@ def _parse_family_csv(uploaded_file, academic_year):
         course = groups.get(cleaned["course_group"].casefold()) if cleaned["course_group"] else None
         if cleaned["course_group"] and not course:
             row_errors.append(_("el grup no existeix en el curs seleccionat"))
-        diet = diets.get(cleaned["default_diet"].casefold()) if cleaned["default_diet"] else None
+        diet = diets.get(cleaned["default_diet"].casefold()) if cleaned["default_diet"] else _ordinary_diet()
         if cleaned["default_diet"] and not diet:
             row_errors.append(_("la dieta no existeix o no està activa"))
         try:

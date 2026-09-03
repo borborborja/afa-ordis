@@ -1,0 +1,6 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Enllaç del menú" %}{% endblock %}
+{% block content %}
+<section class="page-heading compact"><div><p class="eyebrow">{% translate "Gestió de menjador" %}</p><h1>{% translate "Enllaç al menú de l'escola" %}</h1><p>{% translate "Aquest enllaç apareix a totes les persones usuàries a l'apartat Menú." %}</p></div></section><section class="card form-card"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary">{% translate "Desa l'enllaç" %}</button></form></section>
+{% endblock %}
