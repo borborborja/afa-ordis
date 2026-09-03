@@ -11,6 +11,7 @@ def env_bool(name, default=False):
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-key")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
+APP_BASE_URL = os.getenv("APP_BASE_URL", "").rstrip("/")
 CSRF_TRUSTED_ORIGINS = [os.getenv("APP_BASE_URL", "http://localhost")] if os.getenv("APP_BASE_URL") else []
 
 INSTALLED_APPS = [

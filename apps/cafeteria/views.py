@@ -295,20 +295,24 @@ def invitation_create(request):
         invitation = form.save(commit=False)
         invitation.created_by = request.user
         invitation.save()
-        invitation_url = f"{settings.APP_BASE_URL.rstrip('/')}{reverse('cafeteria:invitation_accept', args=[invitation.token])}"
-        try:
-            send_mail(
-                subject=_("Invitació al portal AFA Ordis"),
-                message=_("Has rebut una invitació. Crea el teu compte aquí:\n%(url)s") % {"url": invitation_url},
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[invitation.email],
-                fail_silently=False,
-            )
-            invitation.sent_at = timezone.now()
-            invitation.save(update_fields=["sent_at"])
-            messages.success(request, _("S'ha enviat la invitació. També en pots copiar l'enllaç.") )
-        except Exception:
-            messages.warning(request, _("La invitació s'ha creat, però no s'ha pogut enviar el correu. Copia l'enllaç manualment."))
+        invitation_path = reverse("cafeteria:invitation_accept", args=[invitation.token])
+        invitation_url = f"{settings.APP_BASE_URL}{invitation_path}" if settings.APP_BASE_URL else request.build_absolute_uri(invitation_path)
+        if not settings.EMAIL_HOST:
+            messages.info(request, _("La invitació s'ha creat. Copia l'enllaç i comparteix-lo manualment perquè la persona pugui crear la contrasenya."))
+        else:
+            try:
+                send_mail(
+                    subject=_("Invitació al portal AFA Ordis"),
+                    message=_("Has rebut una invitació. Crea el teu compte aquí:\n%(url)s") % {"url": invitation_url},
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[invitation.email],
+                    fail_silently=False,
+                )
+                invitation.sent_at = timezone.now()
+                invitation.save(update_fields=["sent_at"])
+                messages.success(request, _("S'ha enviat la invitació. També en pots copiar l'enllaç."))
+            except Exception:
+                messages.warning(request, _("La invitació s'ha creat, però no s'ha pogut enviar el correu. Copia l'enllaç manualment."))
         log_event(request.user, "invitation.created", invitation, {"email": invitation.email, "role": invitation.role})
         form = InvitationForm()
     return render(request, "cafeteria/invitation_form.html", {"form": form, "invitation_url": invitation_url})

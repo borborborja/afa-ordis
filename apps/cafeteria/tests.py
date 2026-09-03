@@ -21,6 +21,7 @@ from .models import (
     Family,
     FamilyMembership,
     FamilyImportBatch,
+    Invitation,
     MealBooking,
     MealPlan,
     MealSettings,
@@ -178,6 +179,28 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.language, "es")
+
+    @override_settings(EMAIL_HOST="", APP_BASE_URL="")
+    def test_invitation_link_can_be_created_without_smtp(self):
+        admin = User.objects.create_superuser("links@example.com", "links@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        with translation.override("ca"):
+            response = self.client.post(reverse("cafeteria:invitation_create"), {
+                "email": "new-tutor@example.com", "role": "tutor", "family": self.family.id,
+            })
+        self.assertEqual(response.status_code, 200)
+        invitation = Invitation.objects.get(email="new-tutor@example.com")
+        self.assertContains(response, invitation.token)
+        self.assertContains(response, "Obre l'enllaç")
+        self.assertEqual(len(mail.outbox), 0)
+        self.client.post(reverse("cafeteria:invitation_accept", args=[invitation.token]), {
+            "first_name": "Joana", "last_name": "Rius",
+            "new_password1": "another-correct-horse-battery-staple",
+            "new_password2": "another-correct-horse-battery-staple",
+        })
+        invited_user = User.objects.get(email="new-tutor@example.com")
+        self.assertTrue(invited_user.check_password("another-correct-horse-battery-staple"))
+        self.assertTrue(FamilyMembership.objects.filter(user=invited_user, family=self.family).exists())
 
     def test_portal_templates_compile(self):
         templates = (
