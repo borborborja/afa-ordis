@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -33,7 +33,7 @@ from .models import (
     TeacherMealBooking,
     TeacherMealProfile,
 )
-from .services import prepare_monthly_statement, prepare_teacher_monthly_statement
+from .services import expected_report_is_due, prepare_monthly_statement, prepare_teacher_monthly_statement
 from .tasks import send_daily_report
 
 
@@ -128,6 +128,32 @@ class CafeteriaFlowTests(TestCase):
         self.assertTrue(send_daily_report(self.today.isoformat()))
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["cuina@example.com"])
+
+    def test_report_schedule_is_independent_from_family_cutoff(self):
+        meal_settings = MealSettings.objects.create(
+            academic_year=self.year,
+            daily_cutoff=time(9, 0),
+            daily_report_send_time=time(11, 30),
+            daily_reports_enabled=True,
+        )
+        DailyReportRecipient.objects.create(settings=meal_settings, email="cuina@example.com")
+        at_ten = timezone.make_aware(datetime.combine(self.today, time(10, 0)))
+        at_noon = timezone.make_aware(datetime.combine(self.today, time(12, 0)))
+        self.assertFalse(expected_report_is_due(meal_settings, at_ten))
+        self.assertTrue(expected_report_is_due(meal_settings, at_noon))
+
+    def test_family_calendar_shows_remaining_time_before_today_cutoff(self):
+        now = timezone.localtime()
+        if now.hour == 23:
+            self.skipTest("No hi ha prou marge dins del dia per comprovar el compte enrere.")
+        MealSettings.objects.create(
+            academic_year=self.year,
+            daily_cutoff=(now + timedelta(hours=1)).time().replace(second=0, microsecond=0),
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        self.assertContains(response, "Canvis d'avui")
+        self.assertContains(response, "Encara pots modificar la reserva d'avui")
 
     @override_settings(EMAIL_HOST="mail.example.test")
     def test_password_reset_uses_the_namespaced_portal_url(self):

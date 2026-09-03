@@ -92,6 +92,25 @@
   color: var(--forest);
   font-size: .75rem;
 }
+
+.deadline-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid #b9dfd1;
+  border-radius: 14px;
+  background: var(--mint);
+  color: var(--forest-dark);
+}
+
+.deadline-notice.closed {
+  border-color: #f2c8bd;
+  background: #fff0ec;
+  color: #8d3b29;
+}
 * {
   box-sizing: border-box;
 }

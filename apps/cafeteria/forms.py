@@ -126,12 +126,21 @@ class MealSettingsForm(forms.ModelForm):
     class Meta:
         model = MealSettings
         fields = (
-            "daily_cutoff", "daily_reports_enabled", "monthly_preparation_day",
+            "daily_cutoff", "daily_report_send_time", "daily_reports_enabled", "monthly_preparation_day",
             "monthly_preparation_hour", "monthly_statements_enabled",
         )
         widgets = {
             "daily_cutoff": forms.TimeInput(attrs={"type": "time"}),
+            "daily_report_send_time": forms.TimeInput(attrs={"type": "time"}),
             "monthly_preparation_hour": forms.TimeInput(attrs={"type": "time"}),
+        }
+        labels = {
+            "daily_cutoff": _("Hora límit per a canvis de les famílies"),
+            "daily_report_send_time": _("Hora d'enviament automàtic del llistat"),
+            "daily_reports_enabled": _("Activa l'enviament automàtic del llistat diari"),
+            "monthly_preparation_day": _("Dia de preparació dels resums mensuals"),
+            "monthly_preparation_hour": _("Hora de preparació dels resums mensuals"),
+            "monthly_statements_enabled": _("Activa la preparació automàtica de resums"),
         }
 
 

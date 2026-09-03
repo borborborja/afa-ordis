@@ -188,7 +188,7 @@ def expected_report_is_due(settings, now=None) -> bool:
     now = now or timezone.localtime()
     return bool(
         settings.daily_reports_enabled
-        and settings.daily_cutoff
-        and now.time() >= settings.daily_cutoff
+        and settings.daily_report_send_time
+        and now.time() >= settings.daily_report_send_time
         and settings.daily_recipients.filter(active=True).exists()
     )

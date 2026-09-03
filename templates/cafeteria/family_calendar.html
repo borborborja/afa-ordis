@@ -6,6 +6,7 @@
   <div><p class="eyebrow">{{ family.name }}</p><h1>{% translate "Reserva de menjador" %}</h1><p>{% translate "Tria els dies per a cada infant. La dieta predeterminada s'aplica si no en selecciones cap altra." %}</p></div>
   <a class="button secondary" href="{% url 'cafeteria:dashboard' %}">← {% translate "Torna" %}</a>
 </section>
+{% if today_change_notice %}<section class="deadline-notice {% if not today_change_notice.open %}closed{% endif %}" role="status">{% if today_change_notice.open %}<strong>{% translate "Canvis d'avui" %}</strong><span>{% translate "Encara pots modificar la reserva d'avui:" %} {{ today_change_notice.hours }} {% translate "hores" %} {% translate "i" %} {{ today_change_notice.minutes }} {% translate "minuts" %}.</span>{% else %}<strong>{% translate "Canvis d'avui tancats" %}</strong><span>{% translate "El termini de canvis d'avui ha acabat a les" %} {{ today_change_notice.cutoff|time:"H:i" }}.</span>{% endif %}</section>{% endif %}
 
 <section class="card">
   <nav class="month-nav"><a href="?week={{ previous_week|date:'Y-m-d' }}">←</a><h2>{% translate "Setmana del" %} {{ week_start|date:"d/m" }}</h2><a href="?week={{ next_week|date:'Y-m-d' }}">→</a></nav>

@@ -280,6 +280,27 @@ def family_calendar(request, family_id):
 
     previous_month = (month_start.replace(day=1) - timedelta(days=1)).replace(day=1)
     next_month = (month_end + timedelta(days=1)).replace(day=1)
+    today_change_notice = None
+    today = timezone.localdate()
+    meal_settings = MealSettings.objects.filter(
+        academic_year__starts_on__lte=today,
+        academic_year__ends_on__gte=today,
+    ).first()
+    if meal_settings and meal_settings.daily_cutoff and is_service_day(today):
+        now = timezone.localtime()
+        deadline = datetime.combine(today, meal_settings.daily_cutoff).replace(tzinfo=now.tzinfo)
+        remaining_seconds = int((deadline - now).total_seconds())
+        if remaining_seconds > 0:
+            hours, remainder = divmod(remaining_seconds, 3600)
+            minutes = remainder // 60
+            today_change_notice = {
+                "open": True,
+                "hours": hours,
+                "minutes": minutes,
+                "cutoff": meal_settings.daily_cutoff,
+            }
+        else:
+            today_change_notice = {"open": False, "cutoff": meal_settings.daily_cutoff}
     return render(request, "cafeteria/family_calendar.html", {
         "family": family,
         "student_calendars": student_calendars,
@@ -293,6 +314,7 @@ def family_calendar(request, family_id):
         "weekly_calendars": weekly_calendars,
         "is_staff": _is_staff(request.user),
         "has_siblings": len(students) > 1,
+        "today_change_notice": today_change_notice if not _is_staff(request.user) else None,
     })
 
 
