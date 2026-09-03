@@ -16,7 +16,7 @@ chmod 600 .env
 
 ## 2. Configurar `.env`
 
-No incorporis mai aquest fitxer al repositori. Genera valors nous per a `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD` i `SUPERUSER_PASSWORD`; per exemple:
+No incorporis mai aquest fitxer al repositori. Genera valors nous per a `DJANGO_SECRET_KEY` i `SUPERUSER_PASSWORD`; per exemple:
 
 ```bash
 python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
@@ -35,7 +35,10 @@ SUPERUSER_EMAIL=administracio@exemple.cat
 SUPERUSER_PASSWORD=<contrasenya-unica-i-robusta>
 SUPERUSER_NAME=Administració AFA Ordis
 
-POSTGRES_PASSWORD=<contrasenya-unica-i-robusta>
+DATABASE_ENGINE=django.db.backends.sqlite3
+DATABASE_NAME=/data/afa-ordis.sqlite3
+APP_IMAGE=ghcr.io/borborborja/afa-ordis
+APP_IMAGE_TAG=latest
 
 SMTP_HOST=smtp.exemple.cat
 SMTP_PORT=587
@@ -50,12 +53,13 @@ El superusuari només es crea si la base de dades no conté usuaris. Després de
 ## 3. Arrencar i comprovar
 
 ```bash
-sudo docker compose up -d --build
+sudo docker compose pull
+sudo docker compose up -d
 sudo docker compose ps
-sudo docker compose logs --tail=100 init web worker beat
+sudo docker compose logs --tail=100 app caddy
 ```
 
-La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. El contenidor `init` acabarà amb estat correcte; `web`, `worker`, `beat`, PostgreSQL, Redis i Caddy han de quedar actius.
+La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. Només hi ha dos contenidors: `app`, que inclou Django, SQLite i el planificador de correus, i `caddy`, que proporciona HTTPS.
 
 Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md).
 
@@ -64,30 +68,34 @@ Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups,
 Fes una còpia de seguretat abans d’actualitzar.
 
 ```bash
-sudo docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "afa-ordis-$(date +%F).sql"
+sudo docker compose exec app python manage.py backup_database
+sudo docker compose cp app:/data/backups ./backups
 git pull --ff-only
-sudo docker compose up -d --build
+sudo docker compose pull
+sudo docker compose up -d
 sudo docker image prune -f
 ```
 
-La fase `init` executa automàticament les migracions noves abans d’arrencar la resta de serveis.
+L’aplicació executa automàticament les migracions noves abans d’iniciar el servidor web.
 
 ## 5. Còpies de seguretat i restauració
 
-Guarda les còpies de seguretat en una ubicació xifrada i diferent del servidor. Per restaurar-ne una:
+L’ordre `backup_database` utilitza l’API de còpia de SQLite, de manera que no cal aturar el portal. Guarda les còpies obtingudes a `./backups` en una ubicació xifrada i diferent del servidor.
+
+Per restaurar, atura el portal, substitueix el fitxer `/data/afa-ordis.sqlite3` del volum `app_data` per una còpia vàlida i torna a iniciar-lo. Fes-ho només durant una finestra de manteniment i conserva sempre una còpia del fitxer que reemplaces.
 
 ```bash
-sudo docker compose down
-sudo docker compose up -d db
-sudo docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"' < afa-ordis-AAAA-MM-DD.sql
-sudo docker compose up -d
+sudo docker compose stop app
+# Copia la base restaurada al volum app_data segons la política del teu servidor.
+sudo docker compose start app
 ```
 
-El volum `media_data` conté possibles fitxers pujats en el futur. Inclou-lo també en la política de còpia de seguretat quan s’utilitzi.
+El volum `app_data` conté la base de dades i possibles fitxers pujats en el futur; inclou-lo completament en la política de còpia de seguretat.
 
 ## 6. Operació segura
 
 - Mantén `.env` amb permisos `600` i fes servir un compte SMTP exclusiu del portal.
-- No exposis PostgreSQL ni Redis al host: el `compose.yaml` només publica 80 i 443 a través de Caddy.
+- No exposis cap base de dades al host: el `compose.yaml` només publica 80 i 443 a través de Caddy.
 - Revisa regularment `docker compose logs`, les còpies de seguretat i el registre d’auditoria del portal.
-- Mantén Docker i la imatge base actualitzats; cada canvi a `main` construeix i prova la imatge amb GitHub Actions.
+- Mantén Docker i la imatge base actualitzats; cada canvi a `main` construeix, prova i publica la imatge a GitHub Container Registry.
+- SQLite està pensat per a una única rèplica de `app`; no facis servir `docker compose up --scale app=...`.

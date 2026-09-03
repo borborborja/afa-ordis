@@ -83,7 +83,7 @@ class CafeteriaFlowTests(TestCase):
         self.assertFalse(self.student.is_scholarship)
         self.assertEqual(self.student.meal_plan, MealPlan.SPORADIC)
 
-    @patch("apps.cafeteria.tasks.send_course_closure_notification.delay")
+    @patch("apps.cafeteria.tasks.send_course_closure_notification")
     def test_course_closure_cancels_existing_bookings(self, delayed_email):
         booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
         CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió")
@@ -100,7 +100,7 @@ class CafeteriaFlowTests(TestCase):
         MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
         meal_settings = MealSettings.objects.create(academic_year=self.year, daily_cutoff="09:00", daily_reports_enabled=True)
         DailyReportRecipient.objects.create(settings=meal_settings, email="cuina@example.com")
-        self.assertTrue(send_daily_report.run(self.today.isoformat()))
+        self.assertTrue(send_daily_report(self.today.isoformat()))
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["cuina@example.com"])
 

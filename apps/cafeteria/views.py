@@ -334,8 +334,12 @@ def daily_report_send(request, service_date):
         report_date = date.fromisoformat(service_date)
     except ValueError:
         raise Http404(_("Data no vàlida."))
-    send_daily_report.delay(report_date.isoformat(), request.user.id)
-    messages.success(request, _("L'informe s'ha posat a la cua d'enviament."))
+    try:
+        sent = send_daily_report(report_date.isoformat(), request.user.id)
+    except Exception:
+        messages.error(request, _("No s'ha pogut enviar l'informe. Revisa la configuració SMTP."))
+    else:
+        messages.success(request, _("S'ha enviat l'informe.") if sent else _("No hi ha configuració de destinataris per a aquest dia."))
     return redirect("cafeteria:daily_reports")
 
 
@@ -399,8 +403,12 @@ def statement_send(request, statement_id):
     if statement.status == StatementStatus.PREPARED:
         messages.error(request, _("Cal tancar el resum abans d'enviar-lo."))
     else:
-        send_monthly_statement.delay(statement.id, request.user.id)
-        messages.success(request, _("El resum s'ha posat a la cua d'enviament."))
+        try:
+            sent = send_monthly_statement(statement.id, request.user.id)
+        except Exception:
+            messages.error(request, _("No s'ha pogut enviar el resum. Revisa la configuració SMTP."))
+        else:
+            messages.success(request, _("S'ha enviat el resum.") if sent else _("La família no té cap correu configurat."))
     return redirect("cafeteria:statement_detail", statement_id=statement.id)
 
 

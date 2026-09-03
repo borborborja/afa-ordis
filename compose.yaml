@@ -1,78 +1,9 @@
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-    restart: unless-stopped
-
-  init:
-    build: .
+  app:
+    image: ${APP_IMAGE:-ghcr.io/borborborja/afa-ordis}:${APP_IMAGE_TAG:-latest}
     env_file: .env
-    command: ["true"]
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
-      - static_data:/app/staticfiles
-      - media_data:/app/media
-    restart: "no"
-
-  web:
-    build: .
-    env_file: .env
-    environment:
-      SKIP_INITIALIZATION: "true"
-    depends_on:
-      init:
-        condition: service_completed_successfully
-    volumes:
-      - static_data:/app/staticfiles
-      - media_data:/app/media
-    restart: unless-stopped
-
-  worker:
-    build: .
-    env_file: .env
-    environment:
-      SKIP_INITIALIZATION: "true"
-    command: celery -A config worker --loglevel=INFO
-    depends_on:
-      init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-
-  beat:
-    build: .
-    env_file: .env
-    environment:
-      SKIP_INITIALIZATION: "true"
-    command: celery -A config beat --loglevel=INFO
-    depends_on:
-      init:
-        condition: service_completed_successfully
+      - app_data:/data
     restart: unless-stopped
 
   caddy:
@@ -83,18 +14,13 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - static_data:/srv/static:ro
-      - media_data:/srv/media:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - web
+      - app
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  redis_data:
-  static_data:
-  media_data:
+  app_data:
   caddy_data:
   caddy_config:

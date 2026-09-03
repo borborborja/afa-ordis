@@ -15,12 +15,13 @@ cd /opt/projects/afa-ordis
 cp .env.example .env
 ```
 
-Edita `.env` abans d’arrencar. Com a mínim, canvia `DJANGO_SECRET_KEY`, les contrasenyes de PostgreSQL i el valor de `SUPERUSER_EMAIL` i `SUPERUSER_PASSWORD`. El superusuari només es crea durant la primera arrencada d’una base de dades buida; la seva contrasenya no s’imprimeix mai als registres.
+Edita `.env` abans d’arrencar. Com a mínim, canvia `DJANGO_SECRET_KEY` i el valor de `SUPERUSER_EMAIL` i `SUPERUSER_PASSWORD`. El superusuari només es crea durant la primera arrencada d’una base de dades SQLite buida; la seva contrasenya no s’imprimeix mai als registres.
 
 Configura també `APP_DOMAIN`, `APP_BASE_URL` i tots els paràmetres `SMTP_*`. Per a un domini públic, `APP_DOMAIN` ha de coincidir amb el DNS i `APP_BASE_URL` ha de començar per `https://`.
 
 ```bash
-sudo docker compose up -d --build
+sudo docker compose pull
+sudo docker compose up -d
 ```
 
 Obre l’adreça indicada a `APP_BASE_URL` i inicia sessió amb el superusuari. Caddy serveix HTTPS automàticament per a dominis públics; amb `localhost` pot demanar confiar la seva autoritat local.
@@ -50,16 +51,17 @@ Per veure l’estat dels contenidors:
 
 ```bash
 sudo docker compose ps
-sudo docker compose logs -f web worker beat
+sudo docker compose logs -f app caddy
 ```
 
-Còpia de seguretat de la base de dades (desa el fitxer en una ubicació segura fora del servidor):
+Còpia de seguretat consistent de SQLite (desa després la carpeta `backups` fora del servidor):
 
 ```bash
-sudo docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > afa-ordis-backup.sql
+sudo docker compose exec app python manage.py backup_database
+sudo docker compose cp app:/data/backups ./backups
 ```
 
-Per restaurar, crea primer una còpia de seguretat nova i importa el fitxer amb `psql` dins del contenidor `db`.
+SQLite simplifica el desplegament però requereix una única instància de `app`: no escalïs el servei a múltiples rèpliques.
 
 ## Desenvolupament i verificació
 
@@ -72,4 +74,4 @@ sudo docker run --rm -e DATABASE_ENGINE=django.db.backends.sqlite3 -e DATABASE_N
 
 Inclou proves de reserves familiars, restricció de beques, excursions, facturació i correu de llistat diari.
 
-La [GitHub Action](.github/workflows/container.yml) construeix la imatge, valida la configuració Django, executa les proves i comprova les migracions a cada canvi de `main` i a cada pull request.
+La [GitHub Action](.github/workflows/container.yml) construeix la imatge, valida la configuració Django, executa les proves, comprova les migracions i publica la imatge validada a `ghcr.io/borborborja/afa-ordis` quan es modifica `main`.

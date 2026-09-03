@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from calendar import monthrange
-from datetime import timedelta
+import logging
 
-from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db import transaction
 from django.utils import timezone
 
 from .models import (
@@ -18,6 +15,8 @@ from .models import (
     log_event,
 )
 from .services import build_daily_report_text, expected_report_is_due, is_service_day, prepare_statements_for_month
+
+logger = logging.getLogger(__name__)
 
 
 def _statement_text(statement: MonthlyStatement) -> str:
@@ -32,7 +31,6 @@ def _statement_text(statement: MonthlyStatement) -> str:
     return "\n".join(lines)
 
 
-@shared_task
 def send_daily_report(service_date_iso: str, actor_id: int | None = None) -> bool:
     from datetime import date
     from django.contrib.auth import get_user_model
@@ -66,7 +64,6 @@ def send_daily_report(service_date_iso: str, actor_id: int | None = None) -> boo
     return True
 
 
-@shared_task
 def send_course_closure_notification(closure_id: int, family_ids: list[int] | None = None) -> int:
     from .models import CourseClosure, Family
 
@@ -79,22 +76,24 @@ def send_course_closure_notification(closure_id: int, family_ids: list[int] | No
         recipients = family.recipient_emails()
         if not recipients:
             continue
-        send_mail(
-            subject=f"Canvi de menjador · {closure.date:%d/%m/%Y}",
-            message=(
-                f"S'ha anul·lat el servei de menjador del dia {closure.date:%d/%m/%Y} "
-                f"per a {closure.course_group.name} ({closure.title}). "
-                "Les reserves afectades no es facturaran."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=recipients,
-            fail_silently=False,
-        )
-        sent += 1
+        try:
+            send_mail(
+                subject=f"Canvi de menjador · {closure.date:%d/%m/%Y}",
+                message=(
+                    f"S'ha anul·lat el servei de menjador del dia {closure.date:%d/%m/%Y} "
+                    f"per a {closure.course_group.name} ({closure.title}). "
+                    "Les reserves afectades no es facturaran."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipients,
+                fail_silently=False,
+            )
+            sent += 1
+        except Exception:
+            logger.exception("No s'ha pogut notificar l'excursió %s a %s", closure_id, family.id)
     return sent
 
 
-@shared_task
 def send_monthly_statement(statement_id: int, actor_id: int | None = None) -> bool:
     from django.contrib.auth import get_user_model
 
@@ -119,7 +118,6 @@ def send_monthly_statement(statement_id: int, actor_id: int | None = None) -> bo
     return True
 
 
-@shared_task
 def send_due_daily_reports() -> int:
     today = timezone.localdate()
     count = 0
@@ -133,12 +131,14 @@ def send_due_daily_reports() -> int:
             continue
         if DailyReport.objects.filter(date=today).exists():
             continue
-        send_daily_report.delay(today.isoformat())
-        count += 1
+        try:
+            if send_daily_report(today.isoformat()):
+                count += 1
+        except Exception:
+            logger.exception("No s'ha pogut enviar l'informe diari de %s", today)
     return count
 
 
-@shared_task
 def prepare_due_monthly_statements() -> int:
     now = timezone.localtime()
     if now.month == 1:

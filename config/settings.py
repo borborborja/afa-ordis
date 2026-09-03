@@ -50,19 +50,14 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASE_ENGINE = os.getenv("DATABASE_ENGINE", "django.db.backends.postgresql")
+DATABASE_ENGINE = os.getenv("DATABASE_ENGINE", "django.db.backends.sqlite3")
 DATABASES = {
     "default": {
         "ENGINE": DATABASE_ENGINE,
-        "NAME": os.getenv("DATABASE_NAME", os.getenv("POSTGRES_DB", "afa_ordis")),
-        "USER": os.getenv("POSTGRES_USER", "afa_ordis"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "afa_ordis"),
-        "HOST": os.getenv("POSTGRES_HOST", "db"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "NAME": os.getenv("DATABASE_NAME", "/data/afa-ordis.sqlite3"),
+        "OPTIONS": {"timeout": 30},
     }
 }
-if DATABASE_ENGINE == "django.db.backends.sqlite3":
-    DATABASES["default"] = {"ENGINE": DATABASE_ENGINE, "NAME": os.getenv("DATABASE_NAME", BASE_DIR / "test.sqlite3")}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -81,7 +76,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", "/data/media"))
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -99,11 +94,3 @@ LOGOUT_REDIRECT_URL = "cafeteria:login"
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_BEAT_SCHEDULE = {
-    "send-daily-meal-reports": {"task": "apps.cafeteria.tasks.send_due_daily_reports", "schedule": 60.0},
-    "prepare-monthly-statements": {"task": "apps.cafeteria.tasks.prepare_due_monthly_statements", "schedule": 3600.0},
-}

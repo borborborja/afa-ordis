@@ -36,4 +36,4 @@ def cancel_bookings_for_course_closure(sender, instance, created, **kwargs):
         booking.save(update_fields=["status", "override_reason", "updated_at"])
         log_event(None, "booking.cancelled_for_course_closure", booking, {"closure": instance.title})
     DailyReport.objects.filter(date=instance.date).update(is_outdated=True)
-    transaction.on_commit(lambda: __import__("apps.cafeteria.tasks", fromlist=["send_course_closure_notification"]).send_course_closure_notification.delay(instance.pk, list(family_ids)))
+    transaction.on_commit(lambda: __import__("apps.cafeteria.tasks", fromlist=["send_course_closure_notification"]).send_course_closure_notification(instance.pk, list(family_ids)))
