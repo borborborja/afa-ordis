@@ -1,26 +1,24 @@
 services:
   app:
     image: ${APP_IMAGE:-ghcr.io/borborborja/afa-ordis}:${APP_IMAGE_TAG:-latest}
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     volumes:
       - app_data:/data
-    restart: unless-stopped
-
-  caddy:
-    image: caddy:2-alpine
-    env_file: .env
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-proxy}
+      - traefik.http.routers.afa-ordis.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.afa-ordis.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.afa-ordis.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      - traefik.http.services.afa-ordis.loadbalancer.server.port=8000
     restart: unless-stopped
 
 volumes:
   app_data:
-  caddy_data:
-  caddy_config:
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-proxy}

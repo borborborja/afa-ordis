@@ -5,7 +5,7 @@ Portal autogestionat per a la gestió de reserves de menjador, famílies, dietes
 ## Requisits
 
 - Docker Engine amb Docker Compose.
-- Un domini amb els ports 80 i 443 accessibles si es vol HTTPS públic amb Caddy.
+- Traefik ja operatiu, amb una xarxa Docker externa `proxy`, entrada `websecure` i un resolutor TLS.
 - Un compte SMTP per enviar invitacions, informes i resums.
 
 ## Posada en marxa
@@ -24,7 +24,7 @@ sudo docker compose pull
 sudo docker compose up -d
 ```
 
-Obre l’adreça indicada a `APP_BASE_URL` i inicia sessió amb el superusuari. Caddy serveix HTTPS automàticament per a dominis públics; amb `localhost` pot demanar confiar la seva autoritat local.
+Obre l’adreça indicada a `APP_BASE_URL` i inicia sessió amb el superusuari. Traefik publica el servei HTTPS a partir de les etiquetes del contenidor; no s’exposen ports directament des del projecte.
 
 Per a un servidor públic, consulta la [guia de desplegament](docs/deployment.md), que inclou DNS, configuració segura, actualitzacions, còpies de seguretat i restauració.
 
@@ -51,7 +51,7 @@ Per veure l’estat dels contenidors:
 
 ```bash
 sudo docker compose ps
-sudo docker compose logs -f app caddy
+sudo docker compose logs -f app
 ```
 
 Còpia de seguretat consistent de SQLite (desa després la carpeta `backups` fora del servidor):

@@ -2,7 +2,7 @@
 
 ## 1. Preparar el servidor
 
-Necessites un servidor Linux amb Docker Engine i Docker Compose, un domini públic i accés als ports TCP 80 i 443. Apunta el registre DNS del domini a la IP del servidor abans d’arrencar Caddy.
+Necessites un servidor Linux amb Docker Engine i Docker Compose, un domini públic i Traefik ja operatiu. Apunta el registre DNS del domini a la IP del servidor i assegura’t que la xarxa externa de Traefik existeix (per defecte, `proxy`).
 
 ```bash
 sudo mkdir -p /opt/projects
@@ -39,6 +39,9 @@ DATABASE_ENGINE=django.db.backends.sqlite3
 DATABASE_NAME=/data/afa-ordis.sqlite3
 APP_IMAGE=ghcr.io/borborborja/afa-ordis
 APP_IMAGE_TAG=latest
+TRAEFIK_NETWORK=proxy
+TRAEFIK_ENTRYPOINT=websecure
+TRAEFIK_CERT_RESOLVER=letsencrypt
 
 SMTP_HOST=smtp.exemple.cat
 SMTP_PORT=587
@@ -56,10 +59,10 @@ El superusuari només es crea si la base de dades no conté usuaris. Després de
 sudo docker compose pull
 sudo docker compose up -d
 sudo docker compose ps
-sudo docker compose logs --tail=100 app caddy
+sudo docker compose logs --tail=100 app
 ```
 
-La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. Només hi ha dos contenidors: `app`, que inclou Django, SQLite i el planificador de correus, i `caddy`, que proporciona HTTPS.
+La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. Només hi ha el contenidor `app`, que inclou Django, SQLite i el planificador de correus. Traefik el detecta a través de les etiquetes Docker i publica HTTPS amb el seu resolutor configurat.
 
 Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md).
 
@@ -95,7 +98,7 @@ El volum `app_data` conté la base de dades i possibles fitxers pujats en el fut
 ## 6. Operació segura
 
 - Mantén `.env` amb permisos `600` i fes servir un compte SMTP exclusiu del portal.
-- No exposis cap base de dades al host: el `compose.yaml` només publica 80 i 443 a través de Caddy.
+- No exposis cap port del servei: Traefik arriba a `app` mitjançant la xarxa externa configurada.
 - Revisa regularment `docker compose logs`, les còpies de seguretat i el registre d’auditoria del portal.
 - Mantén Docker i la imatge base actualitzats; cada canvi a `main` construeix, prova i publica la imatge a GitHub Container Registry.
 - SQLite està pensat per a una única rèplica de `app`; no facis servir `docker compose up --scale app=...`.
