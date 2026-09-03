@@ -1,0 +1,44 @@
+{% load i18n static %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b5b">
+  <title>{% block title %}AFA Ordis · Menjador{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'cafeteria/style.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{% url 'cafeteria:dashboard' %}"><span class="brand-mark">A</span><span>AFA Ordis<small>Menjador</small></span></a>
+    {% if user.is_authenticated %}
+      <nav aria-label="Navegació principal">
+        <a href="{% url 'cafeteria:dashboard' %}">Inici</a>
+        <a href="{% url 'cafeteria:monthly_statements' %}">Resums</a>
+        {% if can_manage_meals %}
+          <a href="{% url 'cafeteria:daily_reports' %}">Llistats</a>
+          <a href="{% url 'cafeteria:price_rules' %}">Tarifes</a>
+        {% endif %}
+        {% if can_administer %}
+          <a href="{% url 'cafeteria:invitation_create' %}">Invitacions</a>
+          <a href="{% url 'cafeteria:audit_log' %}">Auditoria</a>
+          <a href="/admin/">Administració</a>
+        {% endif %}
+      </nav>
+      <div class="account-menu">
+        <span>{{ user.get_full_name|default:user.email }}</span>
+        <form method="post" action="{% url 'cafeteria:logout' %}">{% csrf_token %}<button class="link-button">Sortir</button></form>
+      </div>
+    {% endif %}
+  </header>
+  <main class="page-shell">
+    {% if messages %}
+      <section class="messages" aria-live="polite">
+      {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
+      </section>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">AFA Ordis · Portal autogestionat</footer>
+</body>
+</html>

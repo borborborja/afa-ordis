@@ -1,0 +1,2 @@
+{% extends 'cafeteria/base.html' %}
+{% block content %}<section class="form-page card"><p class="eyebrow">Administració</p><h1>Convidar una persona</h1><p>Les invitacions caduquen al cap de set dies. Pots copiar l’enllaç si prefereixes enviar-lo per un altre canal.</p><form method="post" class="stack-form">{% csrf_token %}{{ form.as_p }}<button class="button primary">Crear i enviar invitació</button></form>{% if invitation_url %}<section class="copy-box"><strong>Enllaç d’invitació</strong><code>{{ invitation_url }}</code></section>{% endif %}</section>{% endblock %}

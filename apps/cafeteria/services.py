@@ -1,0 +1,138 @@
+from __future__ import annotations
+
+from calendar import monthrange
+from datetime import date, datetime, time
+from decimal import Decimal
+
+from django.db import transaction
+from django.db.models import Sum
+from django.utils import timezone
+
+from .models import (
+    BookingStatus,
+    DailyReport,
+    MealBooking,
+    MonthlyStatement,
+    PriceRule,
+    StatementLine,
+    StatementStatus,
+    log_event,
+)
+
+
+def is_service_day(service_date: date, student=None) -> bool:
+    from .models import CourseClosure, ServiceDay
+
+    day = ServiceDay.objects.filter(date=service_date, is_service_day=True).first()
+    if not day:
+        return False
+    if student and student.course_group and CourseClosure.objects.filter(course_group=student.course_group, date=service_date).exists():
+        return False
+    return True
+
+
+def is_tutor_locked(service_date: date) -> bool:
+    from .models import MealSettings
+
+    settings = MealSettings.objects.filter(academic_year__starts_on__lte=service_date, academic_year__ends_on__gte=service_date).first()
+    if not settings or not settings.daily_cutoff:
+        return False
+    now = timezone.localtime()
+    return service_date < now.date() or (service_date == now.date() and now.time() >= settings.daily_cutoff)
+
+
+def bookings_for_day(service_date: date):
+    return MealBooking.objects.filter(date=service_date, status=BookingStatus.ACTIVE).select_related("student", "student__course_group", "diet")
+
+
+def build_daily_report_text(service_date: date) -> str:
+    bookings = bookings_for_day(service_date)
+    lines = [f"Llistat de menjador — {service_date:%d/%m/%Y}", ""]
+    by_diet = {}
+    for booking in bookings:
+        course = booking.student.course_group.name if booking.student.course_group else "Sense curs"
+        diet = booking.diet_name or "Dieta ordinària"
+        by_diet[diet] = by_diet.get(diet, 0) + 1
+        lines.append(f"- {booking.student.full_name} · {course} · {diet}")
+    lines.append("")
+    lines.append(f"Total: {bookings.count()}")
+    lines.extend(f"{diet}: {total}" for diet, total in sorted(by_diet.items()))
+    return "\n".join(lines)
+
+
+@transaction.atomic
+def prepare_monthly_statement(family, year: int, month: int) -> MonthlyStatement:
+    statement, _ = MonthlyStatement.objects.get_or_create(family=family, year=year, month=month)
+    if statement.status != StatementStatus.PREPARED:
+        return statement
+
+    statement.lines.all().delete()
+    bookings = MealBooking.objects.filter(
+        student__family=family,
+        date__year=year,
+        date__month=month,
+        status=BookingStatus.ACTIVE,
+    ).select_related("student")
+    lines = []
+    for booking in bookings:
+        if booking.unit_price is None:
+            continue
+        lines.append(StatementLine(
+            statement=statement,
+            student=booking.student,
+            service_date=booking.date,
+            diet_name=booking.diet_name,
+            meal_plan=booking.student.meal_plan,
+            scholarship=booking.student.is_scholarship,
+            unit_price=booking.unit_price,
+        ))
+    StatementLine.objects.bulk_create(lines)
+    statement.total = statement.lines.aggregate(total=Sum("unit_price"))["total"] or Decimal("0.00")
+    statement.save(update_fields=["total"])
+    return statement
+
+
+def prepare_statements_for_month(year: int, month: int) -> int:
+    from .models import Family
+
+    count = 0
+    for family in Family.objects.filter(active=True):
+        prepare_monthly_statement(family, year, month)
+        count += 1
+    return count
+
+
+def reprice_open_bookings(student=None, rule=None) -> int:
+    """Actualitza reserves encara no tancades; l'històric mensual no es toca."""
+    bookings = MealBooking.objects.filter(status=BookingStatus.ACTIVE).select_related("student")
+    if student is not None:
+        bookings = bookings.filter(student=student)
+    if rule is not None:
+        bookings = bookings.filter(
+            student__is_scholarship=rule.scholarship,
+            student__meal_plan=rule.meal_plan,
+            date__gte=rule.effective_from,
+        )
+    closed_periods = set(
+        MonthlyStatement.objects.filter(status__in=["closed", "sent"]).values_list("family_id", "year", "month")
+    )
+    changed = 0
+    for booking in bookings:
+        if (booking.student.family_id, booking.date.year, booking.date.month) in closed_periods:
+            continue
+        amount = PriceRule.amount_for(booking.student, booking.date)
+        if booking.unit_price != amount:
+            booking.unit_price = amount
+            booking.save(update_fields=["unit_price", "updated_at"])
+            changed += 1
+    return changed
+
+
+def expected_report_is_due(settings, now=None) -> bool:
+    now = now or timezone.localtime()
+    return bool(
+        settings.daily_reports_enabled
+        and settings.daily_cutoff
+        and now.time() >= settings.daily_cutoff
+        and settings.daily_recipients.filter(active=True).exists()
+    )

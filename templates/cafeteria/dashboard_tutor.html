@@ -1,0 +1,24 @@
+{% extends 'cafeteria/base.html' %}
+{% block content %}
+<section class="hero">
+  <div><p class="eyebrow">Menjador escolar</p><h1>Hola, {{ user.first_name|default:user.email }}</h1><p>Gestiona les reserves dels teus infants en pocs passos.</p></div>
+  <div class="hero-date">{{ today|date:"l, j \d\e F" }}</div>
+</section>
+<section class="section-heading"><h2>Les teves famílies</h2></section>
+<div class="card-grid">
+{% for family in families %}
+  <article class="card family-card">
+    <div><p class="eyebrow">Família</p><h3>{{ family.name }}</h3><p>{{ family.students.count }} infant{{ family.students.count|pluralize:"s" }}</p></div>
+    <a class="button primary" href="{% url 'cafeteria:family_calendar' family.id %}">Veure calendari</a>
+  </article>
+{% empty %}
+  <article class="empty-state card"><h2>Encara no tens cap família vinculada</h2><p>Demana una invitació a l’administració de l’AFA.</p></article>
+{% endfor %}
+</div>
+<section class="section-heading"><h2>Properes reserves</h2></section>
+<article class="card list-card">
+{% for booking in upcoming %}
+  <div><strong>{{ booking.date|date:"D, j M" }}</strong><span>{{ booking.student.full_name }}</span><span>{{ booking.diet_name|default:"Ordinària" }}</span></div>
+{% empty %}<p>No hi ha reserves futures.</p>{% endfor %}
+</article>
+{% endblock %}
