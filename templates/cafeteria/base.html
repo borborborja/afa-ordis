@@ -13,7 +13,7 @@
   {% if user.is_authenticated %}
   <div class="app-layout">
     <aside class="sidebar" aria-label="Navegació principal">
-      <a class="brand" href="{% url 'cafeteria:dashboard' %}"><span class="brand-mark">A</span><span>AFA Ordis<small>Menjador</small></span></a>
+      <a class="brand" href="{% url 'cafeteria:dashboard' %}"><img class="school-logo" src="{% static 'cafeteria/images/logo-escola-maria-pages-ordis.png' %}" alt="Escola Maria Pagès i Texer, Ordis"><span>AFA Ordis<small>Menjador</small></span></a>
       <nav class="main-nav">
         <a href="{% url 'cafeteria:dashboard' %}"><span>⌂</span>{% translate "Inici" %}</a>
         {% if can_administer %}
@@ -50,7 +50,7 @@
         </div>
       </header>
   {% else %}
-  <div class="auth-shell"><a class="brand auth-brand" href="{% url 'cafeteria:dashboard' %}"><span class="brand-mark">A</span><span>AFA Ordis<small>Menjador</small></span></a>
+  <div class="auth-shell"><a class="brand auth-brand" href="{% url 'cafeteria:dashboard' %}"><img class="school-logo" src="{% static 'cafeteria/images/logo-escola-maria-pages-ordis.png' %}" alt="Escola Maria Pagès i Texer, Ordis"><span>AFA Ordis<small>Menjador</small></span></a>
   {% endif %}
 
   <main class="{% if user.is_authenticated %}page-shell{% endif %}">
