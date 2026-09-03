@@ -410,6 +410,38 @@ class AuditEvent(models.Model):
         return f"{self.created_at:%d/%m/%Y %H:%M} · {self.action}"
 
 
+class FamilyImportBatch(models.Model):
+    """A short-lived, reviewed CSV import.  The source file is never stored."""
+
+    class Status(models.TextChoices):
+        PREVIEW = "preview", "Pendent de confirmar"
+        IMPORTED = "imported", "Importat"
+        EXPIRED = "expired", "Caducat"
+
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT, related_name="family_imports")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="family_imports"
+    )
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PREVIEW)
+    source_digest = models.CharField(max_length=64)
+    total_rows = models.PositiveIntegerField(default=0)
+    valid_rows = models.JSONField(default=list, blank=True)
+    errors = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    imported_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def is_confirmable(self) -> bool:
+        return self.status == self.Status.PREVIEW and self.expires_at > timezone.now() and bool(self.valid_rows)
+
+    def __str__(self) -> str:
+        return f"Importació {self.created_at:%d/%m/%Y %H:%M}"
+
+
 def log_event(actor, action: str, target, details: dict | None = None) -> AuditEvent:
     return AuditEvent.objects.create(
         actor=actor if getattr(actor, "is_authenticated", False) else None,

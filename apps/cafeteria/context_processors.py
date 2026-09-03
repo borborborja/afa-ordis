@@ -6,4 +6,5 @@ def role_flags(request):
     return {
         "can_manage_meals": user_has_role(user, Role.ADMIN, Role.MANAGER),
         "can_administer": user_has_role(user, Role.ADMIN),
+        "is_management_user": user_has_role(user, Role.ADMIN, Role.MANAGER),
     }

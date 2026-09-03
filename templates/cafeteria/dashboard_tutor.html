@@ -1,24 +1,8 @@
 {% extends 'cafeteria/base.html' %}
+{% load i18n %}
 {% block content %}
-<section class="hero">
-  <div><p class="eyebrow">Menjador escolar</p><h1>Hola, {{ user.first_name|default:user.email }}</h1><p>Gestiona les reserves dels teus infants en pocs passos.</p></div>
-  <div class="hero-date">{{ today|date:"l, j \d\e F" }}</div>
-</section>
-<section class="section-heading"><h2>Les teves famílies</h2></section>
-<div class="card-grid">
-{% for family in families %}
-  <article class="card family-card">
-    <div><p class="eyebrow">Família</p><h3>{{ family.name }}</h3><p>{{ family.students.count }} infant{{ family.students.count|pluralize:"s" }}</p></div>
-    <a class="button primary" href="{% url 'cafeteria:family_calendar' family.id %}">Veure calendari</a>
-  </article>
-{% empty %}
-  <article class="empty-state card"><h2>Encara no tens cap família vinculada</h2><p>Demana una invitació a l’administració de l’AFA.</p></article>
-{% endfor %}
-</div>
-<section class="section-heading"><h2>Properes reserves</h2></section>
-<article class="card list-card">
-{% for booking in upcoming %}
-  <div><strong>{{ booking.date|date:"D, j M" }}</strong><span>{{ booking.student.full_name }}</span><span>{{ booking.diet_name|default:"Ordinària" }}</span></div>
-{% empty %}<p>No hi ha reserves futures.</p>{% endfor %}
-</article>
+<section class="welcome-banner"><div><p class="eyebrow">{% translate "Benvinguda" %}</p><h1>{% blocktranslate with name=user.first_name|default:user.email %}Hola, {{ name }}{% endblocktranslate %}</h1><p>{% translate "Des d'aquí pots gestionar el menjador dels teus fills amb tranquil·litat." %}</p></div><span class="welcome-illustration">☀</span></section>
+<section class="section-heading"><div><h2>{% translate "Els teus fills" %}</h2><p>{% translate "Escull un infant per veure i modificar les reserves." %}</p></div></section>
+<section class="family-grid">{% for family in families %}{% for student in family.students.all %}{% if student.active %}<article class="child-card"><div class="child-avatar">{{ student.first_name|first|upper }}</div><div><p class="eyebrow">{{ family.name }}</p><h2>{{ student.full_name }}</h2><p>{{ student.course_group|default:"—" }} · {{ student.get_meal_plan_display }}{% if student.default_diet %} · {{ student.default_diet }}{% endif %}</p></div><a href="{% url 'cafeteria:family_calendar' family.id %}" class="button primary">{% translate "Gestiona" %} →</a></article>{% endif %}{% empty %}<article class="empty-state card"><h2>{% translate "Encara no hi ha alumnes" %}</h2><p>{% translate "Contacta amb l'AFA si hi falta alguna fitxa." %}</p></article>{% endfor %}{% endfor %}</section>
+<section class="split-section"><article class="card"><div class="section-title"><h2>{% translate "Pròxims àpats" %}</h2><span>{{ today|date:"d/m" }}</span></div>{% for booking in upcoming %}<div class="meal-row"><span class="meal-date">{{ booking.date|date:"D" }}<b>{{ booking.date|date:"d" }}</b></span><div><strong>{{ booking.student.full_name }}</strong><small>{{ booking.diet_name|default:"Ordinària" }}</small></div></div>{% empty %}<div class="empty-inline"><span>🍽</span><p>{% translate "No hi ha cap reserva pròxima." %}</p></div>{% endfor %}</article><article class="card soft-card"><h2>{% translate "Necessites ajuda?" %}</h2><p>{% translate "Pots apuntar o anul·lar dies fins a l'hora de tall definida pel menjador." %}</p><p class="muted">{% translate "Per a canvis urgents, posa't en contacte amb l'AFA." %}</p></article></section>
 {% endblock %}

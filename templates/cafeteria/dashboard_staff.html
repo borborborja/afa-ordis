@@ -1,15 +1,7 @@
 {% extends 'cafeteria/base.html' %}
+{% load i18n %}
 {% block content %}
-<section class="hero staff-hero"><div><p class="eyebrow">Gestió del menjador</p><h1>Visió d’avui</h1><p>{{ today|date:"l, j \d\e F" }}</p></div><a class="button light" href="{% url 'cafeteria:daily_reports' %}">Veure llistats</a></section>
-<section class="metric-grid">
-  <article class="metric card"><span>Àpats previstos avui</span><strong>{{ today_total }}</strong></article>
-  <article class="metric card"><span>Resums pendents de revisió</span><strong>{{ pending_statements }}</strong></article>
-  <article class="metric card"><span>Llistats a actualitzar</span><strong>{{ outdated_reports }}</strong></article>
-</section>
-<section class="two-column">
-  <article class="card"><h2>Dietes d’avui</h2><ul class="plain-list">{% for diet, total in diet_totals %}<li><span>{{ diet }}</span><strong>{{ total }}</strong></li>{% empty %}<li>Encara no hi ha reserves.</li>{% endfor %}</ul></article>
-  <article class="card"><h2>Pròximes accions</h2><p>Revisa tarifes, informa la cuina i tanca els resums mensuals quan estiguin validats.</p><div class="button-row"><a class="button secondary" href="{% url 'cafeteria:price_rules' %}">Tarifes</a><a class="button secondary" href="{% url 'cafeteria:monthly_statements' %}">Resums</a></div></article>
-</section>
-<section class="section-heading"><h2>Primeres reserves d’avui</h2></section>
-<article class="card list-card">{% for booking in today_bookings %}<div><strong>{{ booking.student.full_name }}</strong><span>{{ booking.student.course_group|default:"Sense curs" }}</span><span>{{ booking.diet_name|default:"Ordinària" }}</span></div>{% empty %}<p>Sense reserves per avui.</p>{% endfor %}</article>
+<section class="page-heading"><div><p class="eyebrow">{% translate "Menjador" %}</p><h1>{% translate "Bon dia" %}, {{ user.first_name|default:user.email }}</h1><p>{% translate "La fotografia del servei d'avui, en un sol cop d'ull." %}</p></div><a class="button primary" href="{% url 'cafeteria:daily_reports' %}">☷ {% translate "Veure el llistat" %}</a></section>
+<section class="stat-grid"><article class="stat-card highlight"><span>🍽</span><strong>{{ today_total }}</strong><p>{% translate "àpats avui" %}</p></article><article class="stat-card"><span>▤</span><strong>{{ pending_statements }}</strong><p>{% translate "resums per revisar" %}</p></article><article class="stat-card"><span>!</span><strong>{{ outdated_reports }}</strong><p>{% translate "llistats a actualitzar" %}</p></article></section>
+<section class="split-section"><article class="card"><div class="section-title"><h2>{% translate "Servei d'avui" %}</h2><span>{{ today|date:"d/m/Y" }}</span></div>{% for booking in today_bookings %}<div class="meal-row"><span class="child-avatar tiny">{{ booking.student.first_name|first|upper }}</span><div><strong>{{ booking.student.full_name }}</strong><small>{{ booking.student.course_group|default:"—" }} · {{ booking.diet_name|default:"Ordinària" }}</small></div></div>{% empty %}<div class="empty-inline"><span>✓</span><p>{% translate "No hi ha reserves per avui." %}</p></div>{% endfor %}</article><article class="card"><h2>{% translate "Per dieta" %}</h2>{% for diet, total in diet_totals %}<div class="progress-row"><span>{{ diet }}</span><b>{{ total }}</b></div>{% empty %}<p class="muted">{% translate "Encara no hi ha dades." %}</p>{% endfor %}</article></section>
 {% endblock %}

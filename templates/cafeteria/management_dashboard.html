@@ -1,0 +1,22 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Gestió" %}{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">{% translate "Panell d'administració" %}</p><h1>{% translate "Tot a punt per al menjador" %}</h1><p>{% if active_year %}{{ active_year.name }} · {% endif %}{% translate "Gestiona les dades, el calendari i les comunicacions des d'un sol lloc." %}</p></div><a class="button primary" href="{% url 'cafeteria:family_create' %}">+ {% translate "Afegeix una família" %}</a></section>
+<section class="stat-grid">
+  <article class="stat-card"><span>♧</span><strong>{{ family_count }}</strong><p>{% translate "famílies actives" %}</p></article>
+  <article class="stat-card"><span>☺</span><strong>{{ student_count }}</strong><p>{% translate "alumnes actius" %}</p></article>
+  <article class="stat-card"><span>▣</span><strong>{{ service_days }}</strong><p>{% translate "dies de servei" %}</p></article>
+  <article class="stat-card highlight"><span>☷</span><strong>{{ today_total }}</strong><p>{% translate "àpats avui" %}</p></article>
+</section>
+<section class="action-grid">
+  <a class="action-card" href="{% url 'cafeteria:people' %}"><span>♧</span><div><h2>{% translate "Famílies i alumnes" %}</h2><p>{% translate "Crea fitxes, revisa dades i prepara invitacions." %}</p></div><b>→</b></a>
+  <a class="action-card" href="{% url 'cafeteria:school_calendar' %}"><span>▣</span><div><h2>{% translate "Calendari escolar" %}</h2><p>{% translate "Genera dies lectius, tanca festius i marca excursions." %}</p></div><b>→</b></a>
+  <a class="action-card" href="{% url 'cafeteria:meal_configuration' %}"><span>◒</span><div><h2>{% translate "Configuració del menjador" %}</h2><p>{% translate "Defineix dietes, avisos i correus de cuina." %}</p></div><b>→</b></a>
+  <a class="action-card" href="{% url 'cafeteria:family_import' %}"><span>⇧</span><div><h2>{% translate "Importa famílies" %}</h2><p>{% translate "Valida un CSV abans de crear cap registre." %}</p></div><b>→</b></a>
+</section>
+{% if pending_invitations or recent_imports %}<section class="split-section">
+  <article class="card"><h2>{% translate "Invitacions pendents" %}</h2><p class="large-number">{{ pending_invitations }}</p><a href="{% url 'cafeteria:invitation_create' %}">{% translate "Envia una invitació" %} →</a></article>
+  <article class="card"><h2>{% translate "Últimes importacions" %}</h2>{% for item in recent_imports %}<p class="compact-row"><span>{{ item.created_at|date:"d/m/Y H:i" }}</span><span>{{ item.get_status_display }}</span></p>{% empty %}<p class="muted">{% translate "Encara no n'hi ha cap." %}</p>{% endfor %}</article>
+</section>{% endif %}
+{% endblock %}

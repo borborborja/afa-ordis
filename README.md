@@ -1,6 +1,6 @@
 # AFA Ordis · Portal de menjador
 
-Portal autogestionat per a la gestió de reserves de menjador, famílies, dietes, calendaris i resums mensuals. Està preparat per al curs 2026–2027, però els cursos i els dies de servei es configuren des del panell d’administració.
+Portal autogestionat per a la gestió de reserves de menjador, famílies, dietes, calendaris i resums mensuals. Està preparat per al curs 2026–2027, però els cursos i els dies de servei es configuren des del panell visual de **Gestió**.
 
 ## Requisits
 
@@ -30,17 +30,17 @@ Per a un servidor públic, consulta la [guia de desplegament](docs/deployment.md
 
 ## Configuració inicial recomanada
 
-1. Entra a **Administració** amb el superusuari i crea el curs `2026-2027`, els grups/classes i els dies lectius amb servei de menjador.
-2. Crea el catàleg de dietes i les quatre tarifes: becat/no becat × fix/esporàdic.
-3. Afegeix la configuració de menjador del curs: hora límit general, activació dels informes diaris i els correus destinataris de cuina.
-4. Crea famílies i alumnes. Des de **Invitacions**, administra pot convidar tutors, gestors o altres administradors. Els tutors reben un enllaç d’un sol ús o se’ls pot compartir manualment.
+1. Entra a **Gestió → Calendari** amb el superusuari, crea o activa el curs `2026-2027`, afegeix els grups/classes i usa **Genera dies lectius**. Després marca els festius i excursions necessaris.
+2. A **Gestió → Configuració** crea el catàleg de dietes, l'hora límit, l'activació dels informes diaris i els correus destinataris de cuina. A **Tarifes** crea les quatre combinacions: becat/no becat × fix/esporàdic.
+3. Afegeix famílies i alumnes individualment a **Famílies i alumnes**, o baixa la plantilla i valida una importació a **Importa CSV**. La importació no envia invitacions ni aplica canvis fins que es confirma la previsualització.
+4. Des de **Invitacions**, l'administració pot convidar tutors, gestors o altres administradors. Els tutors reben un enllaç d’un sol ús o se’ls pot compartir manualment.
 5. Revisa els informes i resums mensuals abans de tancar-los i enviar-los a cada família.
 
 Els gestors poden operar el menjador, preus, informes i resums; no poden crear famílies, alumnes ni invitacions. Els tutors poden editar la fitxa dels seus infants, menys la condició de beca.
 
 ## Operativa
 
-- Els tutors seleccionen dies individualment o de manera múltiple des de la graella mensual. Els dies no lectius, excursions del curs i períodes bloquejats no es poden reservar.
+- Els tutors veuen targetes setmanals fàcils d'usar des del mòbil i una graella mensual a l'escriptori. Els dies no lectius, excursions del curs i períodes bloquejats no es poden reservar.
 - En arribar a l’hora límit, es genera i s’envia el llistat diari. Canvis posteriors només els poden fer gestor o administració, amb motiu i auditoria; el llistat queda marcat per reenviar-lo com a correcció.
 - Les excursions anul·len automàticament les reserves del curs, no les facturen i avisen les famílies afectades.
 - Els resums mensuals es preparen automàticament en el dia/hora configurats. S’han de tancar abans d’enviar-los per correu; es poden consultar, imprimir com a PDF des del navegador o exportar a CSV.
@@ -73,5 +73,7 @@ sudo docker run --rm -e DATABASE_ENGINE=django.db.backends.sqlite3 -e DATABASE_N
 ```
 
 Inclou proves de reserves familiars, restricció de beques, excursions, facturació i correu de llistat diari.
+
+No hi ha cap panell web de Django Admin publicat: la gestió operativa és íntegrament dins del portal, amb navegació per rols. Cada usuari pot triar Català o Castellano des del menú de compte; l'elecció es conserva al seu perfil.
 
 La [GitHub Action](.github/workflows/container.yml) construeix la imatge, valida la configuració Django, executa les proves, comprova les migracions i publica la imatge validada a `ghcr.io/borborborja/afa-ordis` quan es modifica `main`.

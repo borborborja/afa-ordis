@@ -1,0 +1,310 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: AFA Ordis\n"
+"PO-Revision-Date: 2026-09-03 00:00+0000\n"
+"Last-Translator: AFA Ordis\n"
+"Language-Team: Spanish\n"
+"MIME-Version: 1.0\n"
+"Language: es\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Inici"
+msgstr "Inicio"
+
+msgid "Gestió"
+msgstr "Gestión"
+
+msgid "Famílies i alumnes"
+msgstr "Familias y alumnado"
+
+msgid "Calendari"
+msgstr "Calendario"
+
+msgid "Configuració"
+msgstr "Configuración"
+
+msgid "Importa CSV"
+msgstr "Importar CSV"
+
+msgid "Llistats diaris"
+msgstr "Listados diarios"
+
+msgid "Tarifes"
+msgstr "Tarifas"
+
+msgid "Resums"
+msgstr "Resúmenes"
+
+msgid "Invitacions"
+msgstr "Invitaciones"
+
+msgid "Portal de l'AFA d'Ordis"
+msgstr "Portal de la AFA de Ordis"
+
+msgid "Menú"
+msgstr "Menú"
+
+msgid "Menjador escolar"
+msgstr "Comedor escolar"
+
+msgid "Idioma"
+msgstr "Idioma"
+
+msgid "Tanca la sessió"
+msgstr "Cerrar sesión"
+
+msgid "Portal autogestionat"
+msgstr "Portal autogestionado"
+
+msgid "Benvinguda"
+msgstr "Bienvenida"
+
+msgid "Hola, %(name)s"
+msgstr "Hola, %(name)s"
+
+msgid "Des d'aquí pots gestionar el menjador dels teus fills amb tranquil·litat."
+msgstr "Desde aquí puedes gestionar el comedor de tus hijos con tranquilidad."
+
+msgid "Els teus fills"
+msgstr "Tus hijos"
+
+msgid "Escull un infant per veure i modificar les reserves."
+msgstr "Elige un niño o niña para ver y modificar las reservas."
+
+msgid "Gestiona"
+msgstr "Gestionar"
+
+msgid "Pròxims àpats"
+msgstr "Próximas comidas"
+
+msgid "No hi ha cap reserva pròxima."
+msgstr "No hay ninguna reserva próxima."
+
+msgid "Necessites ajuda?"
+msgstr "¿Necesitas ayuda?"
+
+msgid "Reserva de menjador"
+msgstr "Reserva de comedor"
+
+msgid "Marca els dies i la dieta. Els canvis es desen en prémer el botó final."
+msgstr "Marca los días y la dieta. Los cambios se guardan al pulsar el botón final."
+
+msgid "Torna"
+msgstr "Volver"
+
+msgid "Setmana del"
+msgstr "Semana del"
+
+msgid "Fitxa"
+msgstr "Ficha"
+
+msgid "Dieta predeterminada"
+msgstr "Dieta predeterminada"
+
+msgid "Apunta"
+msgstr "Reservar"
+
+msgid "Anul·la"
+msgstr "Cancelar"
+
+msgid "No hi ha alumnes actius"
+msgstr "No hay alumnos activos"
+
+msgid "Edita fitxa"
+msgstr "Editar ficha"
+
+msgid "Dieta"
+msgstr "Dieta"
+
+msgid "Apunta dies marcats"
+msgstr "Reservar días marcados"
+
+msgid "Anul·la dies marcats"
+msgstr "Cancelar días marcados"
+
+msgid "Panell d'administració"
+msgstr "Panel de administración"
+
+msgid "Tot a punt per al menjador"
+msgstr "Todo listo para el comedor"
+
+msgid "Gestiona les dades, el calendari i les comunicacions des d'un sol lloc."
+msgstr "Gestiona los datos, el calendario y las comunicaciones desde un solo lugar."
+
+msgid "Afegeix una família"
+msgstr "Añadir una familia"
+
+msgid "famílies actives"
+msgstr "familias activas"
+
+msgid "alumnes actius"
+msgstr "alumnos activos"
+
+msgid "dies de servei"
+msgstr "días de servicio"
+
+msgid "àpats avui"
+msgstr "comidas hoy"
+
+msgid "Crea fitxes, revisa dades i prepara invitacions."
+msgstr "Crea fichas, revisa datos y prepara invitaciones."
+
+msgid "Calendari escolar"
+msgstr "Calendario escolar"
+
+msgid "Genera dies lectius, tanca festius i marca excursions."
+msgstr "Genera días lectivos, cierra festivos y marca excursiones."
+
+msgid "Configuració del menjador"
+msgstr "Configuración del comedor"
+
+msgid "Defineix dietes, avisos i correus de cuina."
+msgstr "Define dietas, avisos y correos de cocina."
+
+msgid "Importa famílies"
+msgstr "Importar familias"
+
+msgid "Valida un CSV abans de crear cap registre."
+msgstr "Valida un CSV antes de crear ningún registro."
+
+msgid "Invitacions pendents"
+msgstr "Invitaciones pendientes"
+
+msgid "Envia una invitació"
+msgstr "Enviar una invitación"
+
+msgid "Últimes importacions"
+msgstr "Últimas importaciones"
+
+msgid "Encara no n'hi ha cap."
+msgstr "Todavía no hay ninguna."
+
+msgid "Persones"
+msgstr "Personas"
+
+msgid "Les dades del menjador, ordenades de manera clara."
+msgstr "Los datos del comedor, ordenados de forma clara."
+
+msgid "Família"
+msgstr "Familia"
+
+msgid "Alumne"
+msgstr "Alumno"
+
+msgid "Cerca"
+msgstr "Buscar"
+
+msgid "Cerca per nom de família o alumne"
+msgstr "Buscar por nombre de familia o alumno"
+
+msgid "Contacte"
+msgstr "Contacto"
+
+msgid "Alumnes"
+msgstr "Alumnos"
+
+msgid "Edita"
+msgstr "Editar"
+
+msgid "Grup"
+msgstr "Grupo"
+
+msgid "Dades"
+msgstr "Datos"
+
+msgid "Desa els canvis"
+msgstr "Guardar cambios"
+
+msgid "Cancel·la"
+msgstr "Cancelar"
+
+msgid "Organització"
+msgstr "Organización"
+
+msgid "Els dies lectius s'ofereixen per defecte de dilluns a divendres. Després pots tancar un dia o marcar una excursió."
+msgstr "Los días lectivos se ofrecen por defecto de lunes a viernes. Después puedes cerrar un día o marcar una excursión."
+
+msgid "Curs"
+msgstr "Curso"
+
+msgid "Mes"
+msgstr "Mes"
+
+msgid "Genera dies lectius"
+msgstr "Generar días lectivos"
+
+msgid "Obert"
+msgstr "Abierto"
+
+msgid "Tancat"
+msgstr "Cerrado"
+
+msgid "Nou curs acadèmic"
+msgstr "Nuevo curso académico"
+
+msgid "Crea el curs"
+msgstr "Crear el curso"
+
+msgid "Grup o curs"
+msgstr "Grupo o curso"
+
+msgid "Afegeix el grup"
+msgstr "Añadir el grupo"
+
+msgid "Excursió o dia sense menjador per a un grup"
+msgstr "Excursión o día sin comedor para un grupo"
+
+msgid "Marca l'excursió"
+msgstr "Marcar la excursión"
+
+msgid "Primer crea un curs acadèmic"
+msgstr "Primero crea un curso académico"
+
+msgid "La configuració del menjador pertany a un curs."
+msgstr "La configuración del comedor pertenece a un curso."
+
+msgid "Importació segura"
+msgstr "Importación segura"
+
+msgid "Afegeix famílies des d'un CSV"
+msgstr "Añadir familias desde un CSV"
+
+msgid "Primer validarem totes les files. Només es crearan les dades quan confirmis la previsualització."
+msgstr "Primero validaremos todas las filas. Los datos solo se crearán al confirmar la previsualización."
+
+msgid "Baixa la plantilla"
+msgstr "Descargar plantilla"
+
+msgid "Puja el fitxer"
+msgstr "Subir el archivo"
+
+msgid "Valida i previsualitza"
+msgstr "Validar y previsualizar"
+
+msgid "Pas final"
+msgstr "Paso final"
+
+msgid "Revisa la importació"
+msgstr "Revisar la importación"
+
+msgid "fila vàlida"
+msgid_plural "files vàlides"
+msgstr[0] "fila válida"
+msgstr[1] "filas válidas"
+
+msgid "Hi ha files que no s'importaran:"
+msgstr "Hay filas que no se importarán:"
+
+msgid "Fila"
+msgstr "Fila"
+
+msgid "No hi ha cap fila vàlida per importar."
+msgstr "No hay ninguna fila válida para importar."
+
+msgid "Aquesta acció crearà les famílies i alumnes mostrats. Les invitacions es faran després, manualment."
+msgstr "Esta acción creará las familias y alumnos mostrados. Las invitaciones se harán después, manualmente."
+
+msgid "Confirma la importació"
+msgstr "Confirmar la importación"

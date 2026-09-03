@@ -7,10 +7,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gettext \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --upgrade pip \
+    && pip install -r requirements.txt
 
 COPY . .
-RUN chmod +x /app/entrypoint.sh && mkdir -p /app/staticfiles /app/media
+RUN django-admin compilemessages \
+    && chmod +x /app/entrypoint.sh \
+    && mkdir -p /app/staticfiles /app/media
 
 EXPOSE 8000
 ENTRYPOINT ["/app/entrypoint.sh"]

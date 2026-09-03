@@ -1,44 +1,69 @@
 {% load i18n static %}
+{% get_current_language as CURRENT_LANGUAGE %}
 <!doctype html>
-<html lang="{{ LANGUAGE_CODE }}">
+<html lang="{{ CURRENT_LANGUAGE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#176b5b">
+  <meta name="theme-color" content="#185c51">
   <title>{% block title %}AFA Ordis · Menjador{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'cafeteria/style.css' %}">
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="{% url 'cafeteria:dashboard' %}"><span class="brand-mark">A</span><span>AFA Ordis<small>Menjador</small></span></a>
-    {% if user.is_authenticated %}
-      <nav aria-label="Navegació principal">
-        <a href="{% url 'cafeteria:dashboard' %}">Inici</a>
-        <a href="{% url 'cafeteria:monthly_statements' %}">Resums</a>
-        {% if can_manage_meals %}
-          <a href="{% url 'cafeteria:daily_reports' %}">Llistats</a>
-          <a href="{% url 'cafeteria:price_rules' %}">Tarifes</a>
-        {% endif %}
+  {% if user.is_authenticated %}
+  <div class="app-layout">
+    <aside class="sidebar" aria-label="Navegació principal">
+      <a class="brand" href="{% url 'cafeteria:dashboard' %}"><span class="brand-mark">A</span><span>AFA Ordis<small>Menjador</small></span></a>
+      <nav class="main-nav">
+        <a href="{% url 'cafeteria:dashboard' %}"><span>⌂</span>{% translate "Inici" %}</a>
         {% if can_administer %}
-          <a href="{% url 'cafeteria:invitation_create' %}">Invitacions</a>
-          <a href="{% url 'cafeteria:audit_log' %}">Auditoria</a>
-          <a href="/admin/">Administració</a>
+          <a href="{% url 'cafeteria:management_dashboard' %}"><span>▦</span>{% translate "Gestió" %}</a>
+          <a href="{% url 'cafeteria:people' %}"><span>♧</span>{% translate "Famílies i alumnes" %}</a>
+          <a href="{% url 'cafeteria:school_calendar' %}"><span>▣</span>{% translate "Calendari" %}</a>
+          <a href="{% url 'cafeteria:meal_configuration' %}"><span>◒</span>{% translate "Configuració" %}</a>
+          <a href="{% url 'cafeteria:family_import' %}"><span>⇧</span>{% translate "Importa CSV" %}</a>
         {% endif %}
+        {% if can_manage_meals %}
+          <a href="{% url 'cafeteria:daily_reports' %}"><span>☷</span>{% translate "Llistats diaris" %}</a>
+          <a href="{% url 'cafeteria:price_rules' %}"><span>€</span>{% translate "Tarifes" %}</a>
+        {% endif %}
+        <a href="{% url 'cafeteria:monthly_statements' %}"><span>▤</span>{% translate "Resums" %}</a>
+        {% if can_administer %}<a href="{% url 'cafeteria:invitation_create' %}"><span>✉</span>{% translate "Invitacions" %}</a>{% endif %}
       </nav>
-      <div class="account-menu">
-        <span>{{ user.get_full_name|default:user.email }}</span>
-        <form method="post" action="{% url 'cafeteria:logout' %}">{% csrf_token %}<button class="link-button">Sortir</button></form>
-      </div>
-    {% endif %}
-  </header>
-  <main class="page-shell">
-    {% if messages %}
-      <section class="messages" aria-live="polite">
-      {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
-      </section>
-    {% endif %}
+      <div class="sidebar-bottom"><p>{% translate "Portal de l'AFA d'Ordis" %}</p></div>
+    </aside>
+    <div class="content-column">
+      <header class="topbar">
+        <details class="mobile-menu">
+          <summary aria-label="Obre el menú">☰ <span>{% translate "Menú" %}</span></summary>
+          <nav>
+            <a href="{% url 'cafeteria:dashboard' %}">{% translate "Inici" %}</a>
+            {% if can_administer %}<a href="{% url 'cafeteria:management_dashboard' %}">{% translate "Gestió" %}</a><a href="{% url 'cafeteria:people' %}">{% translate "Famílies i alumnes" %}</a><a href="{% url 'cafeteria:school_calendar' %}">{% translate "Calendari" %}</a><a href="{% url 'cafeteria:meal_configuration' %}">{% translate "Configuració" %}</a>{% endif %}
+            {% if can_manage_meals %}<a href="{% url 'cafeteria:daily_reports' %}">{% translate "Llistats diaris" %}</a><a href="{% url 'cafeteria:price_rules' %}">{% translate "Tarifes" %}</a>{% endif %}
+            <a href="{% url 'cafeteria:monthly_statements' %}">{% translate "Resums" %}</a>
+          </nav>
+        </details>
+        <div class="page-context">{% block page_context %}{% translate "Menjador escolar" %}{% endblock %}</div>
+        <div class="account-menu">
+          <form method="post" action="{% url 'cafeteria:set_language' %}" class="language-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><label class="sr-only" for="language">{% translate "Idioma" %}</label><select id="language" name="language" onchange="this.form.submit()"><option value="ca" {% if CURRENT_LANGUAGE == 'ca' %}selected{% endif %}>CA</option><option value="es" {% if CURRENT_LANGUAGE == 'es' %}selected{% endif %}>ES</option></select></form>
+          <details class="account-details"><summary><span class="avatar">{{ user.get_full_name|default:user.email|first|upper }}</span><span class="account-name">{{ user.get_full_name|default:user.email }}</span></summary><div class="account-popover"><strong>{{ user.email }}</strong><form method="post" action="{% url 'cafeteria:logout' %}">{% csrf_token %}<button class="link-button">{% translate "Tanca la sessió" %}</button></form></div></details>
+        </div>
+      </header>
+  {% else %}
+  <div class="auth-shell"><a class="brand auth-brand" href="{% url 'cafeteria:dashboard' %}"><span class="brand-mark">A</span><span>AFA Ordis<small>Menjador</small></span></a>
+  {% endif %}
+
+  <main class="{% if user.is_authenticated %}page-shell{% endif %}">
+    {% if messages %}<section class="messages" aria-live="polite">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</section>{% endif %}
     {% block content %}{% endblock %}
   </main>
-  <footer class="site-footer">AFA Ordis · Portal autogestionat</footer>
+
+  {% if user.is_authenticated %}
+      <footer class="site-footer">AFA Ordis · {% translate "Portal autogestionat" %}</footer>
+    </div>
+  </div>
+  {% else %}
+  </div>
+  {% endif %}
 </body>
 </html>

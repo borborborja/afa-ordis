@@ -1,0 +1,7 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Importa CSV" %}{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">{% translate "Importació segura" %}</p><h1>{% translate "Afegeix famílies des d'un CSV" %}</h1><p>{% translate "Primer validarem totes les files. Només es crearan les dades quan confirmis la previsualització." %}</p></div><a class="button secondary" href="{% url 'cafeteria:family_import_template' %}">⇩ {% translate "Baixa la plantilla" %}</a></section>
+<section class="split-section"><form method="post" enctype="multipart/form-data" class="card form-card">{% csrf_token %}<h2>{% translate "Puja el fitxer" %}</h2><div class="form-stack">{% for field in form %}<label>{{ field.label }}{{ field }}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button primary" type="submit">{% translate "Valida i previsualitza" %}</button></div></form><article class="card"><h2>{% translate "Abans de començar" %}</h2><ul class="simple-list"><li>{% translate "Descarrega la plantilla i mantén les columnes en el mateix ordre." %}</li><li>{% translate "Els grups i les dietes s'han d'haver creat prèviament." %}</li><li>{% translate "No s'envia cap invitació automàtica: les podràs enviar quan revisis les famílies." %}</li><li>{% translate "El fitxer original no es desa; la previsualització caduca en dues hores." %}</li></ul></article></section>
+{% endblock %}

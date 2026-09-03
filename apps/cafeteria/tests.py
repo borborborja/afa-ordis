@@ -4,9 +4,12 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
+from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
+from django.utils import translation
 
 from .models import (
     AcademicYear,
@@ -17,6 +20,7 @@ from .models import (
     Diet,
     Family,
     FamilyMembership,
+    FamilyImportBatch,
     MealBooking,
     MealPlan,
     MealSettings,
@@ -109,3 +113,65 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("/ca/comptes/contrasenya/", mail.outbox[0].body)
+
+    def test_public_django_admin_route_is_disabled(self):
+        self.assertEqual(self.client.get("/ca/admin/").status_code, 404)
+
+    def test_csv_import_is_previewed_then_atomically_confirmed(self):
+        admin = User.objects.create_superuser("admin@example.com", "admin@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        csv_content = (
+            "family_name,billing_email,family_phone,family_address,student_first_name,student_last_name,"
+            "birth_date,course_group,student_email,student_phone,contact_notes,default_diet,dietary_notes,scholarship,meal_plan\n"
+            f"Família Nova,nova@example.com,600000000,,Arnau,Serra,2019-02-03,{self.group.name},,,,Ordinària,,No,Fix\n"
+        )
+        response = self.client.post(reverse("cafeteria:family_import"), {
+            "academic_year": self.year.id,
+            "csv_file": SimpleUploadedFile("families.csv", csv_content.encode(), content_type="text/csv"),
+        })
+        self.assertEqual(response.status_code, 302)
+        batch = FamilyImportBatch.objects.get()
+        self.assertEqual(batch.valid_rows[0]["student_first_name"], "Arnau")
+        response = self.client.post(reverse("cafeteria:family_import_confirm", args=[batch.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Student.objects.filter(first_name="Arnau", last_name="Serra").exists())
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, FamilyImportBatch.Status.IMPORTED)
+        self.assertEqual(batch.valid_rows, [])
+
+    def test_custom_management_screens_render_for_superuser(self):
+        admin = User.objects.create_superuser("admin2@example.com", "admin2@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        for route in (
+            "cafeteria:management_dashboard",
+            "cafeteria:people",
+            "cafeteria:school_calendar",
+            "cafeteria:meal_configuration",
+            "cafeteria:family_import",
+        ):
+            with self.subTest(route=route):
+                self.assertEqual(self.client.get(reverse(route)).status_code, 200)
+
+    def test_member_dashboard_and_responsive_booking_view_render(self):
+        self.client.force_login(self.user)
+        with translation.override("ca"):
+            self.assertEqual(self.client.get(reverse("cafeteria:dashboard")).status_code, 200)
+            self.assertEqual(self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id])).status_code, 200)
+
+    def test_language_choice_is_saved_on_the_profile(self):
+        self.client.force_login(self.user)
+        with translation.override("ca"):
+            response = self.client.post(reverse("cafeteria:set_language"), {"language": "es", "next": reverse("cafeteria:dashboard")})
+        self.assertEqual(response.status_code, 302)
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.language, "es")
+
+    def test_portal_templates_compile(self):
+        templates = (
+            "cafeteria/price_rules.html", "cafeteria/daily_reports.html", "cafeteria/monthly_statements.html",
+            "cafeteria/statement_detail.html", "cafeteria/invitation_form.html", "cafeteria/student_form.html",
+            "cafeteria/audit_log.html", "cafeteria/family_import_preview.html",
+        )
+        for template in templates:
+            with self.subTest(template=template):
+                get_template(template)

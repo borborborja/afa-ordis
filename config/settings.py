@@ -14,7 +14,6 @@ ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "loc
 CSRF_TRUSTED_ORIGINS = [os.getenv("APP_BASE_URL", "http://localhost")] if os.getenv("APP_BASE_URL") else []
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -31,6 +30,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.cafeteria.middleware.ProfileLocaleMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -68,6 +68,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "ca"
 LANGUAGES = [("ca", "Català"), ("es", "Castellano")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Madrid")
 USE_I18N = True
 USE_TZ = True

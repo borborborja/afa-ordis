@@ -1,2 +1,7 @@
 {% extends 'cafeteria/base.html' %}
-{% block content %}<section class="page-heading"><div><p class="eyebrow">Administració</p><h1>Registre de canvis</h1><p>Traçabilitat de canvis sensibles i operatius.</p></div></section><article class="card"><div class="table-scroll"><table><thead><tr><th>Quan</th><th>Usuari</th><th>Acció</th><th>Element</th><th>Detall</th></tr></thead><tbody>{% for event in events %}<tr><td>{{ event.created_at|date:"d/m/Y H:i" }}</td><td>{{ event.actor|default:"Sistema" }}</td><td>{{ event.action }}</td><td>{{ event.target_type }} #{{ event.target_id }}</td><td><code>{{ event.details }}</code></td></tr>{% empty %}<tr><td colspan="5">No hi ha canvis registrats.</td></tr>{% endfor %}</tbody></table></div></article>{% endblock %}
+{% load i18n %}
+{% block page_context %}{% translate "Registre" %}{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">{% translate "Administració" %}</p><h1>{% translate "Registre de canvis" %}</h1><p>{% translate "Traçabilitat de les accions importants del portal." %}</p></div></section>
+<section class="table-card"><table><thead><tr><th>{% translate "Quan" %}</th><th>{% translate "Usuari" %}</th><th>{% translate "Acció" %}</th><th>{% translate "Element" %}</th><th>{% translate "Detall" %}</th></tr></thead><tbody>{% for event in events %}<tr><td>{{ event.created_at|date:"d/m/Y H:i" }}</td><td>{{ event.actor|default:"Sistema" }}</td><td>{{ event.action }}</td><td>{{ event.target_type }} #{{ event.target_id }}</td><td><code>{{ event.details }}</code></td></tr>{% empty %}<tr><td colspan="5" class="empty-cell">{% translate "No hi ha canvis registrats." %}</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}
