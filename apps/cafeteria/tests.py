@@ -99,6 +99,76 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(bookings.count(), 2)
         self.assertTrue(all(booking.meal_type == MealType.PACKED_LUNCH for booking in bookings))
 
+    def test_monthly_booking_calendar_shows_all_active_children_together(self):
+        sibling = Student.objects.create(
+            family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
+            default_diet=self.diet, meal_plan=MealPlan.FIXED,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(f"{reverse('cafeteria:family_calendar', args=[self.family.id])}?month={self.today:%Y-%m}")
+        self.assertContains(response, "Calendari mensual de reserves")
+        self.assertContains(response, self.student.full_name)
+        self.assertContains(response, sibling.full_name)
+        self.assertNotContains(response, "Setmana del")
+
+    def test_monthly_booking_api_reserves_cancels_and_changes_one_diet(self):
+        alternative_diet = Diet.objects.create(name="Vegetariana")
+        self.client.force_login(self.user)
+        update_url = reverse("cafeteria:family_booking_update", args=[self.family.id])
+        response = self.client.post(update_url, {
+            "student_id": self.student.id, "service_date": self.today.isoformat(), "operation": "reserve",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["booking"]["state"], "reserved")
+        booking = MealBooking.objects.get(student=self.student, date=self.today)
+        self.assertEqual(booking.diet, self.diet)
+
+        response = self.client.post(update_url, {
+            "student_id": self.student.id, "service_date": self.today.isoformat(), "operation": "diet",
+            "diet_id": alternative_diet.id,
+        })
+        self.assertEqual(response.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.diet, alternative_diet)
+
+        response = self.client.post(update_url, {
+            "student_id": self.student.id, "service_date": self.today.isoformat(), "operation": "cancel",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["booking"]["state"], "empty")
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+
+    def test_monthly_booking_apply_uses_each_sibling_default_diet(self):
+        sibling_diet = Diet.objects.create(name="Sense gluten")
+        sibling = Student.objects.create(
+            family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
+            default_diet=sibling_diet, meal_plan=MealPlan.FIXED,
+        )
+        self.client.force_login(self.user)
+        update_url = reverse("cafeteria:family_booking_update", args=[self.family.id])
+        self.client.post(update_url, {
+            "student_id": self.student.id, "service_date": self.today.isoformat(), "operation": "reserve",
+        })
+        response = self.client.post(reverse("cafeteria:family_booking_apply", args=[self.family.id]), {
+            "source_student_id": self.student.id,
+            "service_date": self.today.isoformat(),
+            "student_ids": [sibling.id],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["updated"], 1)
+        booking = MealBooking.objects.get(student=sibling, date=self.today)
+        self.assertEqual(booking.diet, sibling_diet)
+
+    def test_monthly_booking_api_does_not_bypass_the_cutoff(self):
+        MealSettings.objects.create(academic_year=self.year, daily_cutoff=time(0, 0))
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:family_booking_update", args=[self.family.id]), {
+            "student_id": self.student.id, "service_date": self.today.isoformat(), "operation": "reserve",
+        })
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(MealBooking.objects.filter(student=self.student, date=self.today, status=BookingStatus.ACTIVE).exists())
+
     def test_tutor_cannot_change_scholarship_status(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {

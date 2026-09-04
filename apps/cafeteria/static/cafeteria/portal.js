@@ -51,4 +51,173 @@
       }
     });
   });
+
+  const bookingCalendar = document.querySelector('[data-booking-calendar]');
+  if (bookingCalendar) {
+    const status = bookingCalendar.querySelector('[data-booking-status]');
+    const applyPanel = bookingCalendar.querySelector('[data-apply-panel]');
+    const updateUrl = bookingCalendar.dataset.updateUrl;
+    const applyUrl = bookingCalendar.dataset.applyUrl;
+
+    const setStatus = (message, isError = false) => {
+      if (!status) return;
+      status.textContent = message || '';
+      status.dataset.status = isError ? 'error' : 'success';
+    };
+
+    const closeDietMenus = () => bookingCalendar.querySelectorAll('[data-diet-menu]').forEach((menu) => { menu.hidden = true; });
+    const cellFor = (studentId, serviceDate) => bookingCalendar.querySelector(
+      `[data-booking-cell][data-student-id="${studentId}"][data-date="${serviceDate}"]`,
+    );
+    const applyBookingState = (cell, booking) => {
+      if (!cell || !booking) return;
+      cell.dataset.state = booking.state;
+      cell.dataset.dietName = booking.diet_name || '';
+      const mainButton = cell.querySelector('[data-booking-main]');
+      if (mainButton) {
+        mainButton.disabled = cell.dataset.locked === 'true' || booking.state === 'unavailable';
+        const action = booking.reserved ? bookingCalendar.dataset.cancelLabel : bookingCalendar.dataset.reserveLabel;
+        mainButton.setAttribute('aria-label', `${action} ${cell.dataset.studentName} · ${cell.dataset.date}`);
+      }
+      const dietButton = cell.querySelector('[data-diet-trigger]');
+      if (dietButton) dietButton.title = booking.diet_name || '';
+      cell.querySelectorAll('[data-diet-choice]').forEach((choice) => {
+        if (String(booking.diet_id || '') === choice.dataset.dietId) {
+          choice.setAttribute('aria-current', 'true');
+        } else {
+          choice.removeAttribute('aria-current');
+        }
+      });
+      closeDietMenus();
+    };
+    const request = async (url, values) => {
+      const body = new URLSearchParams();
+      Object.entries(values).forEach(([key, value]) => {
+        if (Array.isArray(value)) value.forEach((item) => body.append(key, item));
+        else body.append(key, value);
+      });
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrfToken(),
+          'Accept': 'application/json',
+        },
+        body,
+      });
+      let data;
+      try {
+        data = await response.json();
+      } catch (_error) {
+        data = { ok: false, message: bookingCalendar.dataset.failedLabel };
+      }
+      if (!response.ok || !data.ok) throw new Error(data.message || bookingCalendar.dataset.failedLabel);
+      return data;
+    };
+    const setBusy = (cell, busy) => {
+      cell.dataset.saving = busy ? 'true' : 'false';
+      cell.querySelectorAll('button').forEach((button) => {
+        if (!button.closest('[data-diet-menu]')) button.disabled = busy || cell.dataset.locked === 'true' || cell.dataset.state === 'unavailable';
+      });
+    };
+    const showApplyPanel = (cell) => {
+      if (!applyPanel) return;
+      const sourceId = cell.dataset.studentId;
+      const serviceDate = cell.dataset.date;
+      applyPanel.dataset.sourceStudentId = sourceId;
+      applyPanel.dataset.serviceDate = serviceDate;
+      applyPanel.querySelectorAll('[data-apply-student]').forEach((choice) => {
+        const targetCell = cellFor(choice.value, serviceDate);
+        const eligible = choice.value !== sourceId && targetCell && targetCell.dataset.state === 'empty' && targetCell.dataset.locked !== 'true';
+        choice.disabled = !eligible;
+        choice.checked = Boolean(eligible);
+      });
+      const description = applyPanel.querySelector('[data-apply-description]');
+      if (description) description.textContent = `${cell.dataset.date} · ${bookingCalendar.dataset.applyDefaultLabel}`;
+      applyPanel.hidden = false;
+      applyPanel.querySelector('[data-apply-booking]')?.focus();
+    };
+
+    bookingCalendar.addEventListener('click', async (event) => {
+      const dietChoice = event.target.closest('[data-diet-choice]');
+      const dietTrigger = event.target.closest('[data-diet-trigger]');
+      const mainButton = event.target.closest('[data-booking-main]');
+      if (dietChoice) {
+        const cell = dietChoice.closest('[data-booking-cell]');
+        if (!cell || cell.dataset.locked === 'true') return;
+        setBusy(cell, true);
+        try {
+          const data = await request(updateUrl, {
+            student_id: cell.dataset.studentId,
+            service_date: cell.dataset.date,
+            operation: 'diet',
+            diet_id: dietChoice.dataset.dietId,
+          });
+          applyBookingState(cell, data.booking);
+          setStatus(bookingCalendar.dataset.savedLabel);
+        } catch (error) {
+          setStatus(error.message, true);
+        } finally {
+          setBusy(cell, false);
+        }
+        return;
+      }
+      if (dietTrigger) {
+        const cell = dietTrigger.closest('[data-booking-cell]');
+        if (!cell || cell.dataset.state === 'empty' || cell.dataset.locked === 'true') return;
+        const menu = cell.querySelector('[data-diet-menu]');
+        const wasHidden = menu?.hidden;
+        closeDietMenus();
+        if (menu) menu.hidden = !wasHidden;
+        return;
+      }
+      if (!mainButton) return;
+      const cell = mainButton.closest('[data-booking-cell]');
+      if (!cell || cell.dataset.locked === 'true' || cell.dataset.state === 'unavailable') return;
+      const operation = cell.dataset.state === 'empty' ? 'reserve' : 'cancel';
+      setBusy(cell, true);
+      try {
+        const data = await request(updateUrl, {
+          student_id: cell.dataset.studentId,
+          service_date: cell.dataset.date,
+          operation,
+        });
+        applyBookingState(cell, data.booking);
+        setStatus(bookingCalendar.dataset.savedLabel);
+        if (operation === 'reserve' && data.booking.reserved) showApplyPanel(cell);
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        setBusy(cell, false);
+      }
+    });
+
+    bookingCalendar.querySelector('[data-apply-booking]')?.addEventListener('click', async () => {
+      const sourceStudentId = applyPanel?.dataset.sourceStudentId;
+      const serviceDate = applyPanel?.dataset.serviceDate;
+      const studentIds = [...applyPanel.querySelectorAll('[data-apply-student]:checked:not(:disabled)')].map((choice) => choice.value);
+      if (!sourceStudentId || !serviceDate || !studentIds.length) {
+        if (applyPanel) applyPanel.hidden = true;
+        return;
+      }
+      const button = applyPanel.querySelector('[data-apply-booking]');
+      button.disabled = true;
+      try {
+        const data = await request(applyUrl, {
+          source_student_id: sourceStudentId,
+          service_date: serviceDate,
+          student_ids: studentIds,
+        });
+        data.bookings.forEach((entry) => applyBookingState(cellFor(entry.student_id, serviceDate), entry.booking));
+        setStatus(data.updated ? bookingCalendar.dataset.savedLabel : bookingCalendar.dataset.noChangesLabel);
+        applyPanel.hidden = true;
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    bookingCalendar.querySelector('[data-close-apply]')?.addEventListener('click', () => { if (applyPanel) applyPanel.hidden = true; });
+  }
 })();

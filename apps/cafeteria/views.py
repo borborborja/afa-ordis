@@ -22,7 +22,7 @@ from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Count, Q
-from django.http import Http404, HttpResponse, HttpResponseForbidden
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -128,11 +128,11 @@ def _ordinary_diet():
 def _return_to_calendar(family_id, selected_dates, week_start=None):
     if week_start:
         try:
-            selected_week = date.fromisoformat(week_start)
+            selected_month = date.fromisoformat(week_start)
         except ValueError:
-            selected_week = None
-        if selected_week:
-            return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?week={selected_week:%Y-%m-%d}")
+            selected_month = None
+        if selected_month:
+            return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?month={selected_month:%Y-%m}")
     month = selected_dates[0].strftime("%Y-%m") if selected_dates else timezone.localdate().strftime("%Y-%m")
     return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?month={month}")
 
@@ -504,47 +504,18 @@ def family_calendar(request, family_id):
         (closure.course_group_id, closure.date): closure
         for closure in CourseClosure.objects.filter(date__range=(month_start, month_end))
     }
-    weeks = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
-    student_calendars = []
-    for student in students:
-        grid = []
-        for week in weeks:
-            week_cells = []
-            for day in week:
-                booking = booking_map.get((student.id, day))
-                available = day.month == month_start.month and is_service_day(day, student)
-                week_cells.append({
-                    "date": day,
-                    "available": available,
-                    "current_month": day.month == month_start.month,
-                    "booking": booking,
-                    "locked": is_tutor_locked(day) and not _is_staff(request.user),
-                    "excursion": closures.get((student.course_group_id, day)),
-                })
-            grid.append(week_cells)
-        student_calendars.append({"student": student, "weeks": grid})
-
-    try:
-        week_start = date.fromisoformat(request.GET.get("week", ""))
-        week_start -= timedelta(days=week_start.weekday())
-    except ValueError:
-        today = timezone.localdate()
-        week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=4)
-    week_bookings = MealBooking.objects.filter(student__in=students, date__range=(week_start, week_end)).select_related("diet")
-    weekly_booking_map = {(booking.student_id, booking.date): booking for booking in week_bookings}
-    weekly_calendars = []
+    month_days = [month_start + timedelta(days=offset) for offset in range(month_end.day)]
+    booking_rows = []
     for student in students:
         days = []
-        for offset in range(5):
-            service_date = week_start + timedelta(days=offset)
-            booking = weekly_booking_map.get((student.id, service_date))
+        for service_date in month_days:
+            booking = booking_map.get((student.id, service_date))
             days.append({
                 "date": service_date, "available": is_service_day(service_date, student), "booking": booking,
                 "locked": is_tutor_locked(service_date) and not _is_staff(request.user),
                 "excursion": closures.get((student.course_group_id, service_date)),
             })
-        weekly_calendars.append({"student": student, "days": days})
+        booking_rows.append({"student": student, "days": days})
 
     previous_month = (month_start.replace(day=1) - timedelta(days=1)).replace(day=1)
     next_month = (month_end + timedelta(days=1)).replace(day=1)
@@ -571,18 +542,117 @@ def family_calendar(request, family_id):
             today_change_notice = {"open": False, "cutoff": meal_settings.daily_cutoff}
     return render(request, "cafeteria/family_calendar.html", {
         "family": family,
-        "student_calendars": student_calendars,
+        "booking_rows": booking_rows,
+        "month_days": month_days,
         "diets": Diet.objects.filter(active=True),
         "month_start": month_start,
         "previous_month": previous_month,
         "next_month": next_month,
-        "week_start": week_start,
-        "previous_week": week_start - timedelta(days=7),
-        "next_week": week_start + timedelta(days=7),
-        "weekly_calendars": weekly_calendars,
-        "is_staff": _is_staff(request.user),
         "has_siblings": len(students) > 1,
         "today_change_notice": today_change_notice if not _is_staff(request.user) else None,
+    })
+
+
+def _booking_cell_payload(student, service_date):
+    booking = MealBooking.objects.filter(
+        student=student, date=service_date, status=BookingStatus.ACTIVE,
+    ).select_related("diet").first()
+    if not booking:
+        return {"state": "empty", "reserved": False, "diet_id": None, "diet_name": "", "meal_type": ""}
+    return {
+        "state": "packed" if booking.meal_type == MealType.PACKED_LUNCH else "reserved",
+        "reserved": True,
+        "diet_id": booking.diet_id,
+        "diet_name": booking.diet_name or (booking.diet.name if booking.diet else ""),
+        "meal_type": booking.meal_type,
+    }
+
+
+def _booking_json_error(result):
+    messages_by_result = {
+        "locked": _("El termini de canvis per a aquest dia ha acabat."),
+        "unavailable": _("Aquest dia no té servei de menjador."),
+        "reason_required": _("Cal indicar el motiu del canvi fora de termini."),
+    }
+    return JsonResponse({"ok": False, "message": messages_by_result.get(result, _("No s'ha pogut actualitzar la reserva."))}, status=409)
+
+
+@require_POST
+@login_required
+def family_booking_update(request, family_id):
+    """Persist one family booking immediately from the monthly calendar."""
+    family = _family_for_user_or_404(request.user, family_id)
+    student = get_object_or_404(Student, pk=request.POST.get("student_id"), family=family, active=True)
+    try:
+        service_date = date.fromisoformat(request.POST.get("service_date", ""))
+    except ValueError:
+        return JsonResponse({"ok": False, "message": _("La data no és vàlida.")}, status=400)
+    operation = request.POST.get("operation")
+    active_booking = MealBooking.objects.filter(
+        student=student, date=service_date, status=BookingStatus.ACTIVE,
+    ).first()
+
+    if operation == "reserve":
+        if active_booking:
+            return JsonResponse({"ok": True, "booking": _booking_cell_payload(student, service_date)})
+        action, diet = "add", None
+    elif operation == "cancel":
+        if not active_booking:
+            return JsonResponse({"ok": True, "booking": _booking_cell_payload(student, service_date)})
+        action, diet = "cancel", None
+    elif operation == "diet":
+        diet = Diet.objects.filter(pk=request.POST.get("diet_id"), active=True).first()
+        if not active_booking or not diet:
+            return JsonResponse({"ok": False, "message": _("Selecciona una dieta disponible per a una reserva activa.")}, status=400)
+        action = "add"
+    else:
+        return JsonResponse({"ok": False, "message": _("L'acció de reserva no és vàlida.")}, status=400)
+
+    changed, result = _update_student_booking(
+        actor=request.user, student=student, service_date=service_date,
+        action=action, diet=diet,
+    )
+    if result not in {"updated", "unchanged"}:
+        return _booking_json_error(result)
+    return JsonResponse({
+        "ok": True,
+        "changed": changed,
+        "booking": _booking_cell_payload(student, service_date),
+    })
+
+
+@require_POST
+@login_required
+def family_booking_apply(request, family_id):
+    """Add one already-reserved day for selected siblings using each default diet."""
+    family = _family_for_user_or_404(request.user, family_id)
+    source = get_object_or_404(Student, pk=request.POST.get("source_student_id"), family=family, active=True)
+    try:
+        service_date = date.fromisoformat(request.POST.get("service_date", ""))
+    except ValueError:
+        return JsonResponse({"ok": False, "message": _("La data no és vàlida.")}, status=400)
+    if not MealBooking.objects.filter(student=source, date=service_date, status=BookingStatus.ACTIVE).exists():
+        return JsonResponse({"ok": False, "message": _("Primer reserva l'àpat de l'infant seleccionat.")}, status=409)
+
+    requested_ids = {int(value) for value in request.POST.getlist("student_ids") if value.isdigit()}
+    targets = family.students.filter(active=True, pk__in=requested_ids).exclude(pk=source.pk).select_related("default_diet", "course_group")
+    updated, skipped, bookings = 0, 0, []
+    for student in targets:
+        if MealBooking.objects.filter(student=student, date=service_date, status=BookingStatus.ACTIVE).exists():
+            skipped += 1
+            continue
+        changed, result = _update_student_booking(
+            actor=request.user, student=student, service_date=service_date,
+            action="add", diet=None,
+        )
+        if changed:
+            updated += 1
+            bookings.append({"student_id": student.id, "booking": _booking_cell_payload(student, service_date)})
+        elif result != "unchanged":
+            skipped += 1
+    return JsonResponse({
+        "ok": True, "updated": updated, "skipped": skipped,
+        "bookings": bookings,
     })
 
 
