@@ -391,6 +391,66 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(AcademicYear.objects.filter(name="2026-2027", is_active=True).exists())
 
+    def test_admin_can_edit_an_academic_year_and_reconcile_dates_outside_the_new_period(self):
+        admin = User.objects.create_superuser("calendar-edit@example.com", "calendar-edit@example.com", "correct-horse-battery-staple")
+        later_date = self.today + timedelta(days=20)
+        new_end = self.today + timedelta(days=5)
+        ServiceDay.objects.create(academic_year=self.year, date=later_date, is_service_day=True)
+        booking = MealBooking.objects.create(student=self.student, date=later_date, diet=self.diet)
+        closure = CourseClosure.objects.create(course_group=self.group, date=later_date, title="Excursió tardana")
+        intensive_period = AcademicIntensivePeriod.objects.create(
+            academic_year=self.year, title="Intensiva tardana", starts_on=later_date, ends_on=later_date,
+        )
+        self.client.force_login(admin)
+
+        response = self.client.get(reverse("cafeteria:academic_year_edit", args=[self.year.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edita el curs acadèmic")
+
+        response = self.client.post(reverse("cafeteria:academic_year_edit", args=[self.year.id]), {
+            "name": self.year.name,
+            "starts_on": self.year.starts_on.isoformat(),
+            "ends_on": new_end.isoformat(),
+            "is_active": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.year.refresh_from_db()
+        booking.refresh_from_db()
+        self.assertEqual(self.year.ends_on, new_end)
+        self.assertFalse(ServiceDay.objects.filter(academic_year=self.year, date=later_date).exists())
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertFalse(CourseClosure.objects.filter(pk=closure.pk).exists())
+        self.assertFalse(AcademicIntensivePeriod.objects.filter(pk=intensive_period.pk).exists())
+
+    def test_admin_can_edit_and_delete_a_course_group_without_deleting_students(self):
+        admin = User.objects.create_superuser("group-edit@example.com", "group-edit@example.com", "correct-horse-battery-staple")
+        booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        closure = CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió I4")
+        booking.refresh_from_db()
+        self.assertEqual(booking.meal_type, MealType.PACKED_LUNCH)
+        self.client.force_login(admin)
+
+        response = self.client.get(reverse("cafeteria:course_group_edit", args=[self.group.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edita el grup")
+        response = self.client.post(reverse("cafeteria:course_group_edit", args=[self.group.id]), {
+            "name": "I4 A",
+            "sort_order": "3",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.name, "I4 A")
+        self.assertEqual(self.group.sort_order, 3)
+
+        response = self.client.post(reverse("cafeteria:course_group_delete", args=[self.group.id]))
+        self.assertEqual(response.status_code, 302)
+        self.student.refresh_from_db()
+        self.assertIsNone(self.student.course_group)
+        self.assertFalse(CourseGroup.objects.filter(pk=self.group.pk).exists())
+        self.assertFalse(CourseClosure.objects.filter(pk=closure.pk).exists())
+        booking.refresh_from_db()
+        self.assertEqual(booking.meal_type, MealType.REGULAR)
+
     def test_member_dashboard_and_responsive_booking_view_render(self):
         self.client.force_login(self.user)
         with translation.override("ca"):

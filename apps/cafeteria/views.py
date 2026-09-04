@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -1310,6 +1310,12 @@ def school_calendar(request):
             current_day += timedelta(days=1)
     previous_month = (month_start - timedelta(days=1)).replace(day=1)
     next_month = (month_end + timedelta(days=1)).replace(day=1)
+    course_groups = CourseGroup.objects.filter(academic_year=year).annotate(
+        student_total=Count("students", distinct=True),
+        closure_total=Count("closures", distinct=True),
+    )
+    closure_form = CourseClosureForm(initial={"date": month_start})
+    closure_form.fields["course_group"].queryset = course_groups
     return render(request, "cafeteria/school_calendar.html", {
         "year": year, "years": AcademicYear.objects.all(), "month_start": month_start,
         "weeks": calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month),
@@ -1320,24 +1326,104 @@ def school_calendar(request):
         "all_intensive_periods": AcademicIntensivePeriod.objects.filter(academic_year=year),
         "year_calendar": _build_year_calendar(year),
         "previous_month": previous_month, "next_month": next_month,
-        "closure_form": CourseClosureForm(initial={"date": month_start}),
+        "course_groups": course_groups,
+        "closure_form": closure_form,
     })
 
 
 @admin_required
-@require_POST
 def academic_year_save(request, year_id=None):
     academic_year = get_object_or_404(AcademicYear, pk=year_id) if year_id else None
-    form = AcademicYearForm(request.POST, instance=academic_year)
-    if form.is_valid():
-        saved = form.save()
-        MealSettings.objects.get_or_create(academic_year=saved)
-        AfaFeeSettings.objects.get_or_create(academic_year=saved)
-        log_event(request.user, "academic_year.created" if academic_year is None else "academic_year.updated", saved)
+    form = AcademicYearForm(request.POST or None, instance=academic_year)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            saved = form.save()
+            MealSettings.objects.get_or_create(academic_year=saved)
+            AfaFeeSettings.objects.get_or_create(academic_year=saved)
+            reconciliation = _reconcile_academic_year_dates(saved, request.user)
+            log_event(
+                request.user,
+                "academic_year.created" if academic_year is None else "academic_year.updated",
+                saved,
+                reconciliation,
+            )
         messages.success(request, _("S'ha desat el curs acadèmic."))
-    else:
+        if any(reconciliation.values()):
+            messages.info(
+                request,
+                _("S'han ajustat els elements del calendari i les reserves afectades que quedaven fora del nou període."),
+            )
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.id}")
+
+    if request.method == "POST" and academic_year is None:
         messages.error(request, _("No s'ha pogut desar el curs. Revisa les dates."))
-    return redirect("cafeteria:school_calendar")
+        return redirect("cafeteria:school_calendar")
+
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Nou curs acadèmic") if academic_year is None else _("Edita el curs acadèmic"),
+        "back_url": (
+            reverse("cafeteria:school_calendar")
+            if academic_year is None
+            else f"{reverse('cafeteria:school_calendar')}?year={academic_year.id}"
+        ),
+        "help_text": _(
+            "Pots corregir el nom i el període del curs. Si l'amplies, genera després els nous dies lectius. "
+            "En escurçar-lo es retiren els dies, les excursions i les reserves que queden fora del període."
+        ),
+    })
+
+
+def _reconcile_academic_year_dates(academic_year, actor):
+    """Keep dated academic data valid after changing an academic-year period."""
+    outside_service_days = ServiceDay.objects.filter(academic_year=academic_year).exclude(
+        date__range=(academic_year.starts_on, academic_year.ends_on)
+    )
+    outside_dates = list(outside_service_days.values_list("date", flat=True))
+    result = {
+        "service_days": len(outside_dates),
+        "student_bookings": 0,
+        "teacher_bookings": 0,
+        "closures": 0,
+        "holidays_adjusted": 0,
+        "intensive_periods_adjusted": 0,
+    }
+    if outside_dates:
+        reason = _("Fora del període lectiu corregit")
+        result["student_bookings"] = MealBooking.objects.filter(
+            student__course_group__academic_year=academic_year,
+            date__in=outside_dates,
+            status=BookingStatus.ACTIVE,
+        ).update(status=BookingStatus.CANCELLED, updated_by=actor, override_reason=reason)
+        result["teacher_bookings"] = TeacherMealBooking.objects.filter(
+            date__in=outside_dates,
+            status=BookingStatus.ACTIVE,
+        ).update(status=BookingStatus.CANCELLED, updated_by=actor, override_reason=reason)
+        DailyReport.objects.filter(date__in=outside_dates).update(is_outdated=True)
+        outside_service_days.delete()
+
+    closures = CourseClosure.objects.filter(
+        course_group__academic_year=academic_year,
+    ).exclude(date__range=(academic_year.starts_on, academic_year.ends_on))
+    result["closures"] = closures.count()
+    closures.delete()
+
+    for model, key in (
+        (AcademicHoliday, "holidays_adjusted"),
+        (AcademicIntensivePeriod, "intensive_periods_adjusted"),
+    ):
+        for period in model.objects.filter(academic_year=academic_year):
+            starts_on = max(period.starts_on, academic_year.starts_on)
+            ends_on = min(period.ends_on, academic_year.ends_on)
+            if starts_on > ends_on:
+                period.delete()
+                result[key] += 1
+            elif starts_on != period.starts_on or ends_on != period.ends_on:
+                period.starts_on = starts_on
+                period.ends_on = ends_on
+                period.save(update_fields=["starts_on", "ends_on", "updated_at"])
+                result[key] += 1
+    return result
 
 
 @admin_required
@@ -1362,17 +1448,68 @@ def service_day_toggle(request, service_date):
 
 
 @admin_required
-@require_POST
 def course_group_save(request, group_id=None):
     group = get_object_or_404(CourseGroup, pk=group_id) if group_id else None
-    form = CourseGroupForm(request.POST, instance=group)
-    if form.is_valid():
+    form = CourseGroupForm(request.POST or None, instance=group)
+    if group:
+        form.fields["academic_year"].disabled = True
+    if request.method == "POST" and form.is_valid():
         saved = form.save()
         log_event(request.user, "course_group.created" if group is None else "course_group.updated", saved)
         messages.success(request, _("S'ha desat el curs o grup."))
-    else:
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}")
+
+    if request.method == "POST" and group is None:
         messages.error(request, _("No s'ha pogut desar el grup."))
-    return redirect("cafeteria:school_calendar")
+        return redirect("cafeteria:school_calendar")
+
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Nou grup") if group is None else _("Edita el grup"),
+        "back_url": (
+            reverse("cafeteria:school_calendar")
+            if group is None
+            else f"{reverse('cafeteria:school_calendar')}?year={group.academic_year_id}"
+        ),
+        "help_text": _(
+            "Pots corregir el nom i l'ordre del grup. Per mantenir coherents les excursions, "
+            "el grup es manté dins del seu curs acadèmic."
+        ),
+    })
+
+
+@admin_required
+@require_POST
+def course_group_delete(request, group_id):
+    group = get_object_or_404(CourseGroup, pk=group_id)
+    year_id = group.academic_year_id
+    with transaction.atomic():
+        student_count = group.students.count()
+        closure_dates = list(group.closures.values_list("date", flat=True))
+        closure_count = len(closure_dates)
+        reverted_bookings = MealBooking.objects.filter(
+            student__course_group=group,
+            date__in=closure_dates,
+            status=BookingStatus.ACTIVE,
+            meal_type=MealType.PACKED_LUNCH,
+        ).update(meal_type=MealType.REGULAR, updated_by=request.user)
+        DailyReport.objects.filter(date__in=closure_dates).update(is_outdated=True)
+        group_name = group.name
+        log_event(request.user, "course_group.deleted", group, {
+            "students_unassigned": student_count,
+            "closures_deleted": closure_count,
+            "bookings_restored_to_regular_menu": reverted_bookings,
+        })
+        group.delete()
+    messages.success(
+        request,
+        _("S'ha eliminat el grup %(group)s. %(students)d alumnat queda sense grup i %(closures)d excursions s'han eliminat.") % {
+            "group": group_name,
+            "students": student_count,
+            "closures": closure_count,
+        },
+    )
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}")
 
 
 @admin_required

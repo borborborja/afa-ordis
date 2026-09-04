@@ -66,6 +66,7 @@ urlpatterns = [
     path("gestio/dies/<str:service_date>/", views.service_day_toggle, name="service_day_toggle"),
     path("gestio/grups/nou/", views.course_group_save, name="course_group_create"),
     path("gestio/grups/<int:group_id>/edita/", views.course_group_save, name="course_group_edit"),
+    path("gestio/grups/<int:group_id>/elimina/", views.course_group_delete, name="course_group_delete"),
     path("gestio/excursions/nova/", views.course_closure_save, name="course_closure_create"),
     path("gestio/festius/nou/", views.academic_holiday_form, name="academic_holiday_create"),
     path("gestio/festius/<int:holiday_id>/edita/", views.academic_holiday_form, name="academic_holiday_edit"),
