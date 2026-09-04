@@ -1,69 +1,21 @@
 {% extends 'cafeteria/base.html' %}
 {% load i18n %}
-{% block page_context %}{% translate "Configuració" %}{% endblock %}
+{% block page_context %}{% translate "Configuració del menjador" %}{% endblock %}
 {% block content %}
-<section class="page-heading">
-  <div>
-    <p class="eyebrow">{% translate "Menjador" %}</p>
-    <h1>{% translate "Configuració del menjador" %}</h1>
-    <p>{% if active_year %}{{ active_year.name }} · {% endif %}{% translate "Defineix com es comunica i quines dietes es poden seleccionar." %}</p>
-  </div>
-</section>
-
+<section class="page-heading"><div><p class="eyebrow">{% translate "Menjador" %}</p><h1>{% translate "Configuració del menjador" %}</h1><p>{% if active_year %}{{ active_year.name }} · {% endif %}{% translate "Agrupa les opcions del servei en un sol espai." %}</p></div></section>
 {% if active_year %}
-<section class="split-section">
-  <article class="card">
-    <h2>{% translate "Avisos automàtics" %}</h2>
-    <p class="muted">{% translate "L'hora límit bloqueja els canvis de les famílies; l'enviament del llistat es configura per separat." %}</p>
-    <form method="post" class="form-stack">
-      {% csrf_token %}<input type="hidden" name="intent" value="settings">
-      {% for field in settings_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</label>{% endfor %}
-      <button class="button primary">{% translate "Desa la configuració" %}</button>
-    </form>
-  </article>
-  <article class="card">
-    <h2>{% translate "Destinataris de l'informe diari" %}</h2>
-    <form method="post" class="form-stack">
-      {% csrf_token %}<input type="hidden" name="intent" value="recipient">
-      {% for field in recipient_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}</label>{% endfor %}
-      <button class="button secondary">{% translate "Afegeix destinatari" %}</button>
-    </form>
-    <div class="tag-list">{% for recipient in recipients %}<span class="tag">{{ recipient.email }}{% if not recipient.active %} · {% translate "inactiu" %}{% endif %}</span>{% empty %}<p class="muted">{% translate "No n'hi ha cap." %}</p>{% endfor %}</div>
-  </article>
-</section>
+<nav class="page-tabs" aria-label="{% translate 'Seccions de configuració' %}"><a href="?tab=avisos" {% if tab == 'avisos' %}aria-current="page"{% endif %}>{% include 'cafeteria/components/icon.html' with name='mail' %}{% translate "Avisos" %}</a><a href="?tab=dietes" {% if tab == 'dietes' %}aria-current="page"{% endif %}>{% include 'cafeteria/components/icon.html' with name='meal' %}{% translate "Dietes" %}</a><a href="?tab=tarifes" {% if tab == 'tarifes' %}aria-current="page"{% endif %}>{% include 'cafeteria/components/icon.html' with name='euro' %}{% translate "Tarifes" %}</a><a href="?tab=menu" {% if tab == 'menu' %}aria-current="page"{% endif %}>{% include 'cafeteria/components/icon.html' with name='external' %}{% translate "Menú" %}</a></nav>
 
-<section class="split-section">
-  <article class="card">
-    <h2>{% translate "Nova dieta" %}</h2>
-    <form method="post" class="form-stack">
-      {% csrf_token %}<input type="hidden" name="intent" value="diet">
-      {% for field in diet_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}</label>{% endfor %}
-      <button class="button primary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix la dieta" %}</button>
-    </form>
-  </article>
-  <article class="card">
-    <div class="section-title"><h2>{% translate "Dietes disponibles" %}</h2><span class="muted">{{ diets|length }}</span></div>
-    <p>{% translate "Pots corregir-ne el nom, la descripció, l'ordre o deixar-les inactives. En eliminar-ne una, les fitxes que la tenien reben una dieta activa de substitució i l'històric de reserves es conserva." %}</p>
-    <div class="planning-list">
-      {% for diet in diets %}
-        <article>
-          <span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='meal' %}</span>
-          <div>
-            <strong>{{ diet.name }}</strong>
-            <small>{% if diet.active %}{% translate "Activa" %}{% else %}{% translate "Inactiva" %}{% endif %} · {% blocktranslate count students=diet.student_total %}{{ students }} alumne amb aquesta dieta predeterminada{% plural %}{{ students }} alumnes amb aquesta dieta predeterminada{% endblocktranslate %}{% if diet.teacher_total %} · {% blocktranslate count teachers=diet.teacher_total %}{{ teachers }} persona docent{% plural %}{{ teachers }} persones docents{% endblocktranslate %}{% endif %}</small>
-            {% if diet.description %}<small>{{ diet.description }}</small>{% endif %}
-          </div>
-          <span class="table-actions"><a href="{% url 'cafeteria:diet_edit' diet.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:diet_delete' diet.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span>
-        </article>
-      {% empty %}<p class="muted">{% translate "Encara no hi ha dietes configurades." %}</p>{% endfor %}
-    </div>
-  </article>
-</section>
+{% if tab == 'avisos' %}
+<section class="split-section"><article class="card"><h2>{% translate "Avisos i automatitzacions" %}</h2><p class="muted">{% translate "L'hora límit bloqueja els canvis de les famílies; l'hora d'enviament del llistat és independent." %}</p><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="tab" value="avisos"><input type="hidden" name="intent" value="settings">{% for field in settings_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button primary">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Desa la configuració" %}</button></form></article><article class="card"><h2>{% translate "Destinataris del llistat diari" %}</h2><p>{% translate "Afegeix les adreces que han de rebre automàticament el resum d'àpats." %}</p><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="tab" value="avisos"><input type="hidden" name="intent" value="recipient">{% for field in recipient_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button secondary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix destinatari" %}</button></form><div class="tag-list">{% for recipient in recipients %}<span class="tag">{{ recipient.name|default:recipient.email }}{% if recipient.name %} · {{ recipient.email }}{% endif %}{% if not recipient.active %} · {% translate "inactiu" %}{% endif %}</span>{% empty %}<p class="muted">{% translate "Encara no hi ha cap destinatari." %}</p>{% endfor %}</div></article></section>
+{% elif tab == 'dietes' %}
+<section class="split-section"><article class="card"><h2>{% translate "Nova dieta" %}</h2><p>{% translate "Les famílies podran triar una dieta disponible per a dies concrets, a partir de la dieta predeterminada de cada infant." %}</p><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="tab" value="dietes"><input type="hidden" name="intent" value="diet">{% for field in diet_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button primary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix la dieta" %}</button></form></article><article class="card"><div class="section-title"><h2>{% translate "Dietes disponibles" %}</h2><span class="muted">{{ diets|length }}</span></div><div class="planning-list">{% for diet in diets %}<article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='meal' %}</span><div><strong>{{ diet.name }}</strong><small>{% if diet.active %}{% translate "Activa" %}{% else %}{% translate "Inactiva" %}{% endif %} · {% blocktranslate count students=diet.student_total %}{{ students }} alumne amb aquesta dieta{% plural %}{{ students }} alumnes amb aquesta dieta{% endblocktranslate %}{% if diet.description %} · {{ diet.description }}{% endif %}</small></div><span class="table-actions"><a href="{% url 'cafeteria:diet_edit' diet.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:diet_delete' diet.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>{% empty %}<p class="muted">{% translate "Encara no hi ha dietes configurades." %}</p>{% endfor %}</div></article></section>
+{% elif tab == 'tarifes' %}
+<section class="split-section"><article class="card"><h2>{% translate "Afegeix una tarifa" %}</h2><p>{% translate "Cada tarifa s'aplica a partir de la data indicada i preserva l'històric dels àpats ja facturats." %}</p><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="tab" value="tarifes"><input type="hidden" name="intent" value="price">{% for field in price_form %}<label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button primary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Desa la tarifa" %}</button></form></article><article class="card"><h2>{% translate "Històric de tarifes" %}</h2><div class="table-scroll"><table><thead><tr><th>{% translate "Des de" %}</th><th>{% translate "Modalitat" %}</th><th>{% translate "Ajut" %}</th><th>{% translate "Preu" %}</th></tr></thead><tbody>{% for rule in price_rules %}<tr><td>{{ rule.effective_from|date:"d/m/Y" }}</td><td>{{ rule.get_meal_plan_display }}</td><td>{% if rule.scholarship %}{% translate "Amb ajut" %}{% else %}{% translate "Sense ajut" %}{% endif %}</td><td>{{ rule.amount }} €</td></tr>{% empty %}<tr><td colspan="4">{% translate "Encara no hi ha tarifes configurades." %}</td></tr>{% endfor %}</tbody></table></div></article></section>
 {% else %}
-<article class="empty-state card">
-  <h2>{% translate "Primer crea un curs acadèmic" %}</h2>
-  <p>{% translate "La configuració del menjador pertany a un curs." %}</p>
-  <a class="button primary" href="{% url 'cafeteria:school_calendar' %}">{% translate "Ves al calendari" %}</a>
-</article>
+<section class="split-section"><article class="card"><h2>{% translate "Enllaç al menú de l'escola" %}</h2><p>{% translate "Aquest enllaç apareix a l'espai de les famílies, dins de Menjador." %}</p><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="tab" value="menu"><input type="hidden" name="intent" value="menu">{% for field in menu_form %}<label>{{ field.label }}{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button primary">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Desa l'enllaç" %}</button></form></article><article class="card"><h2>{% translate "Com ho veuran les famílies" %}</h2><p>{% translate "A la barra lateral trobaran Menjador, amb Reserva de menjador, Informes i Menú." %}</p><a class="button secondary" href="{{ school_menu_url }}" target="_blank" rel="noopener">{% include 'cafeteria/components/icon.html' with name='external' %}{% translate "Obre l'enllaç actual" %}</a></article></section>
+{% endif %}
+{% else %}
+<article class="empty-state card"><h2>{% translate "Primer crea un curs acadèmic" %}</h2><p>{% translate "La configuració del menjador pertany a un curs." %}</p><a class="button primary" href="{% url 'cafeteria:course_management' %}">{% include 'cafeteria/components/icon.html' with name='academic' %}{% translate "Gestiona el curs" %}</a></article>
 {% endif %}
 {% endblock %}

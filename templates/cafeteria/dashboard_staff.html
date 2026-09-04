@@ -1,7 +1,22 @@
 {% extends 'cafeteria/base.html' %}
 {% load i18n %}
+{% block page_context %}{% translate "Inici" %}{% endblock %}
 {% block content %}
-<section class="page-heading"><div><p class="eyebrow">{% translate "Menjador" %}</p><h1>{% translate "Bon dia" %}, {{ user.first_name|default:user.email }}</h1><p>{% translate "La fotografia del servei d'avui, en un sol cop d'ull." %}</p></div><a class="button primary" href="{% url 'cafeteria:daily_reports' %}">{% include 'cafeteria/components/icon.html' with name='list' %}{% translate "Veure el llistat" %}</a></section>
-<section class="stat-grid"><article class="stat-card highlight"><span>{% include 'cafeteria/components/icon.html' with name='meal' %}</span><strong>{{ today_total }}</strong><p>{% translate "àpats avui" %}</p></article><article class="stat-card"><span>{% include 'cafeteria/components/icon.html' with name='document' %}</span><strong>{{ pending_statements }}</strong><p>{% translate "resums per revisar" %}</p></article><article class="stat-card"><span>{% include 'cafeteria/components/icon.html' with name='alert' %}</span><strong>{{ outdated_reports }}</strong><p>{% translate "llistats a actualitzar" %}</p></article></section>
-<section class="split-section"><article class="card"><div class="section-title"><h2>{% translate "Servei d'avui" %}</h2><span>{{ today|date:"d/m/Y" }}</span></div>{% for booking in today_bookings %}<div class="meal-row"><span class="child-avatar tiny">{{ booking.student.first_name|first|upper }}</span><div><strong>{{ booking.student.full_name }}</strong><small>{{ booking.student.course_group|default:"—" }} · {{ booking.diet_name|default:"Ordinària" }}</small></div></div>{% empty %}<div class="empty-inline"><span>{% include 'cafeteria/components/icon.html' with name='check' %}</span><p>{% translate "No hi ha reserves per avui." %}</p></div>{% endfor %}</article><article class="card"><h2>{% translate "Per dieta" %}</h2>{% for diet, total in diet_totals %}<div class="progress-row"><span>{{ diet }}</span><b>{{ total }}</b></div>{% empty %}<p class="muted">{% translate "Encara no hi ha dades." %}</p>{% endfor %}</article></section>
+<section class="page-heading">
+  <div><p class="eyebrow">AFA Ordis</p><h1>{% translate "Inici" %}</h1><p>{% translate "Un resum personalitzable de la informació que necessites consultar." %}</p></div>
+  <button class="button secondary" type="button" data-open-dashboard-customizer>{% include 'cafeteria/components/icon.html' with name='settings' %}{% translate "Personalitza l'inici" %}</button>
+</section>
+<section class="widget-grid" aria-label="{% translate "Ginys de l'inici" %}">
+  {% for widget in widgets %}
+  <a class="dashboard-widget" href="{{ widget.href }}"><span class="widget-icon">{% include 'cafeteria/components/icon.html' with name=widget.icon %}</span><div><p>{{ widget.label }}</p><strong>{{ widget.value }}</strong><small>{{ widget.description }}</small></div><span class="widget-arrow">{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</span></a>
+  {% endfor %}
+</section>
+<dialog class="dashboard-customizer" data-dashboard-customizer>
+  <article><div class="dialog-heading"><div><p class="eyebrow">{% translate "El teu inici" %}</p><h2>{% translate "Tria els ginys" %}</h2></div><button type="button" class="icon-button close-dialog" data-close-dialog aria-label="{% translate 'Tanca' %}">{% include 'cafeteria/components/icon.html' with name='plus' %}</button></div>
+  <p>{% translate "Marca la informació que vols veure. L'ordre de la llista serà l'ordre de l'inici." %}</p>
+  <form method="post" action="{% url 'cafeteria:dashboard_preferences' %}" class="form-stack">{% csrf_token %}
+    <div class="widget-choice-list" data-widget-choice-list>{% for widget in available_widgets %}<label class="widget-choice"><input type="checkbox" name="widgets" value="{{ widget.key }}" {% if widget.key in selected_widget_keys %}checked{% endif %}><span>{% include 'cafeteria/components/icon.html' with name=widget.icon %}</span><span><strong>{{ widget.label }}</strong><small>{{ widget.description }}</small></span><span class="widget-actions"><button type="button" data-widget-move="-1" aria-label="{% translate 'Mou amunt' %}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}</button><button type="button" data-widget-move="1" aria-label="{% translate 'Mou avall' %}">{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</button></span></label>{% endfor %}</div>
+    <div class="form-actions"><button class="button primary">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Desa l'inici" %}</button></div>
+  </form></article>
+</dialog>
 {% endblock %}

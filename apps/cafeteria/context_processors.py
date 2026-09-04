@@ -1,4 +1,4 @@
-from .models import Family, PortalSettings, Role, user_has_role
+from .models import Family, PortalSettings, Role, UserProfile, user_has_role
 
 
 def role_flags(request):
@@ -13,6 +13,12 @@ def role_flags(request):
         if active_family is None and family_options:
             active_family = family_options[0]
             request.session["cafeteria_active_family_id"] = active_family.id
+    navigation_state = {}
+    if user.is_authenticated:
+        try:
+            navigation_state = user.profile.navigation_state or {}
+        except UserProfile.DoesNotExist:
+            navigation_state = {}
     return {
         "can_manage_meals": user_has_role(user, Role.ADMIN, Role.MANAGER),
         "can_administer": user_has_role(user, Role.ADMIN),
@@ -21,5 +27,6 @@ def role_flags(request):
         "is_family_user": bool(family_options),
         "family_options": family_options,
         "active_family": active_family,
+        "navigation_state": navigation_state,
         "school_menu_url": portal.school_menu_url if portal else "https://agora.xtec.cat/esc-mariapages-ordis/",
     }

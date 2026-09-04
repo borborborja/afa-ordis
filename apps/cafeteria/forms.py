@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
+    AcademicNotice,
     AcademicYear,
     AfaFeeSettings,
     AfaMembership,
@@ -159,6 +160,25 @@ class AcademicIntensivePeriodForm(forms.ModelForm):
         labels = {
             "academic_year": _("Curs acadèmic"),
             "title": _("Nom del període"),
+            "starts_on": _("Data inicial"),
+            "ends_on": _("Data final"),
+        }
+
+
+class AcademicNoticeForm(forms.ModelForm):
+    class Meta:
+        model = AcademicNotice
+        fields = ("academic_year", "title", "description", "level", "starts_on", "ends_on")
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "starts_on": forms.DateInput(attrs={"type": "date"}),
+            "ends_on": forms.DateInput(attrs={"type": "date"}),
+        }
+        labels = {
+            "academic_year": _("Curs acadèmic"),
+            "title": _("Títol de la incidència"),
+            "description": _("Informació per a les famílies"),
+            "level": _("Tipus"),
             "starts_on": _("Data inicial"),
             "ends_on": _("Data final"),
         }

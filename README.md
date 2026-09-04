@@ -1,6 +1,6 @@
 # AFA Ordis · Portal de menjador
 
-Portal autogestionat per a la gestió de reserves de menjador, famílies, dietes, calendaris i resums mensuals. Està preparat per al curs 2026–2027, però els cursos i els dies de servei es configuren des del panell visual de **Gestió**.
+Portal autogestionat de l'AFA d'Ordis per a la gestió de reserves de menjador, contactes, AFA i calendari escolar. Està preparat per al curs 2026–2027, però els cursos i els dies de servei es configuren des del panell visual de **Calendari escolar**.
 
 ## Requisits
 
@@ -30,19 +30,19 @@ Per a un servidor públic, consulta la [guia de desplegament](docs/deployment.md
 
 ## Configuració inicial recomanada
 
-1. Entra a **Administració → Gestió acadèmica → Curs i calendari** amb el superusuari, crea o activa el curs `2026-2027`, afegeix els grups i usa **Genera dies lectius**. Els festius poden ser generals, locals o de centre: tanquen el servei i anul·len automàticament els àpats afectats. També pots afegir períodes de **jornada intensiva**, visibles als calendaris però sense cap efecte sobre el menjador. Les excursions són diferents: mantenen la reserva com a carmanyola.
-2. A **Gestió del menjador → Configuració del menjador** crea el catàleg de dietes (cada infant en necessita una de predeterminada), l'hora límit de canvis, l'hora d'enviament dels informes diaris i els correus destinataris de cuina. Les dues hores són independents. A **Tarifes** crea les quatre combinacions: amb/sense ajut de menjador × fix/esporàdic.
+1. Entra a **Calendari escolar → Gestió del curs** amb el superusuari, crea o activa el curs `2026-2027`, afegeix els grups i usa **Genera dies lectius**. Des de **Calendari anual** es veuen tots els mesos i s'hi gestionen festius, jornada intensiva, excursions i incidències informatives. Els festius tanquen el servei i anul·len els àpats afectats; la intensiva i les incidències només s'informen. Les excursions mantenen la reserva com a carmanyola.
+2. A **Menjador → Configuració del menjador** crea el catàleg de dietes, l'hora límit de canvis, l'hora d'enviament dels informes diaris i els correus destinataris de cuina. Les dues hores són independents. Les pestanyes de **Tarifes** i **Menú** completen la configuració; crea les quatre combinacions de preu: amb/sense ajut de menjador × fix/esporàdic.
 3. A **Contactes i AFA → Famílies, alumnat i docents**, afegeix les fitxes manualment o baixa la plantilla i valida una importació a **Importa CSV**. La importació no envia invitacions ni aplica canvis fins que es confirma la previsualització.
 4. A **Contactes i AFA → Quotes AFA**, fixa una única quota anual per curs i registra manualment cada família sòcia (pendent, pagada o exempta). Una família pot utilitzar el menjador sense ser sòcia; el personal docent no té quotes AFA.
-5. Des de **Invitacions**, l'administració pot convidar persones tutores, gestió de menjador, personal docent o administració. Cada invitació crea un enllaç d’un sol ús; si no hi ha SMTP, es pot copiar i compartir de forma segura. Des de **Comptes**, es poden consultar les persones registrades i generar enllaços personals de restauració de contrasenya.
-6. Revisa els **Llistats diaris**, la **Planificació mensual** i els **Resums mensuals** dins de Gestió del menjador abans de tancar-los o enviar-los per correu.
+5. Des d'**Administració del portal** l'administració pot convidar persones tutores, gestió de menjador, personal docent o administració. Cada invitació crea un enllaç d’un sol ús; si no hi ha SMTP, es pot copiar i compartir de forma segura. A **Comptes** es poden consultar les persones registrades i generar enllaços personals de restauració de contrasenya.
+6. Revisa els **Llistats diaris**, la **Planificació mensual** i els **Informes mensuals** dins de Menjador abans de tancar-los o enviar-los per correu.
 
 Gestió de menjador pot operar les reserves, preus, llistats, planificació mensual, resums i l'enllaç del menú; no pot crear famílies, alumnat ni invitacions. Les persones tutores poden editar la fitxa dels infants vinculats, menys la condició d'ajut de menjador.
 
 ## Operativa
 
 - Les persones tutores disposen d’un menú propi amb reserva de menjador, resums, menú escolar, calendari escolar i dades de contacte. Veuen una graella setmanal conjunta per marcar àpats de tots els infants d'una família, amb opció de copiar els dies seleccionats, i una vista mensual de consulta. Poden canviar la dieta només als dies necessaris.
-- El calendari familiar mostra tot el curs d'un cop d’ull, amb dies lectius, festius, jornada intensiva i excursions. Les excursions es filtren per grup i, per defecte, es mostren les dels grups de l'alumnat de la família.
+- El calendari familiar mostra tot el curs d'un cop d’ull, amb dies lectius, festius, jornada intensiva, excursions i incidències. Les excursions es filtren per grup i, per defecte, es mostren les dels grups de l'alumnat de la família.
 - En arribar a l’hora límit es bloquegen els canvis de les famílies. L'enviament del llistat diari es programa amb una hora pròpia, posterior o no segons convingui. Abans del tancament, la reserva familiar mostra el temps que queda; canvis posteriors només els poden fer gestió de menjador o administració, amb motiu i auditoria.
 - Les excursions es marquen al calendari i permeten reservar l'àpat. Les reserves afectades es mostren com a **carmanyola** i conserven la mateixa tarifa. En canvi, un festiu general, local o de centre tanca el servei per a tothom, anul·la les reserves actives i no genera cap import.
 - El personal docent té reserves i resum mensual propis, amb les tarifes estàndard de fix o esporàdic.
@@ -58,7 +58,9 @@ sudo docker compose ps
 sudo docker compose logs -f app
 ```
 
-Còpia de seguretat consistent de SQLite (desa després la carpeta `backups` fora del servidor):
+Còpia de seguretat des de la web: a **Administració del portal → Còpies de seguretat**, descarrega el fitxer SQLite al teu dispositiu. El portal no reté còpies al servidor. Per restaurar, descarrega primer una còpia actual des de la mateixa pantalla, puja una còpia compatible, introdueix la contrasenya d'administració i escriu `RESTAURA`; totes les sessions es tancaran.
+
+Alternativament, còpia de seguretat per terminal (desa després la carpeta `backups` fora del servidor):
 
 ```bash
 sudo docker compose exec app python manage.py backup_database

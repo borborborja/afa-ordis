@@ -3,18 +3,24 @@ from __future__ import annotations
 import calendar
 import csv
 import hashlib
+import os
+import sqlite3
+import tempfile
+import threading
 from datetime import date, datetime, timedelta
 from io import StringIO
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
+from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -29,6 +35,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .forms import (
     AcademicHolidayForm,
     AcademicIntensivePeriodForm,
+    AcademicNoticeForm,
     AcademicYearForm,
     AfaFeeSettingsForm,
     AfaMembershipForm,
@@ -51,6 +58,7 @@ from .forms import (
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
+    AcademicNotice,
     AcademicYear,
     AfaFeeSettings,
     AfaMembership,
@@ -90,6 +98,12 @@ from .services import (
     teacher_bookings_for_day,
 )
 from .tasks import send_daily_report, send_monthly_statement, send_teacher_monthly_statement
+
+
+DATABASE_RESTORE_LOCK = threading.Lock()
+RESTORE_CONFIRMATION = "RESTAURA"
+RESTORE_SAFETY_WINDOW_SECONDS = 15 * 60
+MAX_BACKUP_UPLOAD_BYTES = 100 * 1024 * 1024
 
 
 def _is_staff(user):
@@ -191,6 +205,78 @@ def _family_for_user_or_404(user, family_id):
     return get_object_or_404(Family, pk=family_id, memberships__user=user)
 
 
+def _staff_dashboard_widgets(user):
+    """Return the selectable, role-appropriate widgets for the personal home page."""
+    today = timezone.localdate()
+    today_bookings = list(bookings_for_day(today)) + list(teacher_bookings_for_day(today))
+    diet_totals = {}
+    for booking in today_bookings:
+        diet_name = _("Carmanyola") if booking.meal_type == MealType.PACKED_LUNCH else (booking.diet_name or _("Ordinària"))
+        diet_totals[diet_name] = diet_totals.get(diet_name, 0) + 1
+    widget_map = {
+        "today_meals": {
+            "key": "today_meals", "icon": "meal", "label": _("Àpats d'avui"),
+            "value": len(today_bookings), "description": _("reserves actives previstes"),
+            "href": reverse("cafeteria:daily_reports"),
+        },
+        "diet_summary": {
+            "key": "diet_summary", "icon": "chart", "label": _("Dietes d'avui"),
+            "value": _("%(count)d tipus") % {"count": len(diet_totals)},
+            "description": " · ".join(f"{name}: {count}" for name, count in sorted(diet_totals.items())) or _("Sense reserves"),
+            "href": reverse("cafeteria:daily_reports"),
+        },
+        "daily_reports": {
+            "key": "daily_reports", "icon": "list", "label": _("Llistats per actualitzar"),
+            "value": DailyReport.objects.filter(is_outdated=True).count(),
+            "description": _("llistats enviats amb canvis posteriors"),
+            "href": reverse("cafeteria:daily_reports"),
+        },
+        "statements": {
+            "key": "statements", "icon": "document", "label": _("Resums pendents"),
+            "value": MonthlyStatement.objects.filter(status=StatementStatus.PREPARED).count() + TeacherMonthlyStatement.objects.filter(status=StatementStatus.PREPARED).count(),
+            "description": _("resums mensuals per revisar"),
+            "href": reverse("cafeteria:monthly_statements"),
+        },
+        "monthly_plan": {
+            "key": "monthly_plan", "icon": "calendar", "label": _("Planificació"),
+            "value": MealBooking.objects.filter(date__year=today.year, date__month=today.month, status=BookingStatus.ACTIVE).count(),
+            "description": _("àpats programats aquest mes"),
+            "href": reverse("cafeteria:monthly_planning"),
+        },
+    }
+    defaults = ["today_meals", "diet_summary", "daily_reports", "statements", "monthly_plan"]
+    if _is_admin(user):
+        active_year = _active_year_or_none()
+        membership_queryset = AfaMembership.objects.filter(academic_year=active_year) if active_year else AfaMembership.objects.none()
+        widget_map.update({
+            "contacts": {
+                "key": "contacts", "icon": "users", "label": _("Contactes actius"),
+                "value": Family.objects.filter(active=True).count(),
+                "description": _("famílies registrades"), "href": reverse("cafeteria:contacts_dashboard"),
+            },
+            "afa_fees": {
+                "key": "afa_fees", "icon": "euro", "label": _("Quotes AFA pendents"),
+                "value": membership_queryset.filter(status=AfaMembershipStatus.PENDING).count(),
+                "description": _("quotes per regularitzar"), "href": reverse("cafeteria:afa_memberships"),
+            },
+            "invitations": {
+                "key": "invitations", "icon": "mail", "label": _("Invitacions pendents"),
+                "value": Invitation.objects.filter(accepted_at__isnull=True, expires_at__gt=timezone.now()).count(),
+                "description": _("enllaços d'alta vigents"), "href": f"{reverse('cafeteria:portal_administration')}?tab=invitacions",
+            },
+            "academic": {
+                "key": "academic", "icon": "academic", "label": _("Calendari escolar"),
+                "value": ServiceDay.objects.filter(academic_year=active_year, is_service_day=True).count() if active_year else 0,
+                "description": _("dies lectius amb servei"), "href": reverse("cafeteria:school_calendar"),
+            },
+        })
+        defaults.extend(["contacts", "afa_fees", "invitations", "academic"])
+    profile = user.profile
+    configured_keys = profile.dashboard_widgets if isinstance(profile.dashboard_widgets, list) else []
+    visible_keys = [key for key in configured_keys if key in widget_map] or defaults
+    return [widget_map[key] for key in visible_keys], [widget_map[key] for key in widget_map]
+
+
 @require_GET
 def healthcheck(request):
     return HttpResponse("ok", content_type="text/plain")
@@ -200,20 +286,13 @@ def healthcheck(request):
 def dashboard(request):
     today = timezone.localdate()
     if _is_staff(request.user):
-        active_bookings = bookings_for_day(today)
-        staff_bookings = teacher_bookings_for_day(today)
-        diets = {}
-        for booking in list(active_bookings) + list(staff_bookings):
-            name = _("Carmanyola") if booking.meal_type == MealType.PACKED_LUNCH else (booking.diet_name or _("Ordinària"))
-            diets[name] = diets.get(name, 0) + 1
+        widgets, available_widgets = _staff_dashboard_widgets(request.user)
         context = {
             "is_staff": True,
             "today": today,
-            "today_bookings": active_bookings[:12],
-            "today_total": active_bookings.count() + staff_bookings.count(),
-            "diet_totals": sorted(diets.items()),
-            "pending_statements": MonthlyStatement.objects.filter(status=StatementStatus.PREPARED).count(),
-            "outdated_reports": DailyReport.objects.filter(is_outdated=True).count(),
+            "widgets": widgets,
+            "available_widgets": available_widgets,
+            "selected_widget_keys": [widget["key"] for widget in widgets],
         }
         return render(request, "cafeteria/dashboard_staff.html", context)
 
@@ -235,6 +314,39 @@ def dashboard(request):
         status=BookingStatus.ACTIVE,
     ).select_related("student", "diet").order_by("date")[:8]
     return render(request, "cafeteria/dashboard_tutor.html", {"families": families, "upcoming": upcoming, "today": today})
+
+
+@staff_required
+@require_POST
+def dashboard_preferences(request):
+    _widgets, available_widgets = _staff_dashboard_widgets(request.user)
+    allowed = {widget["key"] for widget in available_widgets}
+    selected = []
+    for key in request.POST.getlist("widgets"):
+        if key in allowed and key not in selected:
+            selected.append(key)
+    if not selected:
+        messages.error(request, _("Selecciona com a mínim un giny per a l'inici."))
+    else:
+        request.user.profile.dashboard_widgets = selected
+        request.user.profile.save(update_fields=["dashboard_widgets"])
+        messages.success(request, _("S'ha personalitzat l'inici."))
+    return redirect("cafeteria:dashboard")
+
+
+@login_required
+@require_POST
+def navigation_preferences(request):
+    section = request.POST.get("section", "")
+    collapsed = request.POST.get("collapsed") == "1"
+    allowed_sections = {"menjador", "contactes", "calendari", "portal", "familia", "mi_menjador"}
+    if section not in allowed_sections:
+        return HttpResponseForbidden(_("Aquesta secció no és vàlida."))
+    state = dict(request.user.profile.navigation_state or {})
+    state[section] = {"collapsed": collapsed}
+    request.user.profile.navigation_state = state
+    request.user.profile.save(update_fields=["navigation_state"])
+    return HttpResponse(status=204)
 
 
 def _month_starts_for_academic_year(academic_year):
@@ -262,16 +374,19 @@ def _build_year_calendar(academic_year, course_group_ids=None):
     """Build a compact, read-only calendar that can be shared by staff and families."""
     if not academic_year:
         return []
-    service_dates = set(
-        ServiceDay.objects.filter(academic_year=academic_year, is_service_day=True).values_list("date", flat=True)
-    )
+    service_day_map = {
+        item.date: item for item in ServiceDay.objects.filter(academic_year=academic_year)
+    }
+    service_dates = {item.date for item in service_day_map.values() if item.is_service_day}
     holidays = list(AcademicHoliday.objects.filter(academic_year=academic_year))
     intensive_periods = list(AcademicIntensivePeriod.objects.filter(academic_year=academic_year))
+    notices = list(AcademicNotice.objects.filter(academic_year=academic_year))
     closures = CourseClosure.objects.filter(course_group__academic_year=academic_year).select_related("course_group")
     if course_group_ids is not None:
         closures = closures.filter(course_group_id__in=course_group_ids)
     holiday_dates = _dates_for_periods(holidays, academic_year)
     intensive_dates = _dates_for_periods(intensive_periods, academic_year)
+    notice_dates = _dates_for_periods(notices, academic_year)
     closure_dates = {}
     for closure in closures:
         closure_dates.setdefault(closure.date, []).append(closure)
@@ -288,10 +403,15 @@ def _build_year_calendar(academic_year, course_group_ids=None):
                     "in_month": current_day.month == month_start.month,
                     "in_academic_year": in_academic_year,
                     "is_service_day": current_day in service_dates and current_day not in holiday_dates,
+                    "service_day": service_day_map.get(current_day),
                     "is_weekend": current_day.weekday() >= 5,
                     "holidays": holiday_dates.get(current_day, []),
                     "intensive_periods": intensive_dates.get(current_day, []),
                     "closures": closure_dates.get(current_day, []),
+                    "notices": notice_dates.get(current_day, []),
+                    "has_alert_notice": any(
+                        notice.level == "alert" for notice in notice_dates.get(current_day, [])
+                    ),
                 })
             weeks.append(cells)
         months.append({"start": month_start, "weeks": weeks})
@@ -364,6 +484,7 @@ def family_school_calendar(request, family_id):
         "year_calendar": _build_year_calendar(academic_year, selected_group_ids),
         "excursions": excursions,
         "intensive_periods": AcademicIntensivePeriod.objects.filter(academic_year=academic_year) if academic_year else [],
+        "notices": AcademicNotice.objects.filter(academic_year=academic_year) if academic_year else [],
     })
 
 
@@ -725,17 +846,7 @@ def invitation_accept(request, token):
 
 @staff_required
 def price_rules(request):
-    form = PriceRuleForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        rule = form.save(commit=False)
-        rule.created_by = request.user
-        rule.save()
-        reprice_open_bookings(rule=rule)
-        log_event(request.user, "price_rule.created", rule, {"amount": str(rule.amount)})
-        messages.success(request, _("S'ha guardat la tarifa amb data d'efecte."))
-        return redirect("cafeteria:price_rules")
-    rules = PriceRule.objects.all()
-    return render(request, "cafeteria/price_rules.html", {"form": form, "rules": rules})
+    return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=tarifes")
 
 
 @staff_required
@@ -950,7 +1061,7 @@ def teacher_statement_send(request, statement_id):
 
 @admin_required
 def audit_log(request):
-    return render(request, "cafeteria/audit_log.html", {"events": AuditEvent.objects.select_related("actor")[:200]})
+    return redirect(f"{reverse('cafeteria:portal_administration')}?tab=auditoria")
 
 
 @require_POST
@@ -1007,8 +1118,32 @@ def _accounts_context(request):
 
 
 @admin_required
+def portal_administration(request):
+    tabs = {"comptes", "invitacions", "copies", "auditoria"}
+    tab = request.GET.get("tab", "comptes")
+    if tab not in tabs:
+        tab = "comptes"
+    context = {"tab": tab}
+    if tab == "comptes":
+        context.update(_accounts_context(request))
+        context.update({
+            "reset_url": request.session.pop("portal_reset_url", None),
+            "reset_account_name": request.session.pop("portal_reset_account", None),
+        })
+    elif tab == "invitacions":
+        context.update({
+            "invitations": Invitation.objects.select_related("family", "created_by").order_by("-created_at")[:100],
+        })
+    elif tab == "auditoria":
+        context["events"] = AuditEvent.objects.select_related("actor")[:200]
+    else:
+        context["restore_confirmation"] = RESTORE_CONFIRMATION
+    return render(request, "cafeteria/portal_administration.html", context)
+
+
+@admin_required
 def accounts(request):
-    return render(request, "cafeteria/accounts.html", _accounts_context(request))
+    return redirect(f"{reverse('cafeteria:portal_administration')}?tab=comptes")
 
 
 @admin_required
@@ -1016,8 +1151,6 @@ def accounts(request):
 def account_reset_link(request, user_id):
     account = get_object_or_404(User, pk=user_id, is_active=True)
     reset_url = _password_reset_url(request, account)
-    context = _accounts_context(request)
-    context.update({"reset_url": reset_url, "reset_account": account})
     if settings.EMAIL_HOST and account.email:
         try:
             PasswordResetForm({"email": account.email}).save(
@@ -1032,7 +1165,9 @@ def account_reset_link(request, user_id):
     else:
         messages.info(request, _("Copia l'enllaç i comparteix-lo de manera segura amb la persona registrada."))
     log_event(request.user, "account.reset_link_created", account, {"email": account.email})
-    return render(request, "cafeteria/accounts.html", context)
+    request.session["portal_reset_url"] = reset_url
+    request.session["portal_reset_account"] = account.get_full_name() or account.email
+    return portal_administration(request)
 
 
 @admin_required
@@ -1044,26 +1179,134 @@ def teacher_profile_edit(request, profile_id):
         reprice_open_bookings()
         log_event(request.user, "teacher_meal_profile.updated", saved)
         messages.success(request, _("S'ha actualitzat el perfil de menjador."))
-        return redirect("cafeteria:accounts")
+        return redirect(f"{reverse('cafeteria:portal_administration')}?tab=comptes")
     return render(request, "cafeteria/entity_form.html", {
         "form": form,
         "title": _("Perfil de menjador de %(name)s") % {"name": profile.full_name},
-        "back_url": reverse("cafeteria:accounts"),
+        "back_url": f"{reverse('cafeteria:portal_administration')}?tab=comptes",
     })
+
+
+def _sqlite_backup_response(request, filename):
+    if connection.vendor != "sqlite":
+        messages.error(request, _("Les còpies des del portal només estan disponibles amb SQLite."))
+        return None
+    with tempfile.NamedTemporaryFile(suffix=".sqlite3") as snapshot:
+        connection.ensure_connection()
+        destination = sqlite3.connect(snapshot.name)
+        try:
+            connection.connection.backup(destination)
+        finally:
+            destination.close()
+        payload = Path(snapshot.name).read_bytes()
+    response = HttpResponse(payload, content_type="application/vnd.sqlite3")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@admin_required
+@require_POST
+def portal_backup_download(request):
+    filename = f"afa-ordis-{timezone.localtime():%Y%m%d-%H%M%S}.sqlite3"
+    response = _sqlite_backup_response(request, filename)
+    if response is not None:
+        request.session["restore_safety_backup_at"] = timezone.now().timestamp()
+        log_event(request.user, "portal.backup_downloaded", None, {"filename": filename})
+        return response
+    return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
+
+
+def _current_migrations():
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT app, name FROM django_migrations")
+        return set(cursor.fetchall())
+
+
+def _validate_restore_database(path):
+    source = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        integrity = source.execute("PRAGMA integrity_check").fetchone()
+        if not integrity or integrity[0].lower() != "ok":
+            raise ValueError(_("La còpia no supera la comprovació d'integritat SQLite."))
+        try:
+            source_migrations = set(source.execute("SELECT app, name FROM django_migrations").fetchall())
+        except sqlite3.DatabaseError as error:
+            raise ValueError(_("El fitxer no sembla ser una còpia del portal AFA Ordis.")) from error
+        if source_migrations != _current_migrations():
+            raise ValueError(_("La còpia no és compatible amb la versió actual del portal."))
+        tables = {row[0] for row in source.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        required_tables = {"auth_user", "cafeteria_academicyear", "cafeteria_userprofile"}
+        if not required_tables.issubset(tables):
+            raise ValueError(_("El fitxer no conté l'estructura necessària del portal."))
+    finally:
+        source.close()
+
+
+def _restore_sqlite_database(path):
+    database_name = settings.DATABASES["default"]["NAME"]
+    if database_name == ":memory:":
+        raise ValueError(_("No es pot restaurar una base de dades en memòria."))
+    connection.close()
+    source = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    destination = sqlite3.connect(database_name)
+    try:
+        source.backup(destination)
+    finally:
+        destination.close()
+        source.close()
+    connection.close()
+
+
+@admin_required
+@require_POST
+def portal_restore(request):
+    safety_backup_at = request.session.get("restore_safety_backup_at")
+    safety_is_current = isinstance(safety_backup_at, (int, float)) and (
+        timezone.now().timestamp() - safety_backup_at <= RESTORE_SAFETY_WINDOW_SECONDS
+    )
+    upload = request.FILES.get("backup_file")
+    if not safety_is_current:
+        messages.error(request, _("Abans de restaurar, descarrega una còpia de seguretat actual des d'aquesta mateixa pantalla."))
+        return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
+    if not upload or upload.size > MAX_BACKUP_UPLOAD_BYTES:
+        messages.error(request, _("Puja una còpia SQLite vàlida de menys de 100 MB."))
+        return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
+    if request.POST.get("confirmation") != RESTORE_CONFIRMATION or not request.user.check_password(request.POST.get("password", "")):
+        messages.error(request, _("Cal indicar la contrasenya actual i escriure RESTAURA per confirmar l'operació."))
+        return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
+    suffix = Path(upload.name).suffix or ".sqlite3"
+    temporary_path = None
+    if not DATABASE_RESTORE_LOCK.acquire(blocking=False):
+        messages.error(request, _("Ja hi ha una restauració en curs. Torna-ho a provar en uns instants."))
+        return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
+            temporary_path = temporary_file.name
+            for chunk in upload.chunks():
+                temporary_file.write(chunk)
+        _validate_restore_database(temporary_path)
+        _restore_sqlite_database(temporary_path)
+        Session.objects.all().delete()
+        log_event(None, "portal.database_restored", None, {"restored_by": request.user.email})
+        request.session.pop("restore_safety_backup_at", None)
+        logout(request)
+        messages.success(request, _("S'ha restaurat la base de dades. Per seguretat, cal tornar a iniciar sessió."))
+        return redirect("cafeteria:login")
+    except (OSError, sqlite3.DatabaseError, ValueError) as error:
+        messages.error(request, str(error) or _("No s'ha pogut restaurar la còpia."))
+        return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
+    finally:
+        DATABASE_RESTORE_LOCK.release()
+        if temporary_path:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
 
 
 @staff_required
 def menu_settings(request):
-    portal, _created = PortalSettings.objects.get_or_create()
-    form = PortalSettingsForm(request.POST or None, instance=portal)
-    if request.method == "POST" and form.is_valid():
-        portal = form.save(commit=False)
-        portal.updated_by = request.user
-        portal.save()
-        log_event(request.user, "portal.menu_url_updated", portal)
-        messages.success(request, _("S'ha actualitzat l'enllaç al menú de l'escola."))
-        return redirect("cafeteria:menu_settings")
-    return render(request, "cafeteria/menu_settings.html", {"form": form})
+    return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=menu")
 
 
 def _active_year_or_none():
@@ -1072,33 +1315,12 @@ def _active_year_or_none():
 
 @admin_required
 def management_dashboard(request):
-    active_year = _active_year_or_none()
-    today = timezone.localdate()
-    active_memberships = AfaMembership.objects.filter(academic_year=active_year) if active_year else AfaMembership.objects.none()
-    return render(request, "cafeteria/management_dashboard.html", {
-        "active_year": active_year,
-        "family_count": Family.objects.filter(active=True).count(),
-        "student_count": Student.objects.filter(active=True).count(),
-        "teacher_count": TeacherMealProfile.objects.filter(active=True).count(),
-        "afa_member_count": active_memberships.count(),
-        "afa_pending_count": active_memberships.filter(status=AfaMembershipStatus.PENDING).count(),
-        "pending_invitations": Invitation.objects.filter(accepted_at__isnull=True, expires_at__gt=timezone.now()).count(),
-        "service_days": ServiceDay.objects.filter(academic_year=active_year, is_service_day=True).count() if active_year else 0,
-        "holiday_count": AcademicHoliday.objects.filter(academic_year=active_year).count() if active_year else 0,
-        "today_total": MealBooking.objects.filter(date=today, status=BookingStatus.ACTIVE).count(),
-        "recent_imports": FamilyImportBatch.objects.select_related("academic_year", "uploaded_by")[:5],
-    })
+    return dashboard(request)
 
 
 @staff_required
 def dining_dashboard(request):
-    today = timezone.localdate()
-    return render(request, "cafeteria/dining_dashboard.html", {
-        "today": today,
-        "today_total": MealBooking.objects.filter(date=today, status=BookingStatus.ACTIVE).count() + TeacherMealBooking.objects.filter(date=today, status=BookingStatus.ACTIVE).count(),
-        "prepared_statements": MonthlyStatement.objects.filter(status=StatementStatus.PREPARED).count() + TeacherMonthlyStatement.objects.filter(status=StatementStatus.PREPARED).count(),
-        "outdated_reports": DailyReport.objects.filter(is_outdated=True).count(),
-    })
+    return dashboard(request)
 
 
 @admin_required
@@ -1278,56 +1500,29 @@ def _weekday_service_days(academic_year):
 def school_calendar(request):
     selected_id = request.GET.get("year")
     year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
-    month_value = request.GET.get("month", "")
-    try:
-        month_start = datetime.strptime(month_value, "%Y-%m").date().replace(day=1)
-    except ValueError:
-        month_start = (year.starts_on if year else timezone.localdate()).replace(day=1)
-    month_end = month_start.replace(day=calendar.monthrange(month_start.year, month_start.month)[1])
-    service_days = {item.date: item for item in ServiceDay.objects.filter(academic_year=year, date__range=(month_start, month_end))}
-    closures = CourseClosure.objects.filter(course_group__academic_year=year, date__range=(month_start, month_end)).select_related("course_group")
-    holidays = AcademicHoliday.objects.filter(
-        academic_year=year,
-        starts_on__lte=month_end,
-        ends_on__gte=month_start,
-    )
-    holiday_dates = set()
-    for holiday in holidays:
-        current_day = max(holiday.starts_on, month_start)
-        final_day = min(holiday.ends_on, month_end)
-        while current_day <= final_day:
-            holiday_dates.add(current_day)
-            current_day += timedelta(days=1)
-    intensive_dates = set()
-    month_intensive_periods = AcademicIntensivePeriod.objects.filter(
-        academic_year=year, starts_on__lte=month_end, ends_on__gte=month_start,
-    )
-    for period in month_intensive_periods:
-        current_day = max(period.starts_on, month_start)
-        final_day = min(period.ends_on, month_end)
-        while current_day <= final_day:
-            intensive_dates.add(current_day)
-            current_day += timedelta(days=1)
-    previous_month = (month_start - timedelta(days=1)).replace(day=1)
-    next_month = (month_end + timedelta(days=1)).replace(day=1)
+    return render(request, "cafeteria/school_calendar.html", {
+        "year": year,
+        "years": AcademicYear.objects.all(),
+        "year_calendar": _build_year_calendar(year),
+        "all_holidays": AcademicHoliday.objects.filter(academic_year=year),
+        "all_intensive_periods": AcademicIntensivePeriod.objects.filter(academic_year=year),
+        "all_notices": AcademicNotice.objects.filter(academic_year=year),
+        "all_closures": CourseClosure.objects.filter(course_group__academic_year=year).select_related("course_group"),
+    })
+
+
+@admin_required
+def course_management(request):
+    selected_id = request.GET.get("year")
+    year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
     course_groups = CourseGroup.objects.filter(academic_year=year).annotate(
         student_total=Count("students", distinct=True),
         closure_total=Count("closures", distinct=True),
     )
-    closure_form = CourseClosureForm(initial={"date": month_start})
-    closure_form.fields["course_group"].queryset = course_groups
-    return render(request, "cafeteria/school_calendar.html", {
-        "year": year, "years": AcademicYear.objects.all(), "month_start": month_start,
-        "weeks": calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month),
-        "service_days": service_days, "closures": closures, "holidays": holidays,
-        "holiday_dates": holiday_dates,
-        "all_holidays": AcademicHoliday.objects.filter(academic_year=year),
-        "intensive_dates": intensive_dates,
-        "all_intensive_periods": AcademicIntensivePeriod.objects.filter(academic_year=year),
-        "year_calendar": _build_year_calendar(year),
-        "previous_month": previous_month, "next_month": next_month,
+    return render(request, "cafeteria/course_management.html", {
+        "year": year,
+        "years": AcademicYear.objects.all(),
         "course_groups": course_groups,
-        "closure_form": closure_form,
     })
 
 
@@ -1353,19 +1548,19 @@ def academic_year_save(request, year_id=None):
                 request,
                 _("S'han ajustat els elements del calendari i les reserves afectades que quedaven fora del nou període."),
             )
-        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.id}")
+        return redirect(f"{reverse('cafeteria:course_management')}?year={saved.id}")
 
     if request.method == "POST" and academic_year is None:
         messages.error(request, _("No s'ha pogut desar el curs. Revisa les dates."))
-        return redirect("cafeteria:school_calendar")
+        return redirect("cafeteria:course_management")
 
     return render(request, "cafeteria/entity_form.html", {
         "form": form,
         "title": _("Nou curs acadèmic") if academic_year is None else _("Edita el curs acadèmic"),
         "back_url": (
-            reverse("cafeteria:school_calendar")
+            reverse("cafeteria:course_management")
             if academic_year is None
-            else f"{reverse('cafeteria:school_calendar')}?year={academic_year.id}"
+            else f"{reverse('cafeteria:course_management')}?year={academic_year.id}"
         ),
         "help_text": _(
             "Pots corregir el nom i el període del curs. Si l'amplies, genera després els nous dies lectius. "
@@ -1387,6 +1582,7 @@ def _reconcile_academic_year_dates(academic_year, actor):
         "closures": 0,
         "holidays_adjusted": 0,
         "intensive_periods_adjusted": 0,
+        "notices_adjusted": 0,
     }
     if outside_dates:
         reason = _("Fora del període lectiu corregit")
@@ -1411,6 +1607,7 @@ def _reconcile_academic_year_dates(academic_year, actor):
     for model, key in (
         (AcademicHoliday, "holidays_adjusted"),
         (AcademicIntensivePeriod, "intensive_periods_adjusted"),
+        (AcademicNotice, "notices_adjusted"),
     ):
         for period in model.objects.filter(academic_year=academic_year):
             starts_on = max(period.starts_on, academic_year.starts_on)
@@ -1433,7 +1630,7 @@ def generate_service_days(request, year_id):
     created = _weekday_service_days(year)
     log_event(request.user, "service_days.generated", year, {"weekday_rows": created})
     messages.success(request, _("S'han preparat els dies lectius de dilluns a divendres."))
-    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year.id}")
+    return redirect(f"{reverse('cafeteria:course_management')}?year={year.id}")
 
 
 @admin_required
@@ -1448,28 +1645,59 @@ def service_day_toggle(request, service_date):
 
 
 @admin_required
+@require_POST
+def service_day_by_date_toggle(request, year_id, service_date):
+    """Change the state of one day directly from the annual calendar."""
+    academic_year = get_object_or_404(AcademicYear, pk=year_id)
+    try:
+        selected_date = date.fromisoformat(service_date)
+    except ValueError:
+        return HttpResponseForbidden(_("La data no és vàlida."))
+    if not academic_year.starts_on <= selected_date <= academic_year.ends_on:
+        return HttpResponseForbidden(_("La data no pertany al curs seleccionat."))
+    day, _created = ServiceDay.objects.get_or_create(
+        academic_year=academic_year,
+        date=selected_date,
+        defaults={"is_service_day": False},
+    )
+    day.is_service_day = request.POST.get("is_service_day") == "1"
+    day.note = request.POST.get("note", "").strip()
+    day.save(update_fields=["is_service_day", "note"])
+    log_event(request.user, "service_day.updated", day, {"open": day.is_service_day})
+    messages.success(request, _("S'ha actualitzat el dia del calendari."))
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={academic_year.id}")
+
+
+@admin_required
 def course_group_save(request, group_id=None):
     group = get_object_or_404(CourseGroup, pk=group_id) if group_id else None
-    form = CourseGroupForm(request.POST or None, instance=group)
+    selected_year = AcademicYear.objects.filter(pk=request.GET.get("year")).first()
+    form = CourseGroupForm(
+        request.POST or None,
+        instance=group,
+        initial={"academic_year": selected_year} if group is None and selected_year else None,
+    )
     if group:
         form.fields["academic_year"].disabled = True
     if request.method == "POST" and form.is_valid():
         saved = form.save()
         log_event(request.user, "course_group.created" if group is None else "course_group.updated", saved)
         messages.success(request, _("S'ha desat el curs o grup."))
-        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}")
+        return redirect(f"{reverse('cafeteria:course_management')}?year={saved.academic_year_id}")
 
     if request.method == "POST" and group is None:
         messages.error(request, _("No s'ha pogut desar el grup."))
-        return redirect("cafeteria:school_calendar")
+        return redirect("cafeteria:course_management")
 
     return render(request, "cafeteria/entity_form.html", {
         "form": form,
         "title": _("Nou grup") if group is None else _("Edita el grup"),
         "back_url": (
-            reverse("cafeteria:school_calendar")
-            if group is None
-            else f"{reverse('cafeteria:school_calendar')}?year={group.academic_year_id}"
+            f"{reverse('cafeteria:course_management')}?year={group.academic_year_id}"
+            if group
+            else f"{reverse('cafeteria:course_management')}?year={selected_year.id}"
+            if selected_year
+            else reverse("cafeteria:course_management")
         ),
         "help_text": _(
             "Pots corregir el nom i l'ordre del grup. Per mantenir coherents les excursions, "
@@ -1509,20 +1737,55 @@ def course_group_delete(request, group_id):
             "closures": closure_count,
         },
     )
-    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}")
+    return redirect(f"{reverse('cafeteria:course_management')}?year={year_id}")
+
+
+@admin_required
+def course_closure_save(request, closure_id=None):
+    closure = get_object_or_404(CourseClosure, pk=closure_id) if closure_id else None
+    selected_year = AcademicYear.objects.filter(pk=request.GET.get("year")).first() or _active_year_or_none()
+    try:
+        selected_date = date.fromisoformat(request.GET.get("date", ""))
+    except ValueError:
+        selected_date = None
+    form = CourseClosureForm(
+        request.POST or None,
+        instance=closure,
+        initial={"date": selected_date} if closure is None and selected_date else None,
+    )
+    if closure is None and selected_year:
+        form.fields["course_group"].queryset = CourseGroup.objects.filter(academic_year=selected_year)
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        log_event(request.user, "course_closure.created" if closure is None else "course_closure.updated", saved)
+        messages.success(request, _("S'ha desat l'excursió. Les reserves es mantenen i, si cal, es mostraran com a carmanyola."))
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.course_group.academic_year_id}")
+    if request.method == "POST":
+        messages.error(request, _("No s'ha pogut desar l'excursió."))
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Nova excursió") if closure is None else _("Edita l'excursió"),
+        "back_url": f"{reverse('cafeteria:school_calendar')}?year={selected_year.id}" if selected_year else reverse("cafeteria:school_calendar"),
+        "help_text": _("L'excursió és informativa: les famílies encara poden reservar l'àpat, que s'identificarà com a carmanyola al llistat."),
+    })
 
 
 @admin_required
 @require_POST
-def course_closure_save(request):
-    form = CourseClosureForm(request.POST)
-    if form.is_valid():
-        saved = form.save()
-        log_event(request.user, "course_closure.created", saved)
-        messages.success(request, _("S'ha registrat l'excursió. Les reserves es mantenen i, si cal, es mostraran com a carmanyola."))
-    else:
-        messages.error(request, _("No s'ha pogut desar l'excursió."))
-    return redirect(request.POST.get("next") or "cafeteria:school_calendar")
+def course_closure_delete(request, closure_id):
+    closure = get_object_or_404(CourseClosure.objects.select_related("course_group"), pk=closure_id)
+    year_id = closure.course_group.academic_year_id
+    changed = MealBooking.objects.filter(
+        student__course_group=closure.course_group,
+        date=closure.date,
+        status=BookingStatus.ACTIVE,
+        meal_type=MealType.PACKED_LUNCH,
+    ).update(meal_type=MealType.REGULAR, updated_by=request.user)
+    DailyReport.objects.filter(date=closure.date).update(is_outdated=True)
+    log_event(request.user, "course_closure.deleted", closure, {"bookings_restored_to_regular_menu": changed})
+    closure.delete()
+    messages.success(request, _("S'ha eliminat l'excursió."))
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}")
 
 
 @admin_required
@@ -1539,7 +1802,7 @@ def academic_holiday_form(request, holiday_id=None):
         saved = form.save()
         log_event(request.user, "academic_holiday.created" if holiday is None else "academic_holiday.updated", saved)
         messages.success(request, _("S'ha desat el període festiu."))
-        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}&month={saved.starts_on:%Y-%m}")
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}")
     return render(request, "cafeteria/entity_form.html", {
         "form": form,
         "title": _("Nou festiu acadèmic") if holiday is None else _("Edita el festiu acadèmic"),
@@ -1552,11 +1815,11 @@ def academic_holiday_form(request, holiday_id=None):
 @require_POST
 def academic_holiday_delete(request, holiday_id):
     holiday = get_object_or_404(AcademicHoliday, pk=holiday_id)
-    year_id, starts_on = holiday.academic_year_id, holiday.starts_on
+    year_id = holiday.academic_year_id
     log_event(request.user, "academic_holiday.deleted", holiday)
     holiday.delete()
     messages.success(request, _("S'ha eliminat el període festiu. Les reserves anul·lades no es reactiven automàticament."))
-    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}&month={starts_on:%Y-%m}")
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}")
 
 
 @admin_required
@@ -1576,7 +1839,7 @@ def intensive_period_form(request, period_id=None):
         saved = form.save()
         log_event(request.user, "academic_intensive_period.created" if period is None else "academic_intensive_period.updated", saved)
         messages.success(request, _("S'ha desat el període de jornada intensiva."))
-        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}&month={saved.starts_on:%Y-%m}")
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}")
     return render(request, "cafeteria/entity_form.html", {
         "form": form,
         "title": _("Nou període de jornada intensiva") if period is None else _("Edita la jornada intensiva"),
@@ -1589,44 +1852,110 @@ def intensive_period_form(request, period_id=None):
 @require_POST
 def intensive_period_delete(request, period_id):
     period = get_object_or_404(AcademicIntensivePeriod, pk=period_id)
-    year_id, starts_on = period.academic_year_id, period.starts_on
+    year_id = period.academic_year_id
     log_event(request.user, "academic_intensive_period.deleted", period)
     period.delete()
     messages.success(request, _("S'ha eliminat el període de jornada intensiva."))
-    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}&month={starts_on:%Y-%m}")
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}")
 
 
 @admin_required
+def academic_notice_form(request, notice_id=None):
+    notice = get_object_or_404(AcademicNotice, pk=notice_id) if notice_id else None
+    selected_id = request.GET.get("year")
+    selected_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    try:
+        selected_date = date.fromisoformat(request.GET.get("date", ""))
+    except ValueError:
+        selected_date = selected_year.starts_on if selected_year else None
+    form = AcademicNoticeForm(
+        request.POST or None,
+        instance=notice,
+        initial={
+            "academic_year": selected_year,
+            "starts_on": selected_date,
+            "ends_on": selected_date,
+        } if notice is None else None,
+    )
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        log_event(request.user, "academic_notice.created" if notice is None else "academic_notice.updated", saved)
+        messages.success(request, _("S'ha desat la incidència del calendari."))
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}")
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Nova incidència") if notice is None else _("Edita la incidència"),
+        "back_url": reverse("cafeteria:school_calendar"),
+        "help_text": _("Les incidències informen totes les famílies i no modifiquen el servei de menjador."),
+    })
+
+
+@admin_required
+@require_POST
+def academic_notice_delete(request, notice_id):
+    notice = get_object_or_404(AcademicNotice, pk=notice_id)
+    year_id = notice.academic_year_id
+    log_event(request.user, "academic_notice.deleted", notice)
+    notice.delete()
+    messages.success(request, _("S'ha eliminat la incidència del calendari."))
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}")
+
+
+@staff_required
 def meal_configuration(request):
     active_year = _active_year_or_none()
     settings_object = MealSettings.objects.filter(academic_year=active_year).first() if active_year else None
     if active_year and settings_object is None:
         settings_object = MealSettings.objects.create(academic_year=active_year)
+    tabs = {"avisos", "dietes", "tarifes", "menu"}
+    tab = request.POST.get("tab") or request.GET.get("tab") or "avisos"
+    if tab not in tabs:
+        tab = "avisos"
     settings_form = MealSettingsForm(request.POST or None, instance=settings_object, prefix="settings") if settings_object else None
     diet_form = DietForm(request.POST or None, prefix="diet")
     recipient_form = DailyReportRecipientForm(request.POST or None, prefix="recipient") if settings_object else None
+    price_form = PriceRuleForm(request.POST or None, prefix="price")
+    portal, _created = PortalSettings.objects.get_or_create()
+    menu_form = PortalSettingsForm(request.POST or None, instance=portal, prefix="menu")
     if request.method == "POST":
         intent = request.POST.get("intent")
         if intent == "settings" and settings_form and settings_form.is_valid():
             saved = settings_form.save()
             log_event(request.user, "meal_settings.updated", saved)
             messages.success(request, _("S'ha actualitzat la configuració del menjador."))
-            return redirect("cafeteria:meal_configuration")
+            return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=avisos")
         if intent == "diet" and diet_form.is_valid():
             saved = diet_form.save()
             log_event(request.user, "diet.created", saved)
             messages.success(request, _("S'ha afegit la dieta."))
-            return redirect("cafeteria:meal_configuration")
+            return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=dietes")
         if intent == "recipient" and recipient_form and recipient_form.is_valid():
             saved = recipient_form.save(commit=False)
             saved.settings = settings_object
             saved.save()
             log_event(request.user, "daily_recipient.created", saved)
             messages.success(request, _("S'ha afegit el destinatari."))
-            return redirect("cafeteria:meal_configuration")
+            return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=avisos")
+        if intent == "price" and price_form.is_valid():
+            rule = price_form.save(commit=False)
+            rule.created_by = request.user
+            rule.save()
+            reprice_open_bookings(rule=rule)
+            log_event(request.user, "price_rule.created", rule, {"amount": str(rule.amount)})
+            messages.success(request, _("S'ha guardat la tarifa amb data d'efecte."))
+            return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=tarifes")
+        if intent == "menu" and menu_form.is_valid():
+            saved_portal = menu_form.save(commit=False)
+            saved_portal.updated_by = request.user
+            saved_portal.save()
+            log_event(request.user, "portal.menu_url_updated", saved_portal)
+            messages.success(request, _("S'ha actualitzat l'enllaç al menú de l'escola."))
+            return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=menu")
         messages.error(request, _("Revisa les dades del formulari."))
     return render(request, "cafeteria/meal_configuration.html", {
-        "active_year": active_year, "settings_form": settings_form, "diet_form": diet_form,
+        "active_year": active_year, "tab": tab,
+        "settings_form": settings_form, "diet_form": diet_form, "price_form": price_form,
+        "menu_form": menu_form, "price_rules": PriceRule.objects.all(),
         "recipient_form": recipient_form,
         "diets": Diet.objects.annotate(
             student_total=Count("students", distinct=True),
@@ -1636,7 +1965,7 @@ def meal_configuration(request):
     })
 
 
-@admin_required
+@staff_required
 def diet_form(request, diet_id=None):
     diet = get_object_or_404(Diet, pk=diet_id) if diet_id else None
     form = DietForm(request.POST or None, instance=diet)
@@ -1644,11 +1973,11 @@ def diet_form(request, diet_id=None):
         saved = form.save()
         log_event(request.user, "diet.created" if diet is None else "diet.updated", saved)
         messages.success(request, _("S'ha desat la dieta."))
-        return redirect("cafeteria:meal_configuration")
+        return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=dietes")
     return render(request, "cafeteria/entity_form.html", {
         "form": form,
         "title": _("Nova dieta") if diet is None else _("Edita la dieta"),
-        "back_url": reverse("cafeteria:meal_configuration"),
+        "back_url": f"{reverse('cafeteria:meal_configuration')}?tab=dietes",
         "help_text": _(
             "Les dietes inactives no es poden seleccionar en reserves noves, però es conserven a les fitxes que ja les tenen."
         ),
@@ -1676,7 +2005,7 @@ def _replacement_diet(diet):
     )
 
 
-@admin_required
+@staff_required
 @require_POST
 def diet_delete(request, diet_id):
     diet = get_object_or_404(Diet, pk=diet_id)
@@ -1704,7 +2033,7 @@ def diet_delete(request, diet_id):
         )
     else:
         messages.success(request, _("S'ha eliminat la dieta %(diet)s.") % {"diet": diet_name})
-    return redirect("cafeteria:meal_configuration")
+    return redirect(f"{reverse('cafeteria:meal_configuration')}?tab=dietes")
 
 
 CSV_COLUMNS = (

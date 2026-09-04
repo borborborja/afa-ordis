@@ -41,6 +41,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     language = models.CharField(max_length=2, choices=[("ca", "Català"), ("es", "Castellano")], default="ca")
     receive_operational_emails = models.BooleanField(default=True)
+    navigation_state = models.JSONField(default=dict, blank=True)
+    dashboard_widgets = models.JSONField(default=list, blank=True)
 
     def __str__(self) -> str:
         return self.user.get_full_name() or self.user.email
@@ -368,6 +370,43 @@ class AcademicIntensivePeriod(models.Model):
 
     def __str__(self):
         return f"{self.title} · {self.starts_on:%d/%m/%Y}"
+
+
+class AcademicNoticeLevel(models.TextChoices):
+    INFORMATION = "information", "Informació"
+    ALERT = "alert", "Alerta"
+
+
+class AcademicNotice(models.Model):
+    """An informational calendar event that never changes meal availability."""
+
+    academic_year = models.ForeignKey(
+        AcademicYear, on_delete=models.CASCADE, related_name="notices"
+    )
+    title = models.CharField(max_length=160)
+    description = models.TextField(blank=True)
+    level = models.CharField(
+        max_length=16, choices=AcademicNoticeLevel.choices,
+        default=AcademicNoticeLevel.INFORMATION,
+    )
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["starts_on", "ends_on", "title"]
+
+    def clean(self):
+        if self.ends_on < self.starts_on:
+            raise ValidationError("La data final no pot ser anterior a la inicial.")
+        if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
+            raise ValidationError("L'inici de la incidència ha de ser dins del curs acadèmic.")
+        if not self.academic_year.starts_on <= self.ends_on <= self.academic_year.ends_on:
+            raise ValidationError("El final de la incidència ha de ser dins del curs acadèmic.")
+
+    def __str__(self):
+        return f"{self.get_level_display()} · {self.title} · {self.starts_on:%d/%m/%Y}"
 
 
 class MealSettings(models.Model):

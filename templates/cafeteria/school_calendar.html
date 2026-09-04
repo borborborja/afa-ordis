@@ -1,171 +1,19 @@
 {% extends 'cafeteria/base.html' %}
 {% load i18n %}
-{% block page_context %}{% translate "Gestió acadèmica" %}{% endblock %}
+{% block page_context %}{% translate "Calendari escolar" %}{% endblock %}
 {% block content %}
-<section class="page-heading">
-  <div>
-    <p class="eyebrow">{% translate "Gestió acadèmica" %}</p>
-    <h1>{% translate "Curs i calendari" %}</h1>
-    <p>{% translate "Configura els dies lectius, festius, jornada intensiva i excursions. La jornada intensiva és només informativa i no modifica el menjador." %}</p>
-  </div>
-  <a class="button secondary" href="{% url 'cafeteria:academic_dashboard' %}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Panell acadèmic" %}</a>
-</section>
-
-<section class="toolbar card">
-  <form method="get" class="inline-form">
-    <label>{% translate "Curs" %}
-      <select name="year" onchange="this.form.submit()">
-        {% for item in years %}<option value="{{ item.id }}" {% if item == year %}selected{% endif %}>{{ item.name }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>{% translate "Mes" %}<input type="month" name="month" value="{{ month_start|date:'Y-m' }}" onchange="this.form.submit()"></label>
-  </form>
-  {% if year %}
-    <div class="table-actions">
-      <a class="button secondary" href="{% url 'cafeteria:academic_year_edit' year.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita el curs" %}</a>
-      <form method="post" action="{% url 'cafeteria:generate_service_days' year.id %}">{% csrf_token %}<button class="button secondary">{% include 'cafeteria/components/icon.html' with name='calendar' %}{% translate "Genera dies lectius" %}</button></form>
-    </div>
-  {% endif %}
-</section>
-
+<section class="page-heading"><div><p class="eyebrow">{% translate "Calendari escolar" %}</p><h1>{% translate "Calendari anual" %}</h1><p>{% translate "Tots els mesos del curs en una sola vista. Fes clic en un dia per consultar-ne els detalls." %}</p></div><a class="button secondary" href="{% url 'cafeteria:course_management' %}{% if year %}?year={{ year.id }}{% endif %}">{% include 'cafeteria/components/icon.html' with name='academic' %}{% translate "Gestió del curs" %}</a></section>
+<section class="toolbar card"><form method="get" class="inline-form"><label>{% translate "Curs acadèmic" %}<select name="year" onchange="this.form.submit()">{% for item in years %}<option value="{{ item.id }}" {% if item == year %}selected{% endif %}>{{ item.name }}{% if item.is_active %} · {% translate "actiu" %}{% endif %}</option>{% endfor %}</select></label></form>{% if year %}<div class="table-actions"><a class="button secondary" href="{% url 'cafeteria:academic_holiday_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='holiday' %}{% translate "Festiu" %}</a><a class="button secondary" href="{% url 'cafeteria:intensive_period_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='intensive' %}{% translate "Jornada intensiva" %}</a><a class="button secondary" href="{% url 'cafeteria:course_closure_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='excursion' %}{% translate "Excursió" %}</a><a class="button primary" href="{% url 'cafeteria:academic_notice_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='alert' %}{% translate "Incidència" %}</a></div>{% endif %}</section>
 {% if year %}
-<section class="calendar-management card">
-  <nav class="month-nav">
-    <a class="icon-button" href="?year={{ year.id }}&month={{ previous_month|date:'Y-m' }}" aria-label="{% translate 'Mes anterior' %}">{% include 'cafeteria/components/icon.html' with name='chevron-left' %}</a>
-    <h2>{{ month_start|date:"F Y" }}</h2>
-    <a class="icon-button" href="?year={{ year.id }}&month={{ next_month|date:'Y-m' }}" aria-label="{% translate 'Mes següent' %}">{% include 'cafeteria/components/icon.html' with name='chevron-right' %}</a>
-  </nav>
-  <div class="school-calendar">
-    <div class="weekday">Dl</div><div class="weekday">Dt</div><div class="weekday">Dc</div><div class="weekday">Dj</div><div class="weekday">Dv</div><div class="weekday weekend">Ds</div><div class="weekday weekend">Dg</div>
-    {% for week in weeks %}{% for item in week %}
-      <div class="school-day {% if item.month != month_start.month %}outside{% endif %}{% if item in holiday_dates %}holiday-day{% elif item in intensive_dates %}intensive-day{% endif %}">
-        <span>{{ item.day }}</span>
-        {% if item in holiday_dates %}
-          {% for holiday in holidays %}{% if holiday.starts_on <= item and holiday.ends_on >= item %}<small class="holiday">{% include 'cafeteria/components/icon.html' with name='holiday' %}{{ holiday.title }}</small>{% endif %}{% endfor %}
-        {% else %}
-          {% if item in intensive_dates %}<small class="intensive-label">{% include 'cafeteria/components/icon.html' with name='intensive' %}{% translate "Jornada intensiva" %}</small>{% endif %}
-          {% for record_date, record in service_days.items %}{% if record_date == item %}
-            <form method="post" action="{% url 'cafeteria:service_day_toggle' item|date:'Y-m-d' %}">{% csrf_token %}
-              <input type="hidden" name="service_day" value="{{ record.id }}"><input type="hidden" name="is_service_day" value="{% if record.is_service_day %}0{% else %}1{% endif %}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button class="day-state {% if record.is_service_day %}open{% else %}closed{% endif %}">{% if record.is_service_day %}{% translate "Obert" %}{% else %}{% translate "Tancat" %}{% endif %}</button>
-            </form>
-          {% endif %}{% endfor %}
-        {% endif %}
-        {% for closure in closures %}{% if closure.date == item %}<small class="closure">{% include 'cafeteria/components/icon.html' with name='excursion' %}{{ closure.course_group.name }} · {{ closure.title }}</small>{% endif %}{% endfor %}
-      </div>
-    {% endfor %}{% endfor %}
-  </div>
+<section class="calendar-legend" aria-label="{% translate 'Llegenda del calendari' %}"><span><i class="legend-swatch service"></i>{% translate "Dia lectiu amb servei" %}</span><span><i class="legend-swatch no-service"></i>{% translate "Dia sense servei" %}</span><span><i class="legend-swatch holiday"></i>{% translate "Festiu" %}</span><span><i class="legend-swatch intensive"></i>{% translate "Jornada intensiva" %}</span><span><i class="legend-swatch notice"></i>{% translate "Incidència" %}</span><span>{% include 'cafeteria/components/icon.html' with name='excursion' %}{% translate "Excursió" %}</span></section>
+<section class="annual-calendar admin-annual-calendar interactive-annual-calendar" aria-label="{% translate 'Vista anual del curs' %}">{% for month in year_calendar %}<article class="annual-month"><h2>{{ month.start|date:"F Y" }}</h2><div class="annual-weekdays"><span>Dl</span><span>Dt</span><span>Dc</span><span>Dj</span><span>Dv</span><span>Ds</span><span>Dg</span></div><div class="annual-days">{% for week in month.weeks %}{% for cell in week %}<div class="annual-day {% if not cell.in_month %}outside{% elif not cell.in_academic_year %}no-service{% elif cell.holidays %}holiday{% elif cell.intensive_periods %}intensive{% elif cell.is_service_day %}service{% else %}no-service{% endif %}{% if cell.notices %} has-notice{% endif %}{% if cell.has_alert_notice %} notice-alert{% endif %}">{% if cell.in_month %}<button type="button" class="annual-day-info" data-calendar-info data-calendar-date="{{ cell.date|date:'l d F Y' }}" data-calendar-info="{% if cell.holidays %}{% for event in cell.holidays %}{{ event.title }}. {% endfor %}{% endif %}{% if cell.intensive_periods %}{% for event in cell.intensive_periods %}{{ event.title }}. {% endfor %}{% endif %}{% if cell.notices %}{% for event in cell.notices %}{{ event.title }}{% if event.description %}: {{ event.description }}{% endif %}. {% endfor %}{% endif %}{% if cell.closures %}{% for event in cell.closures %}{{ event.course_group.name }}: {{ event.title }}. {% endfor %}{% endif %}{% if cell.is_service_day %}{% translate 'Dia lectiu amb servei de menjador.' %}{% else %}{% translate 'Dia sense servei de menjador.' %}{% endif %}"><span>{{ cell.date.day }}</span>{% if cell.closures %}<i class="event-icon">{% include 'cafeteria/components/icon.html' with name='excursion' %}<span class="sr-only">{% translate "Excursió" %}</span></i>{% endif %}{% if cell.notices %}<i class="notice-icon">{% include 'cafeteria/components/icon.html' with name='alert' %}<span class="sr-only">{% translate "Incidència" %}</span></i>{% endif %}</button>{% if cell.in_academic_year and not cell.holidays %}<form method="post" action="{% url 'cafeteria:service_day_by_date_toggle' year.id cell.date|date:'Y-m-d' %}" class="calendar-day-toggle">{% csrf_token %}<input type="hidden" name="is_service_day" value="{% if cell.is_service_day %}0{% else %}1{% endif %}"><button title="{% if cell.is_service_day %}{% translate 'Marca com a dia sense servei' %}{% else %}{% translate 'Marca com a dia lectiu amb servei' %}{% endif %}" aria-label="{% if cell.is_service_day %}{% translate 'Marca com a dia sense servei' %}{% else %}{% translate 'Marca com a dia lectiu amb servei' %}{% endif %}">{% if cell.is_service_day %}−{% else %}+{% endif %}</button></form>{% endif %}{% endif %}</div>{% endfor %}{% endfor %}</div></article>{% endfor %}</section>
+<section class="calendar-management-lists">
+  <article class="card"><div class="section-title"><h2>{% translate "Festius" %}</h2><a href="{% url 'cafeteria:academic_holiday_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix" %}</a></div><div class="planning-list">{% for event in all_holidays %}<article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='holiday' %}</span><div><strong>{{ event.title }}</strong><small>{{ event.get_holiday_type_display }} · {{ event.starts_on|date:"d/m/Y" }}{% if event.ends_on != event.starts_on %} – {{ event.ends_on|date:"d/m/Y" }}{% endif %}</small></div><span class="table-actions"><a href="{% url 'cafeteria:academic_holiday_edit' event.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:academic_holiday_delete' event.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>{% empty %}<p class="muted">{% translate "No hi ha cap festiu registrat." %}</p>{% endfor %}</div></article>
+  <article class="card"><div class="section-title"><h2>{% translate "Jornades intensives" %}</h2><a href="{% url 'cafeteria:intensive_period_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix" %}</a></div><div class="planning-list">{% for event in all_intensive_periods %}<article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='intensive' %}</span><div><strong>{{ event.title }}</strong><small>{{ event.starts_on|date:"d/m/Y" }} – {{ event.ends_on|date:"d/m/Y" }}</small></div><span class="table-actions"><a href="{% url 'cafeteria:intensive_period_edit' event.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:intensive_period_delete' event.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>{% empty %}<p class="muted">{% translate "No hi ha cap jornada intensiva registrada." %}</p>{% endfor %}</div></article>
+  <article class="card"><div class="section-title"><h2>{% translate "Excursions" %}</h2><a href="{% url 'cafeteria:course_closure_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix" %}</a></div><div class="planning-list">{% for event in all_closures %}<article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='excursion' %}</span><div><strong>{{ event.title }}</strong><small>{{ event.date|date:"d/m/Y" }} · {{ event.course_group.name }}</small></div><span class="table-actions"><a href="{% url 'cafeteria:course_closure_edit' event.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:course_closure_delete' event.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>{% empty %}<p class="muted">{% translate "No hi ha cap excursió registrada." %}</p>{% endfor %}</div></article>
+  <article class="card"><div class="section-title"><h2>{% translate "Incidències i avisos" %}</h2><a href="{% url 'cafeteria:academic_notice_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix" %}</a></div><p class="muted">{% translate "S'informen a totes les famílies i no modifiquen el menjador." %}</p><div class="planning-list">{% for event in all_notices %}<article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='alert' %}</span><div><strong>{{ event.title }}</strong><small>{{ event.get_level_display }} · {{ event.starts_on|date:"d/m/Y" }}{% if event.ends_on != event.starts_on %} – {{ event.ends_on|date:"d/m/Y" }}{% endif %}{% if event.description %} · {{ event.description }}{% endif %}</small></div><span class="table-actions"><a href="{% url 'cafeteria:academic_notice_edit' event.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:academic_notice_delete' event.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>{% empty %}<p class="muted">{% translate "No hi ha cap incidència registrada." %}</p>{% endfor %}</div></article>
 </section>
-
-<section class="calendar-legend" aria-label="{% translate 'Llegenda del calendari' %}">
-  <span><i class="legend-swatch service"></i>{% translate "Dia lectiu amb servei" %}</span><span><i class="legend-swatch no-service"></i>{% translate "Dia sense servei" %}</span><span><i class="legend-swatch holiday"></i>{% translate "Festiu" %}</span><span><i class="legend-swatch intensive"></i>{% translate "Jornada intensiva" %}</span><span>{% include 'cafeteria/components/icon.html' with name='excursion' %}{% translate "Excursió" %}</span>
-</section>
-
-<section class="annual-calendar admin-annual-calendar" aria-label="{% translate 'Vista anual del curs' %}">
-  {% for month in year_calendar %}
-    <article class="annual-month">
-      <h2>{{ month.start|date:"F Y" }}</h2>
-      <div class="annual-weekdays"><span>Dl</span><span>Dt</span><span>Dc</span><span>Dj</span><span>Dv</span><span>Ds</span><span>Dg</span></div>
-      <div class="annual-days">
-        {% for week in month.weeks %}{% for cell in week %}
-          <div class="annual-day {% if not cell.in_month %}outside{% elif not cell.in_academic_year %}no-service{% elif cell.holidays %}holiday{% elif cell.intensive_periods %}intensive{% elif cell.is_service_day %}service{% else %}no-service{% endif %}" title="{% for holiday in cell.holidays %}{{ holiday.title }}{% endfor %}{% for period in cell.intensive_periods %}{{ period.title }}{% endfor %}{% for closure in cell.closures %}{{ closure.course_group.name }}: {{ closure.title }}{% endfor %}">
-            <span>{{ cell.date.day }}</span>{% if cell.closures %}<i class="event-icon">{% include 'cafeteria/components/icon.html' with name='excursion' %}</i>{% endif %}
-          </div>
-        {% endfor %}{% endfor %}
-      </div>
-    </article>
-  {% endfor %}
-</section>
-
-<section class="split-section">
-  <article class="card">
-    <div class="section-title"><h2>{% translate "Curs seleccionat" %}</h2><a class="button primary" href="{% url 'cafeteria:academic_year_edit' year.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a></div>
-    <p><strong>{{ year.name }}</strong></p>
-    <p class="muted">{% translate "Període lectiu" %}: {{ year.starts_on|date:"d/m/Y" }} – {{ year.ends_on|date:"d/m/Y" }}</p>
-    <p class="muted">{% if year.is_active %}{% translate "És el curs actiu." %}{% else %}{% translate "No és el curs actiu." %}{% endif %}</p>
-    <p>{% translate "En modificar les dates, els dies lectius, les excursions i les reserves que quedin fora del període es retiren per mantenir el calendari coherent." %}</p>
-  </article>
-  <article class="card">
-    <h2>{% translate "Crea un curs nou" %}</h2>
-    <p>{% translate "Afegeix el curs següent sense modificar l'històric del curs actual." %}</p>
-    <form method="post" action="{% url 'cafeteria:academic_year_create' %}" class="mini-form">
-      {% csrf_token %}
-      <label>{% translate "Nom" %}<input name="name" placeholder="2027-2028" required></label>
-      <label>{% translate "Inici" %}<input type="date" name="starts_on" required></label>
-      <label>{% translate "Final" %}<input type="date" name="ends_on" required></label>
-      <label class="check-label"><input type="checkbox" name="is_active"> {% translate "Curs actiu" %}</label>
-      <button class="button primary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Crea el curs" %}</button>
-    </form>
-  </article>
-</section>
-
-<section class="card">
-  <div class="section-title"><h2>{% translate "Grups del curs" %}</h2><span class="muted">{{ course_groups|length }}</span></div>
-  <p>{% translate "Corregeix un nom o l'ordre amb Edita. En eliminar un grup, l'alumnat es conserva i queda pendent de reassignar; les excursions del grup s'eliminen." %}</p>
-  <form method="post" action="{% url 'cafeteria:course_group_create' %}" class="inline-form form-wide">
-    {% csrf_token %}
-    <input type="hidden" name="academic_year" value="{{ year.id }}">
-    <label>{% translate "Nom del grup" %}<input name="name" placeholder="I4" required></label>
-    <label>{% translate "Ordre" %}<input type="number" name="sort_order" value="0"></label>
-    <button class="button primary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix el grup" %}</button>
-  </form>
-  <div class="planning-list">
-    {% for group in course_groups %}
-      <article>
-        <span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='academic' %}</span>
-        <div><strong>{{ group.name }}</strong><small>{% blocktranslate count students=group.student_total %}{{ students }} alumne assignat{% plural %}{{ students }} alumnes assignats{% endblocktranslate %} · {% blocktranslate count closures=group.closure_total %}{{ closures }} excursió{% plural %}{{ closures }} excursions{% endblocktranslate %}</small></div>
-        <span class="table-actions"><a href="{% url 'cafeteria:course_group_edit' group.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:course_group_delete' group.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span>
-      </article>
-    {% empty %}<p class="muted">{% translate "Encara no hi ha grups creats en aquest curs." %}</p>{% endfor %}
-  </div>
-</section>
-
-<section class="split-section">
-  <article class="card">
-    <div class="section-title"><h2>{% translate "Festius i dies sense servei" %}</h2><a class="button primary" href="{% url 'cafeteria:academic_holiday_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Festiu" %}</a></div>
-    <p>{% translate "En desar un festiu, es cancel·len els àpats programats durant el període i no es facturen." %}</p>
-    <div class="planning-list">
-      {% for holiday in all_holidays %}
-        <article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='holiday' %}</span><div><strong>{{ holiday.title }}</strong><small>{{ holiday.get_holiday_type_display }} · {{ holiday.starts_on|date:"d/m/Y" }}{% if holiday.ends_on != holiday.starts_on %} – {{ holiday.ends_on|date:"d/m/Y" }}{% endif %}</small></div><span class="table-actions"><a href="{% url 'cafeteria:academic_holiday_edit' holiday.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:academic_holiday_delete' holiday.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>
-      {% empty %}<p class="muted">{% translate "No hi ha cap festiu registrat en aquest curs." %}</p>{% endfor %}
-    </div>
-  </article>
-  <article class="card">
-    <div class="section-title"><h2>{% translate "Jornada intensiva" %}</h2><a class="button primary" href="{% url 'cafeteria:intensive_period_create' %}?year={{ year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Període" %}</a></div>
-    <p>{% translate "Es mostra al calendari escolar i familiar, però no modifica les reserves ni el servei de menjador." %}</p>
-    <div class="planning-list">
-      {% for period in all_intensive_periods %}
-        <article><span class="event-list-icon">{% include 'cafeteria/components/icon.html' with name='intensive' %}</span><div><strong>{{ period.title }}</strong><small>{{ period.starts_on|date:"d/m/Y" }} – {{ period.ends_on|date:"d/m/Y" }}</small></div><span class="table-actions"><a href="{% url 'cafeteria:intensive_period_edit' period.id %}">{% include 'cafeteria/components/icon.html' with name='edit' %}{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:intensive_period_delete' period.id %}">{% csrf_token %}<button class="link-button danger-link">{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></form></span></article>
-      {% empty %}<p class="muted">{% translate "No hi ha cap període de jornada intensiva." %}</p>{% endfor %}
-    </div>
-  </article>
-</section>
-
-<section class="card">
-  <h2>{% translate "Excursió d'un grup" %}</h2>
-  <p>{% translate "L'alumnat pot continuar reservant l'àpat. El llistat el mostrarà com a carmanyola." %}</p>
-  {% if course_groups %}
-    <form method="post" action="{% url 'cafeteria:course_closure_create' %}" class="inline-form form-wide">
-      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-      {% for field in closure_form %}<label>{{ field.label }}{{ field }}</label>{% endfor %}
-      <button class="button primary">{% include 'cafeteria/components/icon.html' with name='excursion' %}{% translate "Marca l'excursió" %}</button>
-    </form>
-  {% else %}<p class="muted">{% translate "Crea primer un grup per poder-hi marcar una excursió." %}</p>{% endif %}
-</section>
-
 {% else %}
-<section class="card form-card">
-  <p class="eyebrow">{% translate "Primer pas" %}</p>
-  <h2>{% translate "Crea el primer curs acadèmic" %}</h2>
-  <p>{% translate "Indica el període escolar i activa'l. En desar-lo podràs crear grups, festius, jornades intensives i dies lectius." %}</p>
-  <form method="post" action="{% url 'cafeteria:academic_year_create' %}" class="form-grid">
-    {% csrf_token %}
-    <div class="field"><label for="year-name">{% translate "Nom" %}</label><input id="year-name" name="name" placeholder="2026-2027" required></div>
-    <div class="field"><label for="year-start">{% translate "Inici" %}</label><input id="year-start" type="date" name="starts_on" required></div>
-    <div class="field"><label for="year-end">{% translate "Final" %}</label><input id="year-end" type="date" name="ends_on" required></div>
-    <label class="check-label"><input type="checkbox" name="is_active" checked> {% translate "Curs actiu" %}</label>
-    <div class="form-actions"><button class="button primary">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Crea el curs i continua" %}</button></div>
-  </form>
-</section>
+<section class="card empty-state"><h2>{% translate "Crea el primer curs acadèmic" %}</h2><p>{% translate "La vista anual necessita un curs amb dates d'inici i final." %}</p><a class="button primary" href="{% url 'cafeteria:course_management' %}">{% include 'cafeteria/components/icon.html' with name='academic' %}{% translate "Gestiona el curs" %}</a></section>
 {% endif %}
 {% endblock %}

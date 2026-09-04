@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
@@ -15,6 +15,7 @@ from django.utils import translation
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
+    AcademicNotice,
     AcademicYear,
     AfaFeeSettings,
     AfaMembership,
@@ -170,6 +171,23 @@ class CafeteriaFlowTests(TestCase):
         )
         with self.assertRaises(ValidationError):
             period.full_clean()
+
+    def test_calendar_notice_is_visible_to_family_without_changing_meal_service(self):
+        booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        notice = AcademicNotice.objects.create(
+            academic_year=self.year,
+            title="Vaga del personal docent",
+            description="L'activitat lectiva continua amb serveis mínims.",
+            level="alert",
+            starts_on=self.today,
+            ends_on=self.today,
+        )
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.ACTIVE)
+        self.assertTrue(is_service_day(self.today, self.student))
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("cafeteria:family_school_calendar", args=[self.family.id]))
+        self.assertContains(response, notice.title)
 
     def test_family_calendar_filters_excursions_to_child_groups_by_default(self):
         other_group = CourseGroup.objects.create(academic_year=self.year, name="I5")
@@ -365,10 +383,26 @@ class CafeteriaFlowTests(TestCase):
             "cafeteria:afa_memberships",
             "cafeteria:school_calendar",
             "cafeteria:meal_configuration",
+            "cafeteria:course_management",
+            "cafeteria:portal_administration",
             "cafeteria:family_import",
         ):
             with self.subTest(route=route):
                 self.assertEqual(self.client.get(reverse(route)).status_code, 200)
+
+    def test_administrator_can_save_navigation_and_toggle_a_day_in_annual_calendar(self):
+        admin = User.objects.create_superuser("calendar-actions@example.com", "calendar-actions@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("cafeteria:navigation_preferences"), {"section": "calendari", "collapsed": "1"})
+        self.assertEqual(response.status_code, 204)
+        admin.profile.refresh_from_db()
+        self.assertTrue(admin.profile.navigation_state["calendari"]["collapsed"])
+        response = self.client.post(
+            reverse("cafeteria:service_day_by_date_toggle", args=[self.year.id, self.today.isoformat()]),
+            {"is_service_day": "0"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ServiceDay.objects.get(academic_year=self.year, date=self.today).is_service_day)
 
     def test_manager_can_use_dining_area_but_not_contacts_or_academic_area(self):
         manager = User.objects.create_user("manager@example.com", "manager@example.com", "correct-horse-battery-staple")
@@ -534,3 +568,14 @@ class CafeteriaFlowTests(TestCase):
         for template in templates:
             with self.subTest(template=template):
                 get_template(template)
+
+
+class PortalBackupTests(TransactionTestCase):
+    def test_administrator_can_download_a_sqlite_backup_from_the_portal(self):
+        admin = User.objects.create_superuser("backup@example.com", "backup@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("cafeteria:portal_backup_download"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/vnd.sqlite3")
+        self.assertIn("attachment; filename=", response["Content-Disposition"])
+        self.assertGreater(len(response.content), 0)
