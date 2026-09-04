@@ -4,11 +4,14 @@ from django.dispatch import receiver
 
 from .models import (
     BookingStatus,
+    AcademicHoliday,
     CourseClosure,
     DailyReport,
     MealBooking,
     MealType,
+    TeacherMealBooking,
     UserProfile,
+    log_event,
 )
 
 
@@ -28,3 +31,23 @@ def mark_report_outdated_for_course_closure(sender, instance, created, **kwargs)
             status=BookingStatus.ACTIVE,
         ).update(meal_type=MealType.PACKED_LUNCH)
     DailyReport.objects.filter(date=instance.date).update(is_outdated=True)
+
+
+@receiver(post_save, sender=AcademicHoliday)
+def cancel_bookings_for_academic_holiday(sender, instance, created, **kwargs):
+    """A school holiday means no meal service; unlike an excursion, it is not a packed lunch."""
+    student_bookings = MealBooking.objects.filter(
+        date__range=(instance.starts_on, instance.ends_on), status=BookingStatus.ACTIVE,
+    )
+    teacher_bookings = TeacherMealBooking.objects.filter(
+        date__range=(instance.starts_on, instance.ends_on), status=BookingStatus.ACTIVE,
+    )
+    reason = f"{instance.get_holiday_type_display()}: {instance.title}"
+    student_count = student_bookings.update(status=BookingStatus.CANCELLED, override_reason=reason)
+    teacher_count = teacher_bookings.update(status=BookingStatus.CANCELLED, override_reason=reason)
+    DailyReport.objects.filter(date__range=(instance.starts_on, instance.ends_on)).update(is_outdated=True)
+    if student_count or teacher_count:
+        log_event(None, "booking.cancelled_for_academic_holiday", instance, {
+            "student_bookings": student_count,
+            "teacher_bookings": teacher_count,
+        })

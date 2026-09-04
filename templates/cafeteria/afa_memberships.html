@@ -1,0 +1,21 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Quotes AFA" %}{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">{% translate "AFA" %}</p><h1>{% translate "Quotes AFA" %}</h1><p>{% translate "Ser membre de l'AFA és opcional i no modifica mai l'accés ni la facturació del menjador." %}</p></div>
+  <a class="button secondary" href="{% url 'cafeteria:contacts_dashboard' %}">← {% translate "Contactes i AFA" %}</a>
+</section>
+<section class="toolbar card">
+  <form method="get" class="inline-form"><label>{% translate "Curs acadèmic" %}<select name="year" onchange="this.form.submit()">{% for item in years %}<option value="{{ item.id }}" {% if item == academic_year %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></label><label>{% translate "Estat" %}<select name="status" onchange="this.form.submit()"><option value="">{% translate "Tots" %}</option><option value="pending" {% if selected_status == "pending" %}selected{% endif %}>{% translate "Pendents" %}</option><option value="paid" {% if selected_status == "paid" %}selected{% endif %}>{% translate "Pagades" %}</option><option value="exempt" {% if selected_status == "exempt" %}selected{% endif %}>{% translate "Exemptes" %}</option></select></label></form>
+  <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="intent" value="fee"><label>{{ fee_form.amount.label }}{{ fee_form.amount }}</label><button class="button primary">{% translate "Desa la quota de referència" %}</button></form>
+</section>
+<section class="data-section">
+  <div class="section-title"><h2>{% translate "Famílies sòcies" %}</h2><span>{{ memberships|length }}</span></div>
+  <div class="table-card"><table><thead><tr><th>{% translate "Família" %}</th><th>{% translate "Estat" %}</th><th>{% translate "Import" %}</th><th>{% translate "Cobrament" %}</th><th></th></tr></thead><tbody>{% for membership in memberships %}<tr><td><strong>{{ membership.family.name }}</strong><br><small>{{ membership.family.billing_email|default:"—" }}</small></td><td><span class="status {{ membership.status }}">{{ membership.get_status_display }}</span></td><td>{{ membership.amount }} €</td><td>{% if membership.paid_on %}{{ membership.paid_on|date:"d/m/Y" }}{% if membership.payment_method %}<br><small>{{ membership.get_payment_method_display }}</small>{% endif %}{% else %}—{% endif %}</td><td class="table-actions"><a href="{% url 'cafeteria:afa_membership_edit' membership.family_id %}?year={{ academic_year.id }}">{% translate "Edita" %}</a><form method="post" action="{% url 'cafeteria:afa_membership_delete' membership.id %}">{% csrf_token %}<button class="link-button danger-link">{% translate "No és sòcia" %}</button></form></td></tr>{% empty %}<tr><td colspan="5" class="empty-cell">{% translate "Encara no hi ha cap quota registrada per a aquest curs." %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="data-section">
+  <div class="section-title"><h2>{% translate "Famílies no sòcies" %}</h2><span>{{ non_member_families|length }}</span></div>
+  <div class="table-card"><table><thead><tr><th>{% translate "Família" %}</th><th>{% translate "Contacte de facturació" %}</th><th></th></tr></thead><tbody>{% for family in non_member_families %}<tr><td><strong>{{ family.name }}</strong></td><td>{{ family.billing_email|default:"—" }}</td><td><a class="button secondary" href="{% url 'cafeteria:afa_membership_edit' family.id %}?year={{ academic_year.id }}">+ {% translate "Registra la quota" %}</a></td></tr>{% empty %}<tr><td colspan="3" class="empty-cell">{% translate "Totes les famílies actives tenen una quota registrada." %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

@@ -155,6 +155,64 @@ class FamilyMembership(models.Model):
         return f"{self.user.email} · {self.family.name}"
 
 
+class AfaMembershipStatus(models.TextChoices):
+    PENDING = "pending", "Pendent de cobrament"
+    PAID = "paid", "Pagada"
+    EXEMPT = "exempt", "Exempta"
+
+
+class AfaPaymentMethod(models.TextChoices):
+    TRANSFER = "transfer", "Transferència"
+    CASH = "cash", "Efectiu"
+    CARD = "card", "Targeta"
+    OTHER = "other", "Altres"
+
+
+class AfaFeeSettings(models.Model):
+    """The single annual AFA fee; dining prices stay entirely separate."""
+
+    academic_year = models.OneToOneField(AcademicYear, on_delete=models.CASCADE, related_name="afa_fee_settings")
+    amount = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"))
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="updated_afa_fee_settings",
+    )
+
+    def __str__(self):
+        return f"Quota AFA {self.academic_year} · {self.amount} €"
+
+
+class AfaMembership(models.Model):
+    """An optional family membership for one academic year."""
+
+    family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="afa_memberships")
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name="afa_memberships")
+    status = models.CharField(max_length=12, choices=AfaMembershipStatus.choices, default=AfaMembershipStatus.PENDING)
+    amount = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"))
+    paid_on = models.DateField(null=True, blank=True)
+    payment_method = models.CharField(max_length=16, choices=AfaPaymentMethod.choices, blank=True)
+    payment_reference = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="updated_afa_memberships",
+    )
+
+    class Meta:
+        ordering = ["-academic_year__starts_on", "family__name"]
+        constraints = [models.UniqueConstraint(fields=["family", "academic_year"], name="unique_afa_membership_per_year")]
+
+    def clean(self):
+        if self.status == AfaMembershipStatus.PAID and not self.paid_on:
+            raise ValidationError("Cal indicar la data de cobrament d'una quota pagada.")
+
+    def __str__(self):
+        return f"{self.family} · quota AFA {self.academic_year}"
+
+
 class MealPlan(models.TextChoices):
     FIXED = "fixed", "Fix"
     SPORADIC = "sporadic", "Esporàdic"
@@ -253,6 +311,36 @@ class CourseClosure(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title} · {self.course_group.name} · {self.date:%d/%m/%Y}"
+
+
+class AcademicHolidayType(models.TextChoices):
+    GENERAL = "general", "Festiu general"
+    LOCAL = "local", "Festiu local"
+    SCHOOL = "school", "Festiu de centre"
+
+
+class AcademicHoliday(models.Model):
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name="holidays")
+    title = models.CharField(max_length=160)
+    holiday_type = models.CharField(max_length=12, choices=AcademicHolidayType.choices, default=AcademicHolidayType.GENERAL)
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["starts_on", "ends_on", "title"]
+
+    def clean(self):
+        if self.ends_on < self.starts_on:
+            raise ValidationError("La data final no pot ser anterior a la inicial.")
+        if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
+            raise ValidationError("L'inici del festiu ha de ser dins del curs acadèmic.")
+        if not self.academic_year.starts_on <= self.ends_on <= self.academic_year.ends_on:
+            raise ValidationError("El final del festiu ha de ser dins del curs acadèmic.")
+
+    def __str__(self):
+        return f"{self.get_holiday_type_display()} · {self.title} · {self.starts_on:%d/%m/%Y}"
 
 
 class MealSettings(models.Model):

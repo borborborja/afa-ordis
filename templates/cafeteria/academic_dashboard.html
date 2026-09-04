@@ -1,0 +1,19 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Gestió acadèmica" %}{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">{% translate "Curs escolar" %}</p><h1>{% translate "Gestió acadèmica" %}</h1><p>{% if active_year %}{{ active_year.name }} · {% endif %}{% translate "Defineix quan hi ha servei de menjador i en quins grups s'aplica." %}</p></div>
+  <a class="button primary" href="{% url 'cafeteria:school_calendar' %}">▣ {% translate "Obre el calendari" %}</a>
+</section>
+<section class="stat-grid">
+  <article class="stat-card highlight"><span>▣</span><strong>{{ service_day_count }}</strong><p>{% translate "dies lectius amb servei" %}</p></article>
+  <article class="stat-card"><span>♧</span><strong>{{ course_group_count }}</strong><p>{% translate "grups o cursos" %}</p></article>
+  <article class="stat-card"><span>●</span><strong>{{ holiday_count }}</strong><p>{% translate "períodes festius" %}</p></article>
+  <article class="stat-card"><span>↗</span><strong>{{ excursion_count }}</strong><p>{% translate "excursions de grup" %}</p></article>
+</section>
+<section class="action-grid">
+  <a class="action-card" href="{% url 'cafeteria:school_calendar' %}"><span>▣</span><div><h2>{% translate "Calendari del curs" %}</h2><p>{% translate "Crea cursos, genera dies lectius i modifica el calendari." %}</p></div><b>→</b></a>
+  <a class="action-card" href="{% url 'cafeteria:academic_holiday_create' %}"><span>●</span><div><h2>{% translate "Afegeix un festiu" %}</h2><p>{% translate "General, local o de centre: les reserves queden cancel·lades." %}</p></div><b>→</b></a>
+</section>
+{% endblock %}

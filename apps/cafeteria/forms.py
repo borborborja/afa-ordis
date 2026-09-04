@@ -4,7 +4,10 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
+    AcademicHoliday,
     AcademicYear,
+    AfaFeeSettings,
+    AfaMembership,
     CourseClosure,
     CourseGroup,
     DailyReportRecipient,
@@ -106,6 +109,48 @@ class AcademicYearForm(forms.ModelForm):
         widgets = {
             "starts_on": forms.DateInput(attrs={"type": "date"}),
             "ends_on": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class AcademicHolidayForm(forms.ModelForm):
+    class Meta:
+        model = AcademicHoliday
+        fields = ("academic_year", "title", "holiday_type", "starts_on", "ends_on")
+        widgets = {
+            "starts_on": forms.DateInput(attrs={"type": "date"}),
+            "ends_on": forms.DateInput(attrs={"type": "date"}),
+        }
+        labels = {
+            "academic_year": _("Curs acadèmic"),
+            "title": _("Nom del festiu"),
+            "holiday_type": _("Tipus de festiu"),
+            "starts_on": _("Data inicial"),
+            "ends_on": _("Data final"),
+        }
+
+
+class AfaFeeSettingsForm(forms.ModelForm):
+    class Meta:
+        model = AfaFeeSettings
+        fields = ("amount",)
+        labels = {"amount": _("Quota anual AFA (€)")}
+
+
+class AfaMembershipForm(forms.ModelForm):
+    class Meta:
+        model = AfaMembership
+        fields = ("status", "amount", "paid_on", "payment_method", "payment_reference", "notes")
+        widgets = {
+            "paid_on": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {
+            "status": _("Estat de la quota"),
+            "amount": _("Import de la quota (€)"),
+            "paid_on": _("Data de cobrament"),
+            "payment_method": _("Mètode de cobrament"),
+            "payment_reference": _("Referència"),
+            "notes": _("Observacions"),
         }
 
 

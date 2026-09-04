@@ -25,10 +25,16 @@ from .models import (
 
 
 def is_service_day(service_date: date, student=None) -> bool:
-    from .models import ServiceDay
+    from .models import AcademicHoliday, ServiceDay
 
     day = ServiceDay.objects.filter(date=service_date, is_service_day=True).first()
     if not day:
+        return False
+    if AcademicHoliday.objects.filter(
+        academic_year=day.academic_year,
+        starts_on__lte=service_date,
+        ends_on__gte=service_date,
+    ).exists():
         return False
     return True
 

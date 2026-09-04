@@ -17,23 +17,16 @@
       <nav class="main-nav">
         <a href="{% url 'cafeteria:dashboard' %}"><span>⌂</span>{% translate "Inici" %}</a>
         <a href="{{ school_menu_url }}" target="_blank" rel="noopener"><span>▤</span>{% translate "Menú" %}</a>
-        {% if can_administer %}
-          <a href="{% url 'cafeteria:management_dashboard' %}"><span>▦</span>{% translate "Gestió" %}</a>
-          <a href="{% url 'cafeteria:people' %}"><span>♧</span>{% translate "Famílies i alumnes" %}</a>
-          <a href="{% url 'cafeteria:accounts' %}"><span>◉</span>{% translate "Comptes" %}</a>
-          <a href="{% url 'cafeteria:school_calendar' %}"><span>▣</span>{% translate "Calendari" %}</a>
-          <a href="{% url 'cafeteria:meal_configuration' %}"><span>◒</span>{% translate "Configuració" %}</a>
-          <a href="{% url 'cafeteria:family_import' %}"><span>⇧</span>{% translate "Importa CSV" %}</a>
-        {% endif %}
         {% if can_manage_meals %}
-          <a href="{% url 'cafeteria:daily_reports' %}"><span>☷</span>{% translate "Llistats diaris" %}</a>
-          <a href="{% url 'cafeteria:monthly_planning' %}"><span>▦</span>{% translate "Planificació mensual" %}</a>
-          <a href="{% url 'cafeteria:price_rules' %}"><span>€</span>{% translate "Tarifes" %}</a>
-          <a href="{% url 'cafeteria:menu_settings' %}"><span>↗</span>{% translate "Enllaç del menú" %}</a>
+          {% if can_administer %}<div class="nav-section"><p>{% translate "Administració" %}</p><a href="{% url 'cafeteria:management_dashboard' %}"><span>▦</span>{% translate "Visió general" %}</a></div>{% endif %}
+          <div class="nav-section"><p>{% translate "Gestió del menjador" %}</p><a href="{% url 'cafeteria:dining_dashboard' %}"><span>◒</span>{% translate "Panell de menjador" %}</a><a href="{% url 'cafeteria:daily_reports' %}"><span>☷</span>{% translate "Llistats diaris" %}</a><a href="{% url 'cafeteria:monthly_planning' %}"><span>▦</span>{% translate "Planificació mensual" %}</a><a href="{% url 'cafeteria:price_rules' %}"><span>€</span>{% translate "Tarifes" %}</a>{% if can_administer %}<a href="{% url 'cafeteria:meal_configuration' %}"><span>⚙</span>{% translate "Configuració del menjador" %}</a>{% endif %}<a href="{% url 'cafeteria:menu_settings' %}"><span>↗</span>{% translate "Enllaç del menú" %}</a></div>
         {% endif %}
-        {% if is_teacher_user and not can_manage_meals %}<a href="{% url 'cafeteria:teacher_calendar' %}"><span>▦</span>{% translate "Les meves reserves" %}</a>{% endif %}
+        {% if can_administer %}
+          <div class="nav-section"><p>{% translate "Contactes i AFA" %}</p><a href="{% url 'cafeteria:contacts_dashboard' %}"><span>♧</span>{% translate "Panell de contactes" %}</a><a href="{% url 'cafeteria:people' %}"><span>♧</span>{% translate "Famílies i alumnat" %}</a><a href="{% url 'cafeteria:afa_memberships' %}"><span>€</span>{% translate "Quotes AFA" %}</a><a href="{% url 'cafeteria:accounts' %}"><span>◉</span>{% translate "Comptes" %}</a><a href="{% url 'cafeteria:invitation_create' %}"><span>✉</span>{% translate "Invitacions" %}</a><a href="{% url 'cafeteria:family_import' %}"><span>⇧</span>{% translate "Importa CSV" %}</a></div>
+          <div class="nav-section"><p>{% translate "Gestió acadèmica" %}</p><a href="{% url 'cafeteria:academic_dashboard' %}"><span>▣</span>{% translate "Panell acadèmic" %}</a><a href="{% url 'cafeteria:school_calendar' %}"><span>▣</span>{% translate "Calendari, festius i grups" %}</a></div>
+        {% endif %}
+        {% if is_teacher_user and not can_manage_meals %}<div class="nav-section"><p>{% translate "El meu menjador" %}</p><a href="{% url 'cafeteria:teacher_calendar' %}"><span>▦</span>{% translate "Les meves reserves" %}</a></div>{% endif %}
         <a href="{% url 'cafeteria:monthly_statements' %}"><span>▤</span>{% translate "Resums" %}</a>
-        {% if can_administer %}<a href="{% url 'cafeteria:invitation_create' %}"><span>✉</span>{% translate "Invitacions" %}</a>{% endif %}
       </nav>
       <div class="sidebar-bottom"><p>{% translate "Portal de l'AFA d'Ordis" %}</p></div>
     </aside>
@@ -42,10 +35,9 @@
         <details class="mobile-menu">
           <summary aria-label="Obre el menú">☰ <span>{% translate "Menú" %}</span></summary>
           <nav>
-            <a href="{% url 'cafeteria:dashboard' %}">{% translate "Inici" %}</a>
-            <a href="{{ school_menu_url }}" target="_blank" rel="noopener">{% translate "Menú" %}</a>
-            {% if can_administer %}<a href="{% url 'cafeteria:management_dashboard' %}">{% translate "Gestió" %}</a><a href="{% url 'cafeteria:people' %}">{% translate "Famílies i alumnat" %}</a><a href="{% url 'cafeteria:accounts' %}">{% translate "Comptes" %}</a><a href="{% url 'cafeteria:school_calendar' %}">{% translate "Calendari" %}</a><a href="{% url 'cafeteria:meal_configuration' %}">{% translate "Configuració" %}</a>{% endif %}
-            {% if can_manage_meals %}<a href="{% url 'cafeteria:daily_reports' %}">{% translate "Llistats diaris" %}</a><a href="{% url 'cafeteria:monthly_planning' %}">{% translate "Planificació mensual" %}</a><a href="{% url 'cafeteria:price_rules' %}">{% translate "Tarifes" %}</a><a href="{% url 'cafeteria:menu_settings' %}">{% translate "Enllaç del menú" %}</a>{% endif %}
+            <a href="{% url 'cafeteria:dashboard' %}">{% translate "Inici" %}</a><a href="{{ school_menu_url }}" target="_blank" rel="noopener">{% translate "Menú" %}</a>
+            {% if can_manage_meals %}<span class="mobile-nav-heading">{% translate "Gestió del menjador" %}</span><a href="{% url 'cafeteria:dining_dashboard' %}">{% translate "Panell de menjador" %}</a><a href="{% url 'cafeteria:daily_reports' %}">{% translate "Llistats diaris" %}</a><a href="{% url 'cafeteria:monthly_planning' %}">{% translate "Planificació mensual" %}</a><a href="{% url 'cafeteria:price_rules' %}">{% translate "Tarifes" %}</a>{% if can_administer %}<a href="{% url 'cafeteria:meal_configuration' %}">{% translate "Configuració del menjador" %}</a>{% endif %}<a href="{% url 'cafeteria:menu_settings' %}">{% translate "Enllaç del menú" %}</a>{% endif %}
+            {% if can_administer %}<span class="mobile-nav-heading">{% translate "Contactes i AFA" %}</span><a href="{% url 'cafeteria:contacts_dashboard' %}">{% translate "Panell de contactes" %}</a><a href="{% url 'cafeteria:people' %}">{% translate "Famílies i alumnat" %}</a><a href="{% url 'cafeteria:afa_memberships' %}">{% translate "Quotes AFA" %}</a><a href="{% url 'cafeteria:accounts' %}">{% translate "Comptes" %}</a><a href="{% url 'cafeteria:invitation_create' %}">{% translate "Invitacions" %}</a><a href="{% url 'cafeteria:family_import' %}">{% translate "Importa CSV" %}</a><span class="mobile-nav-heading">{% translate "Gestió acadèmica" %}</span><a href="{% url 'cafeteria:academic_dashboard' %}">{% translate "Panell acadèmic" %}</a><a href="{% url 'cafeteria:school_calendar' %}">{% translate "Calendari, festius i grups" %}</a>{% endif %}
             {% if is_teacher_user and not can_manage_meals %}<a href="{% url 'cafeteria:teacher_calendar' %}">{% translate "Les meves reserves" %}</a>{% endif %}
             <a href="{% url 'cafeteria:monthly_statements' %}">{% translate "Resums" %}</a>
           </nav>
@@ -59,18 +51,10 @@
   {% else %}
   <div class="auth-shell"><a class="brand auth-brand" href="{% url 'cafeteria:dashboard' %}"><img class="school-logo" src="{% static 'cafeteria/images/logo-escola-maria-pages-ordis.png' %}" alt="Escola Maria Pagès i Texer, Ordis"><span>AFA Ordis<small>Menjador</small></span></a>
   {% endif %}
-
   <main class="{% if user.is_authenticated %}page-shell{% endif %}">
     {% if messages %}<section class="messages" aria-live="polite">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</section>{% endif %}
     {% block content %}{% endblock %}
   </main>
-
-  {% if user.is_authenticated %}
-      <footer class="site-footer">AFA Ordis · {% translate "Portal autogestionat" %}</footer>
-    </div>
-  </div>
-  {% else %}
-  </div>
-  {% endif %}
+  {% if user.is_authenticated %}<footer class="site-footer">AFA Ordis · {% translate "Portal autogestionat" %}</footer></div></div>{% else %}</div>{% endif %}
 </body>
 </html>

@@ -12,7 +12,11 @@ from django.utils import timezone
 from django.utils import translation
 
 from .models import (
+    AcademicHoliday,
     AcademicYear,
+    AfaFeeSettings,
+    AfaMembership,
+    AfaMembershipStatus,
     BookingStatus,
     CourseClosure,
     CourseGroup,
@@ -33,7 +37,7 @@ from .models import (
     TeacherMealBooking,
     TeacherMealProfile,
 )
-from .services import expected_report_is_due, prepare_monthly_statement, prepare_teacher_monthly_statement
+from .services import expected_report_is_due, is_service_day, prepare_monthly_statement, prepare_teacher_monthly_statement
 from .tasks import send_daily_report
 
 
@@ -114,6 +118,60 @@ class CafeteriaFlowTests(TestCase):
         booking.refresh_from_db()
         self.assertEqual(booking.status, BookingStatus.ACTIVE)
         self.assertEqual(booking.meal_type, MealType.PACKED_LUNCH)
+
+    def test_academic_holiday_cancels_bookings_and_closes_service(self):
+        student_booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        teacher_user = User.objects.create_user("teacher-holiday@example.com", "teacher-holiday@example.com", "correct-horse-battery-staple")
+        teacher = TeacherMealProfile.objects.create(user=teacher_user, default_diet=self.diet)
+        teacher_booking = TeacherMealBooking.objects.create(teacher=teacher, date=self.today, diet=self.diet)
+
+        holiday = AcademicHoliday.objects.create(
+            academic_year=self.year,
+            title="Festiu local",
+            holiday_type="local",
+            starts_on=self.today,
+            ends_on=self.today,
+        )
+
+        student_booking.refresh_from_db()
+        teacher_booking.refresh_from_db()
+        self.assertEqual(student_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(teacher_booking.status, BookingStatus.CANCELLED)
+        self.assertFalse(is_service_day(self.today, self.student))
+        admin = User.objects.create_superuser("calendar@example.com", "calendar@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.get(f"{reverse('cafeteria:school_calendar')}?year={self.year.id}&month={self.today:%Y-%m}")
+        self.assertContains(response, holiday.title)
+
+    def test_afa_membership_is_optional_and_manually_recorded(self):
+        admin = User.objects.create_superuser("afa@example.com", "afa@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.post(
+            f"{reverse('cafeteria:afa_membership_edit', args=[self.family.id])}?year={self.year.id}",
+            {
+                "status": AfaMembershipStatus.PAID,
+                "amount": "25.00",
+                "paid_on": self.today.isoformat(),
+                "payment_method": "transfer",
+                "payment_reference": "TRX-2026",
+                "notes": "Quota rebuda",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        membership = AfaMembership.objects.get(family=self.family, academic_year=self.year)
+        self.assertEqual(membership.amount, Decimal("25.00"))
+        self.assertEqual(membership.status, AfaMembershipStatus.PAID)
+        self.assertTrue(AfaFeeSettings.objects.filter(academic_year=self.year).exists())
+
+        membership.delete()
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:bulk_booking", args=[self.family.id]), {
+            "student_id": self.student.id,
+            "dates": [self.today.isoformat()],
+            "action": "add",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(MealBooking.objects.filter(student=self.student, date=self.today, status=BookingStatus.ACTIVE).exists())
 
     def test_monthly_statement_uses_booked_price(self):
         MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
@@ -219,13 +277,25 @@ class CafeteriaFlowTests(TestCase):
         self.client.force_login(admin)
         for route in (
             "cafeteria:management_dashboard",
+            "cafeteria:dining_dashboard",
+            "cafeteria:contacts_dashboard",
+            "cafeteria:academic_dashboard",
             "cafeteria:people",
+            "cafeteria:afa_memberships",
             "cafeteria:school_calendar",
             "cafeteria:meal_configuration",
             "cafeteria:family_import",
         ):
             with self.subTest(route=route):
                 self.assertEqual(self.client.get(reverse(route)).status_code, 200)
+
+    def test_manager_can_use_dining_area_but_not_contacts_or_academic_area(self):
+        manager = User.objects.create_user("manager@example.com", "manager@example.com", "correct-horse-battery-staple")
+        manager.groups.create(name="manager")
+        self.client.force_login(manager)
+        self.assertEqual(self.client.get(reverse("cafeteria:dining_dashboard")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("cafeteria:contacts_dashboard")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("cafeteria:academic_dashboard")).status_code, 403)
 
     def test_first_academic_year_can_be_created_from_the_calendar(self):
         AcademicYear.objects.all().delete()
