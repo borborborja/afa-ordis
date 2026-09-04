@@ -13,6 +13,34 @@
   --radius: 18px;
 }
 
+.icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex: 0 0 auto;
+  vertical-align: -0.16em;
+}
+
+.button .icon,
+.link-button .icon {
+  margin-right: 7px;
+}
+
+.icon-button {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--forest);
+  background: var(--paper);
+}
+
+.icon-button .icon {
+  width: 20px;
+  height: 20px;
+}
+
 .joint-booking-grid {
   display: grid;
   gap: 16px;
@@ -55,6 +83,10 @@
   display: block;
   color: var(--forest);
   font-weight: 800;
+}
+.calendar-grid .calendar-symbol .icon {
+  width: 12px;
+  height: 12px;
 }
 
 .planning-list,
@@ -494,6 +526,36 @@ small {
   place-items: center;
   font-size: 1.05rem;
 }
+.main-nav a .nav-icon {
+  display: inline-grid;
+  width: 19px;
+  place-items: center;
+}
+.main-nav a .nav-icon .icon {
+  width: 19px;
+  height: 19px;
+}
+.family-switcher {
+  display: grid;
+  gap: 6px;
+  margin-top: 26px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .09);
+}
+.family-switcher label {
+  color: rgba(255, 255, 255, .75);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.family-switcher select {
+  padding: 8px;
+  border-color: rgba(255, 255, 255, .25);
+  background: rgba(255, 255, 255, .96);
+}
 .sidebar-bottom {
   margin-top: auto;
   padding: 12px;
@@ -537,6 +599,11 @@ small {
 .mobile-menu summary {
   cursor: pointer;
   list-style: none;
+}
+.mobile-menu summary .icon {
+  width: 19px;
+  height: 19px;
+  margin-right: 4px;
 }
 .account-details summary::-webkit-details-marker,
 .mobile-menu summary::-webkit-details-marker {
@@ -822,6 +889,14 @@ small {
   border-radius: 13px;
   background: var(--mint);
   font-size: 1.2rem;
+}
+.action-card > span .icon {
+  width: 23px;
+  height: 23px;
+}
+.action-card b .icon {
+  width: 20px;
+  height: 20px;
 }
 .action-card h2,
 .action-card p {
@@ -1147,6 +1222,24 @@ textarea {
   font-weight: 750;
   line-height: 1.15;
 }
+.holiday .icon,
+.intensive-label .icon,
+.closure .icon {
+  width: .88em;
+  height: .88em;
+  margin-right: 2px;
+}
+.intensive-day {
+  background: #f2eefe;
+}
+.intensive-label {
+  display: block;
+  margin-top: 5px;
+  color: #694da1;
+  font-size: .64rem;
+  font-weight: 750;
+  line-height: 1.15;
+}
 .data-section {
   margin-top: 30px;
 }
@@ -1235,6 +1328,250 @@ td small {
 }
 .danger-link {
   color: #a83e2e;
+}
+.family-context-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
+  gap: 16px;
+}
+.family-context-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.family-context-card.active {
+  border-color: #90c8b7;
+  background: #f1faf6;
+}
+.family-context-card h2,
+.family-context-card p {
+  margin: 0;
+}
+.family-context-card p {
+  color: var(--muted);
+}
+.family-context-card form {
+  grid-column: 1 / -1;
+}
+.family-context-card .button {
+  width: 100%;
+}
+.family-context-icon,
+.family-contact-help > span,
+.event-list-icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--mint);
+  color: var(--forest);
+}
+.family-context-icon .icon,
+.family-contact-help > span .icon,
+.event-list-icon .icon {
+  width: 22px;
+  height: 22px;
+}
+.family-quick-actions {
+  margin-top: 28px;
+}
+.family-contact-help {
+  align-self: start;
+  background: #fff9ea;
+}
+.family-contact-help h2 {
+  margin-top: 17px;
+}
+.student-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 14px;
+}
+.student-profile-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 13px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.student-profile-card h2,
+.student-profile-card p,
+.student-profile-card small {
+  margin: 0;
+}
+.student-profile-card p,
+.student-profile-card small {
+  color: var(--muted);
+}
+.student-profile-card .button {
+  grid-column: 1 / -1;
+}
+.student-profile-icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f9e6aa;
+  color: var(--forest-dark);
+  font-weight: 850;
+}
+.calendar-filter {
+  margin-bottom: 18px;
+}
+.group-filter {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.group-filter legend {
+  margin-bottom: 8px;
+  font-size: .91rem;
+  font-weight: 750;
+}
+.filter-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter-chip {
+  position: relative;
+  cursor: pointer;
+}
+.filter-chip input {
+  position: absolute;
+  opacity: 0;
+}
+.filter-chip span {
+  display: inline-flex;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 750;
+}
+.filter-chip input:checked + span {
+  border-color: var(--forest);
+  background: var(--mint);
+  color: var(--forest-dark);
+}
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin: 16px 0 22px;
+  color: var(--muted);
+  font-size: .84rem;
+}
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.calendar-legend .icon {
+  width: 17px;
+  height: 17px;
+  color: #9b5d00;
+}
+.legend-swatch {
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+.legend-swatch.service { background: #e7f6ef; border-color: #a5d7c6; }
+.legend-swatch.no-service { background: #ecefec; }
+.legend-swatch.holiday { background: #fff0e9; border-color: #f0b49e; }
+.legend-swatch.intensive { background: #f2eefe; border-color: #c9b9f2; }
+.annual-calendar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+}
+.admin-annual-calendar {
+  margin: 26px 0;
+}
+.annual-month {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--paper);
+}
+.annual-month h2 {
+  margin: 0 0 9px;
+  color: var(--forest-dark);
+  font-size: .91rem;
+  text-align: center;
+  text-transform: capitalize;
+}
+.annual-weekdays,
+.annual-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.annual-weekdays span {
+  padding-bottom: 4px;
+  color: var(--muted);
+  font-size: .59rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+.annual-day {
+  position: relative;
+  display: grid;
+  min-height: 31px;
+  place-items: center;
+  border: 1px solid #edf0ed;
+  background: #fff;
+  color: var(--ink);
+  font-size: .71rem;
+}
+.annual-day.outside {
+  border-color: transparent;
+  background: transparent;
+  color: transparent;
+}
+.annual-day.service { background: #e7f6ef; }
+.annual-day.no-service { background: #ecefec; color: #7d8882; }
+.annual-day.holiday { background: #fff0e9; color: #9d4032; }
+.annual-day.intensive { background: #f2eefe; color: #694da1; }
+.event-icon {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: grid;
+  color: #9b5d00;
+}
+.event-icon .icon {
+  width: 10px;
+  height: 10px;
+}
+.planning-list .event-list-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.planning-list article > div {
+  display: grid;
+  gap: 2px;
+}
+.planning-list article > div small {
+  color: var(--muted);
 }
 .tag-list {
   display: flex;
@@ -1445,6 +1782,9 @@ td small {
   .area-grid {
     grid-template-columns: 1fr;
   }
+  .annual-calendar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .school-day {
     min-height: 80px;
   }
@@ -1503,6 +1843,20 @@ td small {
   .area-grid {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+  .annual-calendar {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .annual-month {
+    padding: 10px;
+  }
+  .annual-day {
+    min-height: 29px;
+  }
+  .family-context-card,
+  .student-profile-card {
+    padding: 16px;
   }
   .stat-grid {
     gap: 10px;

@@ -4,12 +4,12 @@
 {% block content %}
 <section class="page-heading compact">
   <div><p class="eyebrow">{{ family.name }}</p><h1>{% translate "Reserva de menjador" %}</h1><p>{% translate "Tria els dies que vols modificar. Veuràs l'estat de cada reserva abans de confirmar cap canvi." %}</p></div>
-  <a class="button secondary" href="{% url 'cafeteria:dashboard' %}">← {% translate "Torna" %}</a>
+  <a class="button secondary" href="{% url 'cafeteria:family_home' %}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Torna" %}</a>
 </section>
 {% if today_change_notice %}<section class="deadline-notice {% if not today_change_notice.open %}closed{% endif %}" role="status">{% if today_change_notice.open %}<strong>{% translate "Canvis d'avui" %}</strong><span>{% translate "Encara pots modificar la reserva d'avui:" %} {{ today_change_notice.hours }} {% translate "hores" %} {% translate "i" %} {{ today_change_notice.minutes }} {% translate "minuts" %}.</span>{% else %}<strong>{% translate "Canvis d'avui tancats" %}</strong><span>{% translate "El termini de canvis d'avui ha acabat a les" %} {{ today_change_notice.cutoff|time:"H:i" }}.</span>{% endif %}</section>{% endif %}
 
 <section class="card booking-workspace">
-  <nav class="month-nav"><a href="?week={{ previous_week|date:'Y-m-d' }}">←</a><h2>{% translate "Setmana del" %} {{ week_start|date:"d/m" }}</h2><a href="?week={{ next_week|date:'Y-m-d' }}">→</a></nav>
+  <nav class="month-nav"><a class="icon-button" href="?week={{ previous_week|date:'Y-m-d' }}" aria-label="{% translate 'Setmana anterior' %}">{% include 'cafeteria/components/icon.html' with name='chevron-left' %}</a><h2>{% translate "Setmana del" %} {{ week_start|date:"d/m" }}</h2><a class="icon-button" href="?week={{ next_week|date:'Y-m-d' }}" aria-label="{% translate 'Setmana següent' %}">{% include 'cafeteria/components/icon.html' with name='chevron-right' %}</a></nav>
   <div class="booking-guide"><span class="booking-guide-dot reserved"></span><span>{% translate "Reserva existent" %}</span><span class="booking-guide-dot empty"></span><span>{% translate "Sense reserva" %}</span><span>{% translate "Toca només els dies que vols modificar; apareixeran marcats en blau." %}</span></div>
   <form method="post" action="{% url 'cafeteria:family_bulk_booking' family.id %}" class="joint-booking-form">{% csrf_token %}<input type="hidden" name="return_week" value="{{ week_start|date:'Y-m-d' }}">
     <div class="joint-booking-grid">
@@ -35,10 +35,10 @@
 </section>
 
 <section class="card calendar-overview">
-  <nav class="month-nav"><a href="?month={{ previous_month|date:'Y-m' }}">← {{ previous_month|date:"F" }}</a><h2>{{ month_start|date:"F Y" }}</h2><a href="?month={{ next_month|date:'Y-m' }}">{{ next_month|date:"F" }} →</a></nav>
+  <nav class="month-nav"><a href="?month={{ previous_month|date:'Y-m' }}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{{ previous_month|date:"F" }}</a><h2>{{ month_start|date:"F Y" }}</h2><a href="?month={{ next_month|date:'Y-m' }}">{{ next_month|date:"F" }}{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</a></nav>
   <p class="hint">{% translate "Vista mensual de consulta. Les reserves amb excursió apareixen com a carmanyola." %}</p>
   <div class="calendar-scroll"><table class="calendar-grid"><thead><tr><th>{% translate "Infant" %}</th><th>Dl</th><th>Dt</th><th>Dc</th><th>Dj</th><th>Dv</th><th>Ds</th><th>Dg</th></tr></thead><tbody>
-  {% for calendar in student_calendars %}{% for week in calendar.weeks %}<tr>{% if forloop.first %}<th rowspan="{{ calendar.weeks|length }}">{{ calendar.student.first_name }}</th>{% endif %}{% for cell in week %}<td class="{% if not cell.current_month %}outside{% elif not cell.available %}unavailable{% elif cell.booking and cell.booking.status == 'active' %}booked{% endif %}"><span>{{ cell.date.day }}</span>{% if cell.excursion %}<small title="{{ cell.excursion.title }}">E</small>{% endif %}{% if cell.booking and cell.booking.status == 'active' %}<small>{% if cell.booking.meal_type == 'packed_lunch' %}C{% else %}✓{% endif %}</small>{% endif %}</td>{% endfor %}</tr>{% endfor %}{% endfor %}
+  {% for calendar in student_calendars %}{% for week in calendar.weeks %}<tr>{% if forloop.first %}<th rowspan="{{ calendar.weeks|length }}">{{ calendar.student.first_name }}</th>{% endif %}{% for cell in week %}<td class="{% if not cell.current_month %}outside{% elif not cell.available %}unavailable{% elif cell.booking and cell.booking.status == 'active' %}booked{% endif %}"><span>{{ cell.date.day }}</span>{% if cell.excursion %}<small class="calendar-symbol" title="{{ cell.excursion.title }}">{% include 'cafeteria/components/icon.html' with name='excursion' %}<span class="sr-only">{% translate "Excursió" %}</span></small>{% endif %}{% if cell.booking and cell.booking.status == 'active' %}<small class="calendar-symbol">{% if cell.booking.meal_type == 'packed_lunch' %}{% include 'cafeteria/components/icon.html' with name='meal' %}<span class="sr-only">{% translate "Carmanyola" %}</span>{% else %}{% include 'cafeteria/components/icon.html' with name='check' %}<span class="sr-only">{% translate "Reservat" %}</span>{% endif %}</small>{% endif %}</td>{% endfor %}</tr>{% endfor %}{% endfor %}
   </tbody></table></div>
   <p class="hint">E = {% translate "excursió" %} · C = {% translate "carmanyola" %}</p>
 </section>

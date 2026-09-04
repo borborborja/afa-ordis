@@ -28,6 +28,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .forms import (
     AcademicHolidayForm,
+    AcademicIntensivePeriodForm,
     AcademicYearForm,
     AfaFeeSettingsForm,
     AfaMembershipForm,
@@ -36,6 +37,7 @@ from .forms import (
     CSVImportForm,
     DailyReportRecipientForm,
     DietForm,
+    FamilyContactForm,
     FamilyForm,
     InvitationAcceptanceForm,
     InvitationForm,
@@ -48,6 +50,7 @@ from .forms import (
 )
 from .models import (
     AcademicHoliday,
+    AcademicIntensivePeriod,
     AcademicYear,
     AfaFeeSettings,
     AfaMembership,
@@ -232,6 +235,136 @@ def dashboard(request):
         status=BookingStatus.ACTIVE,
     ).select_related("student", "diet").order_by("date")[:8]
     return render(request, "cafeteria/dashboard_tutor.html", {"families": families, "upcoming": upcoming, "today": today})
+
+
+def _month_starts_for_academic_year(academic_year):
+    current = academic_year.starts_on.replace(day=1)
+    final_month = academic_year.ends_on.replace(day=1)
+    months = []
+    while current <= final_month:
+        months.append(current)
+        current = (current.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return months
+
+
+def _dates_for_periods(periods, academic_year):
+    date_map = {}
+    for period in periods:
+        current_day = max(period.starts_on, academic_year.starts_on)
+        final_day = min(period.ends_on, academic_year.ends_on)
+        while current_day <= final_day:
+            date_map.setdefault(current_day, []).append(period)
+            current_day += timedelta(days=1)
+    return date_map
+
+
+def _build_year_calendar(academic_year, course_group_ids=None):
+    """Build a compact, read-only calendar that can be shared by staff and families."""
+    if not academic_year:
+        return []
+    service_dates = set(
+        ServiceDay.objects.filter(academic_year=academic_year, is_service_day=True).values_list("date", flat=True)
+    )
+    holidays = list(AcademicHoliday.objects.filter(academic_year=academic_year))
+    intensive_periods = list(AcademicIntensivePeriod.objects.filter(academic_year=academic_year))
+    closures = CourseClosure.objects.filter(course_group__academic_year=academic_year).select_related("course_group")
+    if course_group_ids is not None:
+        closures = closures.filter(course_group_id__in=course_group_ids)
+    holiday_dates = _dates_for_periods(holidays, academic_year)
+    intensive_dates = _dates_for_periods(intensive_periods, academic_year)
+    closure_dates = {}
+    for closure in closures:
+        closure_dates.setdefault(closure.date, []).append(closure)
+
+    months = []
+    for month_start in _month_starts_for_academic_year(academic_year):
+        weeks = []
+        for week in calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month):
+            cells = []
+            for current_day in week:
+                in_academic_year = academic_year.starts_on <= current_day <= academic_year.ends_on
+                cells.append({
+                    "date": current_day,
+                    "in_month": current_day.month == month_start.month,
+                    "in_academic_year": in_academic_year,
+                    "is_service_day": current_day in service_dates and current_day not in holiday_dates,
+                    "is_weekend": current_day.weekday() >= 5,
+                    "holidays": holiday_dates.get(current_day, []),
+                    "intensive_periods": intensive_dates.get(current_day, []),
+                    "closures": closure_dates.get(current_day, []),
+                })
+            weeks.append(cells)
+        months.append({"start": month_start, "weeks": weeks})
+    return months
+
+
+@login_required
+def family_home(request):
+    families = Family.objects.filter(memberships__user=request.user, active=True).prefetch_related("students")
+    if not families.exists():
+        messages.info(request, _("No tens cap família activa vinculada al teu compte."))
+        return redirect("cafeteria:dashboard")
+    return render(request, "cafeteria/family_home.html", {"families": families})
+
+
+@login_required
+@require_POST
+def family_context_select(request):
+    family = get_object_or_404(
+        Family, pk=request.POST.get("family_id"), active=True, memberships__user=request.user
+    )
+    request.session["cafeteria_active_family_id"] = family.id
+    return redirect("cafeteria:family_home")
+
+
+@login_required
+def family_profile(request, family_id):
+    family = _family_for_user_or_404(request.user, family_id)
+    form = FamilyContactForm(request.POST or None, instance=family)
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        log_event(request.user, "family.contact_updated_by_tutor", saved)
+        messages.success(request, _("S'han actualitzat les dades de contacte de la família."))
+        return redirect("cafeteria:family_profile", family_id=saved.id)
+    return render(request, "cafeteria/family_profile.html", {
+        "family": family,
+        "form": form,
+        "students": family.students.filter(active=True).select_related("course_group", "default_diet"),
+    })
+
+
+@login_required
+def family_school_calendar(request, family_id):
+    family = _family_for_user_or_404(request.user, family_id)
+    family_years = AcademicYear.objects.filter(
+        Q(is_active=True) | Q(course_groups__students__family=family)
+    ).distinct()
+    selected_id = request.GET.get("year")
+    academic_year = family_years.filter(pk=selected_id).first() if selected_id else None
+    if academic_year is None:
+        academic_year = family_years.filter(is_active=True).first() or family_years.first()
+    course_groups = CourseGroup.objects.filter(
+        academic_year=academic_year, students__family=family, students__active=True
+    ).distinct() if academic_year else CourseGroup.objects.none()
+    allowed_group_ids = set(course_groups.values_list("id", flat=True))
+    requested_group_ids = {
+        int(value) for value in request.GET.getlist("group") if value.isdigit() and int(value) in allowed_group_ids
+    }
+    selected_group_ids = requested_group_ids or allowed_group_ids
+    excursions = CourseClosure.objects.filter(
+        course_group__academic_year=academic_year,
+        course_group_id__in=selected_group_ids,
+    ).select_related("course_group").order_by("date", "course_group__sort_order", "course_group__name") if academic_year else CourseClosure.objects.none()
+    return render(request, "cafeteria/family_school_calendar.html", {
+        "family": family,
+        "academic_year": academic_year,
+        "years": family_years,
+        "course_groups": course_groups,
+        "selected_group_ids": selected_group_ids,
+        "year_calendar": _build_year_calendar(academic_year, selected_group_ids),
+        "excursions": excursions,
+        "intensive_periods": AcademicIntensivePeriod.objects.filter(academic_year=academic_year) if academic_year else [],
+    })
 
 
 @login_required
@@ -514,7 +647,7 @@ def student_edit(request, student_id):
         reprice_open_bookings(student=updated)
         log_event(request.user, "student.updated_by_tutor", updated)
         messages.success(request, _("S'ha actualitzat la fitxa de %(name)s.") % {"name": updated.full_name})
-        return redirect("cafeteria:family_calendar", family_id=updated.family_id)
+        return redirect("cafeteria:family_profile", family_id=updated.family_id)
     return render(request, "cafeteria/student_form.html", {"form": form, "student": student})
 
 
@@ -1165,6 +1298,16 @@ def school_calendar(request):
         while current_day <= final_day:
             holiday_dates.add(current_day)
             current_day += timedelta(days=1)
+    intensive_dates = set()
+    month_intensive_periods = AcademicIntensivePeriod.objects.filter(
+        academic_year=year, starts_on__lte=month_end, ends_on__gte=month_start,
+    )
+    for period in month_intensive_periods:
+        current_day = max(period.starts_on, month_start)
+        final_day = min(period.ends_on, month_end)
+        while current_day <= final_day:
+            intensive_dates.add(current_day)
+            current_day += timedelta(days=1)
     previous_month = (month_start - timedelta(days=1)).replace(day=1)
     next_month = (month_end + timedelta(days=1)).replace(day=1)
     return render(request, "cafeteria/school_calendar.html", {
@@ -1173,6 +1316,9 @@ def school_calendar(request):
         "service_days": service_days, "closures": closures, "holidays": holidays,
         "holiday_dates": holiday_dates,
         "all_holidays": AcademicHoliday.objects.filter(academic_year=year),
+        "intensive_dates": intensive_dates,
+        "all_intensive_periods": AcademicIntensivePeriod.objects.filter(academic_year=year),
+        "year_calendar": _build_year_calendar(year),
         "previous_month": previous_month, "next_month": next_month,
         "closure_form": CourseClosureForm(initial={"date": month_start}),
     })
@@ -1273,6 +1419,43 @@ def academic_holiday_delete(request, holiday_id):
     log_event(request.user, "academic_holiday.deleted", holiday)
     holiday.delete()
     messages.success(request, _("S'ha eliminat el període festiu. Les reserves anul·lades no es reactiven automàticament."))
+    return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}&month={starts_on:%Y-%m}")
+
+
+@admin_required
+def intensive_period_form(request, period_id=None):
+    period = get_object_or_404(AcademicIntensivePeriod, pk=period_id) if period_id else None
+    selected_id = request.GET.get("year")
+    selected_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    form = AcademicIntensivePeriodForm(
+        request.POST or None,
+        instance=period,
+        initial={
+            "academic_year": selected_year,
+            "starts_on": selected_year.starts_on if selected_year else None,
+        } if period is None else None,
+    )
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        log_event(request.user, "academic_intensive_period.created" if period is None else "academic_intensive_period.updated", saved)
+        messages.success(request, _("S'ha desat el període de jornada intensiva."))
+        return redirect(f"{reverse('cafeteria:school_calendar')}?year={saved.academic_year_id}&month={saved.starts_on:%Y-%m}")
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Nou període de jornada intensiva") if period is None else _("Edita la jornada intensiva"),
+        "back_url": reverse("cafeteria:school_calendar"),
+        "help_text": _("Aquest període només s'informa als calendaris i no modifica el servei de menjador."),
+    })
+
+
+@admin_required
+@require_POST
+def intensive_period_delete(request, period_id):
+    period = get_object_or_404(AcademicIntensivePeriod, pk=period_id)
+    year_id, starts_on = period.academic_year_id, period.starts_on
+    log_event(request.user, "academic_intensive_period.deleted", period)
+    period.delete()
+    messages.success(request, _("S'ha eliminat el període de jornada intensiva."))
     return redirect(f"{reverse('cafeteria:school_calendar')}?year={year_id}&month={starts_on:%Y-%m}")
 
 

@@ -4,7 +4,7 @@
 {% block content %}
 <section class="page-heading">
   <div><p class="eyebrow">{% translate "AFA" %}</p><h1>{% translate "Quotes AFA" %}</h1><p>{% translate "Ser membre de l'AFA és opcional i no modifica mai l'accés ni la facturació del menjador." %}</p></div>
-  <a class="button secondary" href="{% url 'cafeteria:contacts_dashboard' %}">← {% translate "Contactes i AFA" %}</a>
+  <a class="button secondary" href="{% url 'cafeteria:contacts_dashboard' %}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Contactes i AFA" %}</a>
 </section>
 <section class="toolbar card">
   <form method="get" class="inline-form"><label>{% translate "Curs acadèmic" %}<select name="year" onchange="this.form.submit()">{% for item in years %}<option value="{{ item.id }}" {% if item == academic_year %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></label><label>{% translate "Estat" %}<select name="status" onchange="this.form.submit()"><option value="">{% translate "Tots" %}</option><option value="pending" {% if selected_status == "pending" %}selected{% endif %}>{% translate "Pendents" %}</option><option value="paid" {% if selected_status == "paid" %}selected{% endif %}>{% translate "Pagades" %}</option><option value="exempt" {% if selected_status == "exempt" %}selected{% endif %}>{% translate "Exemptes" %}</option></select></label></form>
@@ -16,6 +16,6 @@
 </section>
 <section class="data-section">
   <div class="section-title"><h2>{% translate "Famílies no sòcies" %}</h2><span>{{ non_member_families|length }}</span></div>
-  <div class="table-card"><table><thead><tr><th>{% translate "Família" %}</th><th>{% translate "Contacte de facturació" %}</th><th></th></tr></thead><tbody>{% for family in non_member_families %}<tr><td><strong>{{ family.name }}</strong></td><td>{{ family.billing_email|default:"—" }}</td><td><a class="button secondary" href="{% url 'cafeteria:afa_membership_edit' family.id %}?year={{ academic_year.id }}">+ {% translate "Registra la quota" %}</a></td></tr>{% empty %}<tr><td colspan="3" class="empty-cell">{% translate "Totes les famílies actives tenen una quota registrada." %}</td></tr>{% endfor %}</tbody></table></div>
+  <div class="table-card"><table><thead><tr><th>{% translate "Família" %}</th><th>{% translate "Contacte de facturació" %}</th><th></th></tr></thead><tbody>{% for family in non_member_families %}<tr><td><strong>{{ family.name }}</strong></td><td>{{ family.billing_email|default:"—" }}</td><td><a class="button secondary" href="{% url 'cafeteria:afa_membership_edit' family.id %}?year={{ academic_year.id }}">{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Registra la quota" %}</a></td></tr>{% empty %}<tr><td colspan="3" class="empty-cell">{% translate "Totes les famílies actives tenen una quota registrada." %}</td></tr>{% endfor %}</tbody></table></div>
 </section>
 {% endblock %}

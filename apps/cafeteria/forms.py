@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .models import (
     AcademicHoliday,
+    AcademicIntensivePeriod,
     AcademicYear,
     AfaFeeSettings,
     AfaMembership,
@@ -59,7 +60,10 @@ class InvitationAcceptanceForm(SetPasswordForm):
 class TutorStudentForm(forms.ModelForm):
     class Meta:
         model = Student
-        exclude = ("family", "is_scholarship", "active", "created_at", "updated_at")
+        fields = (
+            "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
+            "contact_notes", "default_diet", "dietary_notes", "meal_plan",
+        )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
             "contact_notes": forms.Textarea(attrs={"rows": 3}),
@@ -72,6 +76,21 @@ class FamilyForm(forms.ModelForm):
         model = Family
         fields = ("name", "billing_email", "phone", "address", "monthly_email_enabled", "active")
         widgets = {"address": forms.Textarea(attrs={"rows": 3})}
+
+
+class FamilyContactForm(forms.ModelForm):
+    """Safe shared-contact editing for people linked to a family."""
+
+    class Meta:
+        model = Family
+        fields = ("billing_email", "phone", "address", "monthly_email_enabled")
+        widgets = {"address": forms.Textarea(attrs={"rows": 3})}
+        labels = {
+            "billing_email": _("Correu de facturació"),
+            "phone": _("Telèfon de contacte"),
+            "address": _("Adreça"),
+            "monthly_email_enabled": _("Rebre els resums mensuals per correu"),
+        }
 
 
 class StaffStudentForm(forms.ModelForm):
@@ -124,6 +143,22 @@ class AcademicHolidayForm(forms.ModelForm):
             "academic_year": _("Curs acadèmic"),
             "title": _("Nom del festiu"),
             "holiday_type": _("Tipus de festiu"),
+            "starts_on": _("Data inicial"),
+            "ends_on": _("Data final"),
+        }
+
+
+class AcademicIntensivePeriodForm(forms.ModelForm):
+    class Meta:
+        model = AcademicIntensivePeriod
+        fields = ("academic_year", "title", "starts_on", "ends_on")
+        widgets = {
+            "starts_on": forms.DateInput(attrs={"type": "date"}),
+            "ends_on": forms.DateInput(attrs={"type": "date"}),
+        }
+        labels = {
+            "academic_year": _("Curs acadèmic"),
+            "title": _("Nom del període"),
             "starts_on": _("Data inicial"),
             "ends_on": _("Data final"),
         }

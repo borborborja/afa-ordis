@@ -2,7 +2,7 @@
 {% load i18n %}
 {% block page_context %}{% translate "Gestió" %}{% endblock %}
 {% block content %}
-<section class="page-heading compact"><div><p class="eyebrow">{% translate "Dades" %}</p><h1>{{ title }}</h1>{% if help_text %}<p>{{ help_text }}</p>{% endif %}</div><a class="button secondary" href="{{ back_url }}">← {% translate "Torna" %}</a></section>
+<section class="page-heading compact"><div><p class="eyebrow">{% translate "Dades" %}</p><h1>{{ title }}</h1>{% if help_text %}<p>{{ help_text }}</p>{% endif %}</div><a class="button secondary" href="{{ back_url }}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Torna" %}</a></section>
 <form method="post" class="card form-card">{% csrf_token %}
   {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
   <div class="form-grid">

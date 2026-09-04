@@ -343,6 +343,33 @@ class AcademicHoliday(models.Model):
         return f"{self.get_holiday_type_display()} · {self.title} · {self.starts_on:%d/%m/%Y}"
 
 
+class AcademicIntensivePeriod(models.Model):
+    """Informative intensive-school-day period shown in academic calendars."""
+
+    academic_year = models.ForeignKey(
+        AcademicYear, on_delete=models.CASCADE, related_name="intensive_periods"
+    )
+    title = models.CharField(max_length=160, default="Jornada intensiva")
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["starts_on", "ends_on", "title"]
+
+    def clean(self):
+        if self.ends_on < self.starts_on:
+            raise ValidationError("La data final no pot ser anterior a la inicial.")
+        if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
+            raise ValidationError("L'inici de la jornada intensiva ha de ser dins del curs acadèmic.")
+        if not self.academic_year.starts_on <= self.ends_on <= self.academic_year.ends_on:
+            raise ValidationError("El final de la jornada intensiva ha de ser dins del curs acadèmic.")
+
+    def __str__(self):
+        return f"{self.title} · {self.starts_on:%d/%m/%Y}"
+
+
 class MealSettings(models.Model):
     academic_year = models.OneToOneField(AcademicYear, on_delete=models.CASCADE, related_name="meal_settings")
     daily_cutoff = models.TimeField(null=True, blank=True, help_text="Sense valor: les famílies poden modificar reserves fins al final del dia.")

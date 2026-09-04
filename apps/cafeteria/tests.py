@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.template.loader import get_template
@@ -13,6 +14,7 @@ from django.utils import translation
 
 from .models import (
     AcademicHoliday,
+    AcademicIntensivePeriod,
     AcademicYear,
     AfaFeeSettings,
     AfaMembership,
@@ -142,6 +144,84 @@ class CafeteriaFlowTests(TestCase):
         self.client.force_login(admin)
         response = self.client.get(f"{reverse('cafeteria:school_calendar')}?year={self.year.id}&month={self.today:%Y-%m}")
         self.assertContains(response, holiday.title)
+
+    def test_intensive_period_is_visible_but_does_not_change_service_or_booking(self):
+        booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        period = AcademicIntensivePeriod.objects.create(
+            academic_year=self.year,
+            title="Horari intensiu de juny",
+            starts_on=self.today,
+            ends_on=self.today,
+        )
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.ACTIVE)
+        self.assertTrue(is_service_day(self.today, self.student))
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("cafeteria:family_school_calendar", args=[self.family.id]))
+        self.assertContains(response, period.title)
+
+    def test_intensive_period_must_stay_inside_its_academic_year(self):
+        period = AcademicIntensivePeriod(
+            academic_year=self.year,
+            title="Fora del curs",
+            starts_on=self.year.starts_on - timedelta(days=1),
+            ends_on=self.year.starts_on,
+        )
+        with self.assertRaises(ValidationError):
+            period.full_clean()
+
+    def test_family_calendar_filters_excursions_to_child_groups_by_default(self):
+        other_group = CourseGroup.objects.create(academic_year=self.year, name="I5")
+        other_family = Family.objects.create(name="Família Serra")
+        Student.objects.create(
+            family=other_family, course_group=other_group, first_name="Berta", last_name="Serra",
+            default_diet=self.diet,
+        )
+        own_closure = CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió I4")
+        CourseClosure.objects.create(course_group=other_group, date=self.today, title="Excursió I5")
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("cafeteria:family_school_calendar", args=[self.family.id]))
+        self.assertContains(response, own_closure.title)
+        self.assertNotContains(response, "Excursió I5")
+
+    def test_family_contact_edit_does_not_allow_group_or_scholarship_changes(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:family_profile", args=[self.family.id]), {
+            "billing_email": "nou-contacte@example.com",
+            "phone": "600111222",
+            "address": "Carrer Major, 1",
+            "monthly_email_enabled": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.family.refresh_from_db()
+        self.assertEqual(self.family.billing_email, "nou-contacte@example.com")
+
+        other_group = CourseGroup.objects.create(academic_year=self.year, name="I5")
+        response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
+            "first_name": "Núria", "last_name": "Puig", "birth_date": "",
+            "contact_email": "", "contact_phone": "", "contact_notes": "",
+            "default_diet": self.diet.id, "dietary_notes": "", "meal_plan": MealPlan.SPORADIC,
+            "course_group": other_group.id, "is_scholarship": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.course_group, self.group)
+        self.assertFalse(self.student.is_scholarship)
+        self.assertEqual(self.student.meal_plan, MealPlan.SPORADIC)
+
+    def test_family_context_only_accepts_linked_families(self):
+        second_family = Family.objects.create(name="Segona família")
+        FamilyMembership.objects.create(family=second_family, user=self.user)
+        other_family = Family.objects.create(name="Família no vinculada")
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:family_context_select"), {"family_id": second_family.id})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.session["cafeteria_active_family_id"], second_family.id)
+        self.assertEqual(
+            self.client.post(reverse("cafeteria:family_context_select"), {"family_id": other_family.id}).status_code,
+            404,
+        )
 
     def test_afa_membership_is_optional_and_manually_recorded(self):
         admin = User.objects.create_superuser("afa@example.com", "afa@example.com", "correct-horse-battery-staple")
@@ -280,6 +360,7 @@ class CafeteriaFlowTests(TestCase):
             "cafeteria:dining_dashboard",
             "cafeteria:contacts_dashboard",
             "cafeteria:academic_dashboard",
+            "cafeteria:intensive_period_create",
             "cafeteria:people",
             "cafeteria:afa_memberships",
             "cafeteria:school_calendar",
@@ -314,7 +395,10 @@ class CafeteriaFlowTests(TestCase):
         self.client.force_login(self.user)
         with translation.override("ca"):
             self.assertEqual(self.client.get(reverse("cafeteria:dashboard")).status_code, 200)
+            self.assertEqual(self.client.get(reverse("cafeteria:family_home")).status_code, 200)
             self.assertEqual(self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id])).status_code, 200)
+            self.assertEqual(self.client.get(reverse("cafeteria:family_profile", args=[self.family.id])).status_code, 200)
+            self.assertEqual(self.client.get(reverse("cafeteria:family_school_calendar", args=[self.family.id])).status_code, 200)
 
     def test_language_choice_is_saved_on_the_profile(self):
         self.client.force_login(self.user)
@@ -350,7 +434,8 @@ class CafeteriaFlowTests(TestCase):
         templates = (
             "cafeteria/price_rules.html", "cafeteria/daily_reports.html", "cafeteria/monthly_statements.html",
             "cafeteria/statement_detail.html", "cafeteria/invitation_form.html", "cafeteria/student_form.html",
-            "cafeteria/audit_log.html", "cafeteria/family_import_preview.html",
+            "cafeteria/audit_log.html", "cafeteria/family_import_preview.html", "cafeteria/family_home.html",
+            "cafeteria/family_profile.html", "cafeteria/family_school_calendar.html",
         )
         for template in templates:
             with self.subTest(template=template):

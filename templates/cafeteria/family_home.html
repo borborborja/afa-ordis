@@ -1,0 +1,24 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Espai familiar" %}{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">{% translate "Espai familiar" %}</p><h1>{% translate "La meva família" %}</h1><p>{% translate "Tria la família amb què vols treballar per consultar les reserves, el calendari escolar i les dades de contacte." %}</p></div>
+</section>
+<section class="family-context-grid">
+  {% for family in families %}
+  <article class="family-context-card {% if family == active_family %}active{% endif %}">
+    <div class="family-context-icon">{% include 'cafeteria/components/icon.html' with name='users' %}</div>
+    <div><h2>{{ family.name }}</h2><p>{{ family.students.count }} {% translate "infants vinculats" %}</p></div>
+    <form method="post" action="{% url 'cafeteria:family_context_select' %}">{% csrf_token %}<input type="hidden" name="family_id" value="{{ family.id }}"><button class="button {% if family == active_family %}secondary{% else %}primary{% endif %}">{% if family == active_family %}{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Família activa" %}{% else %}{% translate "Selecciona" %}{% endif %}</button></form>
+  </article>
+  {% endfor %}
+</section>
+{% if active_family %}
+<section class="action-grid family-quick-actions">
+  <a class="action-card" href="{% url 'cafeteria:family_calendar' active_family.id %}"><span>{% include 'cafeteria/components/icon.html' with name='meal' %}</span><div><h2>{% translate "Reserva de menjador" %}</h2><p>{% translate "Gestiona els àpats de l'alumnat." %}</p></div><b>{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</b></a>
+  <a class="action-card" href="{% url 'cafeteria:family_school_calendar' active_family.id %}"><span>{% include 'cafeteria/components/icon.html' with name='calendar' %}</span><div><h2>{% translate "Calendari escolar" %}</h2><p>{% translate "Festius, jornada intensiva i excursions." %}</p></div><b>{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</b></a>
+  <a class="action-card" href="{% url 'cafeteria:family_profile' active_family.id %}"><span>{% include 'cafeteria/components/icon.html' with name='user' %}</span><div><h2>{% translate "Dades i contactes" %}</h2><p>{% translate "Actualitza la informació compartida." %}</p></div><b>{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</b></a>
+</section>
+{% endif %}
+{% endblock %}

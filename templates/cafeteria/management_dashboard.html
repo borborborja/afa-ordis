@@ -2,40 +2,8 @@
 {% load i18n %}
 {% block page_context %}{% translate "Administració" %}{% endblock %}
 {% block content %}
-<section class="page-heading">
-  <div>
-    <p class="eyebrow">{% translate "Administració" %}</p>
-    <h1>{% translate "Organitza el portal" %}</h1>
-    <p>{% if active_year %}{{ active_year.name }} · {% endif %}{% translate "Tria l'àrea que vols gestionar. Les dades de l'AFA no afecten mai les reserves de menjador." %}</p>
-  </div>
-</section>
-
-<section class="stat-grid">
-  <article class="stat-card"><span>♧</span><strong>{{ family_count }}</strong><p>{% translate "famílies actives" %}</p></article>
-  <article class="stat-card"><span>☺</span><strong>{{ student_count }}</strong><p>{% translate "alumnes actius" %}</p></article>
-  <article class="stat-card"><span>◒</span><strong>{{ teacher_count }}</strong><p>{% translate "persones docents" %}</p></article>
-  <article class="stat-card highlight"><span>▣</span><strong>{{ service_days }}</strong><p>{% translate "dies de servei" %}</p></article>
-</section>
-
-<section class="area-grid" aria-label="{% translate 'Àrees d’administració' %}">
-  <a class="area-card dining" href="{% url 'cafeteria:dining_dashboard' %}">
-    <span class="area-icon">◒</span>
-    <div><p class="eyebrow">{% translate "Operativa" %}</p><h2>{% translate "Gestió del menjador" %}</h2><p>{% translate "Llistats, planificació, tarifes, dietes, correus de cuina i enllaç del menú." %}</p></div><b>→</b>
-  </a>
-  <a class="area-card contacts" href="{% url 'cafeteria:contacts_dashboard' %}">
-    <span class="area-icon">♧</span>
-    <div><p class="eyebrow">{% translate "Dades i AFA" %}</p><h2>{% translate "Contactes i AFA" %}</h2><p>{% translate "Famílies, alumnat, personal docent, comptes, invitacions i quotes anuals." %}</p></div><b>→</b>
-  </a>
-  <a class="area-card academic" href="{% url 'cafeteria:academic_dashboard' %}">
-    <span class="area-icon">▣</span>
-    <div><p class="eyebrow">{% translate "Curs escolar" %}</p><h2>{% translate "Gestió acadèmica" %}</h2><p>{% translate "Curs acadèmic, grups, dies lectius, festius locals i excursions." %}</p></div><b>→</b>
-  </a>
-</section>
-
-{% if pending_invitations or recent_imports %}
-<section class="split-section">
-  <article class="card"><h2>{% translate "Invitacions pendents" %}</h2><p class="large-number">{{ pending_invitations }}</p><a href="{% url 'cafeteria:invitation_create' %}">{% translate "Crea una invitació" %} →</a></article>
-  <article class="card"><h2>{% translate "Últimes importacions" %}</h2>{% for item in recent_imports %}<p class="compact-row"><span>{{ item.created_at|date:"d/m/Y H:i" }}</span><span>{{ item.get_status_display }}</span></p>{% empty %}<p class="muted">{% translate "Encara no n'hi ha cap." %}</p>{% endfor %}</article>
-</section>
-{% endif %}
+<section class="page-heading"><div><p class="eyebrow">{% translate "Administració" %}</p><h1>{% translate "Organitza el portal" %}</h1><p>{% if active_year %}{{ active_year.name }} · {% endif %}{% translate "Tria l'àrea que vols gestionar. Les dades de l'AFA no afecten mai les reserves de menjador." %}</p></div></section>
+<section class="stat-grid"><article class="stat-card"><span>{% include 'cafeteria/components/icon.html' with name='users' %}</span><strong>{{ family_count }}</strong><p>{% translate "famílies actives" %}</p></article><article class="stat-card"><span>{% include 'cafeteria/components/icon.html' with name='academic' %}</span><strong>{{ student_count }}</strong><p>{% translate "alumnes actius" %}</p></article><article class="stat-card"><span>{% include 'cafeteria/components/icon.html' with name='user' %}</span><strong>{{ teacher_count }}</strong><p>{% translate "persones docents" %}</p></article><article class="stat-card highlight"><span>{% include 'cafeteria/components/icon.html' with name='calendar' %}</span><strong>{{ service_days }}</strong><p>{% translate "dies de servei" %}</p></article></section>
+<section class="area-grid" aria-label="{% translate 'Àrees d’administració' %}"><a class="area-card dining" href="{% url 'cafeteria:dining_dashboard' %}"><span class="area-icon">{% include 'cafeteria/components/icon.html' with name='meal' %}</span><div><p class="eyebrow">{% translate "Operativa" %}</p><h2>{% translate "Gestió del menjador" %}</h2><p>{% translate "Llistats, planificació, tarifes, dietes, correus de cuina i enllaç del menú." %}</p></div><b>{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</b></a><a class="area-card contacts" href="{% url 'cafeteria:contacts_dashboard' %}"><span class="area-icon">{% include 'cafeteria/components/icon.html' with name='users' %}</span><div><p class="eyebrow">{% translate "Dades i AFA" %}</p><h2>{% translate "Contactes i AFA" %}</h2><p>{% translate "Famílies, alumnat, personal docent, comptes, invitacions i quotes anuals." %}</p></div><b>{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</b></a><a class="area-card academic" href="{% url 'cafeteria:academic_dashboard' %}"><span class="area-icon">{% include 'cafeteria/components/icon.html' with name='academic' %}</span><div><p class="eyebrow">{% translate "Curs escolar" %}</p><h2>{% translate "Gestió acadèmica" %}</h2><p>{% translate "Curs acadèmic, grups, dies lectius, festius locals i excursions." %}</p></div><b>{% include 'cafeteria/components/icon.html' with name='arrow-right' %}</b></a></section>
+{% if pending_invitations or recent_imports %}<section class="split-section"><article class="card"><h2>{% translate "Invitacions pendents" %}</h2><p class="large-number">{{ pending_invitations }}</p><a href="{% url 'cafeteria:invitation_create' %}">{% translate "Crea una invitació" %} {% include 'cafeteria/components/icon.html' with name='arrow-right' %}</a></article><article class="card"><h2>{% translate "Últimes importacions" %}</h2>{% for item in recent_imports %}<p class="compact-row"><span>{{ item.created_at|date:"d/m/Y H:i" }}</span><span>{{ item.get_status_display }}</span></p>{% empty %}<p class="muted">{% translate "Encara no n'hi ha cap." %}</p>{% endfor %}</article></section>{% endif %}
 {% endblock %}
