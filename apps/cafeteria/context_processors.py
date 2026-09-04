@@ -1,4 +1,4 @@
-from .models import Family, PortalSettings, Role, UserProfile, user_has_role
+from .models import EconomicSettings, Family, PortalSettings, Role, UserProfile, user_has_role
 
 
 def role_flags(request):
@@ -14,9 +14,15 @@ def role_flags(request):
             active_family = family_options[0]
             request.session["cafeteria_active_family_id"] = active_family.id
     navigation_state = {}
+    can_submit_economic_expenses = False
     if user.is_authenticated:
         try:
             navigation_state = user.profile.navigation_state or {}
+            economic_settings = EconomicSettings.objects.first()
+            can_submit_economic_expenses = user_has_role(user, Role.ADMIN) or bool(
+                (economic_settings and economic_settings.allow_all_users_expense_submissions)
+                or user.profile.can_submit_expenses
+            )
         except UserProfile.DoesNotExist:
             navigation_state = {}
     return {
@@ -29,4 +35,5 @@ def role_flags(request):
         "active_family": active_family,
         "navigation_state": navigation_state,
         "school_menu_url": portal.school_menu_url if portal else "https://agora.xtec.cat/esc-mariapages-ordis/",
+        "can_submit_economic_expenses": can_submit_economic_expenses,
     }

@@ -66,7 +66,7 @@ sudo docker compose logs --tail=100 app
 
 La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. Només hi ha el contenidor `app`, que inclou Django, SQLite i el planificador de correus. Traefik el detecta a través de les etiquetes Docker i publica HTTPS amb el seu resolutor configurat.
 
-Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, festius, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md). El portal no publica Django Admin: el superusuari disposa dels espais visuals **Menjador**, **Contactes i AFA**, **Calendari escolar** i **Administració del portal**.
+Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, festius, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md). El portal no publica Django Admin: el superusuari disposa dels espais visuals **Menjador**, **Gestió econòmica**, **Contactes i AFA**, **Calendari escolar** i **Administració del portal**.
 
 ## 4. Actualitzar
 
@@ -85,9 +85,9 @@ L’aplicació executa automàticament les migracions noves abans d’iniciar el
 
 ## 5. Còpies de seguretat i restauració
 
-La via recomanada és **Administració del portal → Còpies de seguretat**: crea una instantània SQLite i la descarrega directament al navegador; el servidor no en conserva cap còpia. Per restaurar, primer cal descarregar una còpia actual des d'aquesta mateixa pantalla, pujar un fitxer compatible, introduir la contrasenya d'administració i escriure `RESTAURA`. Es comprova la integritat i les migracions abans de substituir la base de dades, s'eliminen els fitxers temporals i es tanquen totes les sessions.
+La via recomanada és **Administració del portal → Còpies de seguretat**: crea un ZIP amb la base SQLite i tots els documents pujats, inclosos tiquets i factures, i el descarrega directament al navegador; el servidor no en conserva cap còpia. Per restaurar, primer cal descarregar una còpia actual des d'aquesta mateixa pantalla, pujar el ZIP compatible, introduir la contrasenya d'administració i escriure `RESTAURA`. Es comprova la integritat, el manifest i les migracions abans de restaurar les dades; s'eliminen els fitxers temporals i es tanquen totes les sessions. Les còpies SQLite antigues són compatibles, però no incorporen documents.
 
-L’ordre `backup_database` continua utilitzant l’API de còpia de SQLite, de manera que no cal aturar el portal. Guarda les còpies obtingudes a `./backups` en una ubicació xifrada i diferent del servidor.
+L’ordre `backup_database` continua utilitzant l’API de còpia de SQLite, de manera que no cal aturar el portal. Si s'utilitza aquesta via, copia també tot el volum `app_data` per incloure els documents. Guarda les còpies obtingudes a `./backups` en una ubicació xifrada i diferent del servidor.
 
 Per restaurar, atura el portal, substitueix el fitxer `/data/afa-ordis.sqlite3` del volum `app_data` per una còpia vàlida i torna a iniciar-lo. Fes-ho només durant una finestra de manteniment i conserva sempre una còpia del fitxer que reemplaces.
 

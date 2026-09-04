@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
@@ -14,7 +15,14 @@ from .models import (
     CourseGroup,
     DailyReportRecipient,
     Diet,
+    EconomicCategory,
+    EconomicEntry,
+    EconomicEntryType,
+    EconomicPaymentStatus,
+    EconomicReviewStatus,
+    EconomicSettings,
     Family,
+    FinancialAccount,
     Invitation,
     MealSettings,
     MealPlan,
@@ -199,6 +207,99 @@ class AfaMembershipForm(forms.ModelForm):
             "paid_on": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
+
+
+class FinancialAccountForm(forms.ModelForm):
+    class Meta:
+        model = FinancialAccount
+        fields = ("name", "account_type", "opening_balance", "opening_balance_date", "active")
+        widgets = {"opening_balance_date": forms.DateInput(attrs={"type": "date"})}
+        labels = {
+            "name": _("Nom del compte"),
+            "account_type": _("Tipus de compte"),
+            "opening_balance": _("Saldo inicial (€)"),
+            "opening_balance_date": _("Data del saldo inicial"),
+            "active": _("Actiu"),
+        }
+
+
+class EconomicCategoryForm(forms.ModelForm):
+    class Meta:
+        model = EconomicCategory
+        fields = ("name", "entry_type", "active", "sort_order")
+        labels = {
+            "name": _("Nom de la categoria"),
+            "entry_type": _("Tipus de moviment"),
+            "active": _("Activa"),
+            "sort_order": _("Ordre"),
+        }
+
+
+class EconomicSettingsForm(forms.ModelForm):
+    class Meta:
+        model = EconomicSettings
+        fields = ("allow_all_users_expense_submissions",)
+        labels = {
+            "allow_all_users_expense_submissions": _("Permet que qualsevol persona registrada presenti despeses"),
+        }
+
+
+class EconomicEntryForm(forms.ModelForm):
+    class Meta:
+        model = EconomicEntry
+        fields = ("entry_type", "date", "concept", "category", "account", "amount", "notes", "payment_status", "paid_on")
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "paid_on": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {
+            "entry_type": _("Tipus"), "date": _("Data"), "concept": _("Concepte o proveïdor"),
+            "category": _("Categoria"), "account": _("Compte de l'AFA"), "amount": _("Import (€)"),
+            "notes": _("Observacions"), "payment_status": _("Estat de pagament"),
+            "paid_on": _("Data de pagament"),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        category_filter = Q(active=True)
+        account_filter = Q(active=True)
+        if self.instance and self.instance.pk:
+            category_filter |= Q(pk=self.instance.category_id)
+            account_filter |= Q(pk=self.instance.account_id)
+        self.fields["category"].queryset = EconomicCategory.objects.filter(category_filter)
+        self.fields["account"].queryset = FinancialAccount.objects.filter(account_filter)
+
+    def clean(self):
+        cleaned = super().clean()
+        category = cleaned.get("category")
+        entry_type = cleaned.get("entry_type")
+        if category and entry_type and category.entry_type != entry_type:
+            self.add_error("category", _("Selecciona una categoria del mateix tipus que el moviment."))
+        return cleaned
+
+
+class EconomicSubmissionForm(forms.ModelForm):
+    class Meta:
+        model = EconomicEntry
+        fields = ("date", "concept", "category", "amount", "notes")
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {
+            "date": _("Data de la despesa"), "concept": _("Concepte o proveïdor"),
+            "category": _("Categoria"), "amount": _("Import (€)"), "notes": _("Observacions"),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.entry_type = EconomicEntryType.EXPENSE
+        self.instance.review_status = EconomicReviewStatus.SUBMITTED
+        self.instance.payment_status = EconomicPaymentStatus.PENDING
+        self.fields["category"].queryset = EconomicCategory.objects.filter(
+            active=True, entry_type=EconomicEntryType.EXPENSE
+        )
         labels = {
             "status": _("Estat de la quota"),
             "amount": _("Import de la quota (€)"),

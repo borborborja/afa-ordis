@@ -1,6 +1,9 @@
 from datetime import datetime, time, timedelta
 from decimal import Decimal
+from io import BytesIO
+import tempfile
 from unittest.mock import patch
+import zipfile
 
 from django.contrib.auth.models import User
 from django.core import mail
@@ -25,6 +28,13 @@ from .models import (
     CourseGroup,
     DailyReportRecipient,
     Diet,
+    EconomicAttachment,
+    EconomicCategory,
+    EconomicEntry,
+    EconomicEntryType,
+    EconomicPaymentStatus,
+    EconomicReviewStatus,
+    FinancialAccount,
     Family,
     FamilyMembership,
     FamilyImportBatch,
@@ -634,6 +644,11 @@ class CafeteriaFlowTests(TestCase):
             "cafeteria/statement_detail.html", "cafeteria/invitation_form.html", "cafeteria/student_form.html",
             "cafeteria/audit_log.html", "cafeteria/family_import_preview.html", "cafeteria/family_home.html",
             "cafeteria/family_profile.html", "cafeteria/family_school_calendar.html",
+            "cafeteria/economic_dashboard.html", "cafeteria/economic_entries.html",
+            "cafeteria/economic_reports.html",
+            "cafeteria/economic_entry_form.html", "cafeteria/economic_review.html",
+            "cafeteria/economic_configuration.html", "cafeteria/economic_my_expenses.html",
+            "cafeteria/economic_submission_form.html",
         )
         for template in templates:
             with self.subTest(template=template):
@@ -641,11 +656,119 @@ class CafeteriaFlowTests(TestCase):
 
 
 class PortalBackupTests(TransactionTestCase):
-    def test_administrator_can_download_a_sqlite_backup_from_the_portal(self):
+    def test_administrator_can_download_a_complete_zip_backup_from_the_portal(self):
         admin = User.objects.create_superuser("backup@example.com", "backup@example.com", "correct-horse-battery-staple")
         self.client.force_login(admin)
         response = self.client.post(reverse("cafeteria:portal_backup_download"))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "application/vnd.sqlite3")
+        self.assertEqual(response["Content-Type"], "application/zip")
         self.assertIn("attachment; filename=", response["Content-Disposition"])
         self.assertGreater(len(response.content), 0)
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            self.assertIn("backup.json", archive.namelist())
+            self.assertIn("database.sqlite3", archive.namelist())
+
+    def test_complete_backup_includes_uploaded_receipts(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            admin = User.objects.create_superuser("backup-files@example.com", "backup-files@example.com", "correct-horse-battery-staple")
+            account, _created = FinancialAccount.objects.get_or_create(name="Compte bancari AFA", defaults={"account_type": "bank"})
+            category, _created = EconomicCategory.objects.get_or_create(name="Material", entry_type=EconomicEntryType.EXPENSE)
+            entry = EconomicEntry.objects.create(
+                entry_type=EconomicEntryType.EXPENSE, date=timezone.localdate(), concept="Document", category=category,
+                account=account, amount=Decimal("1.00"), review_status=EconomicReviewStatus.APPROVED,
+                payment_status=EconomicPaymentStatus.PAID, paid_on=timezone.localdate(), submitted_by=admin,
+            )
+            attachment = EconomicAttachment.objects.create(entry=entry, file=SimpleUploadedFile("ticket.jpg", b"receipt"), original_name="ticket.jpg", uploaded_by=admin)
+            self.client.force_login(admin)
+            response = self.client.post(reverse("cafeteria:portal_backup_download"))
+            with zipfile.ZipFile(BytesIO(response.content)) as archive:
+                self.assertIn(f"media/{attachment.file.name}", archive.namelist())
+
+
+class EconomicFlowTests(TestCase):
+    def setUp(self):
+        self.media = tempfile.TemporaryDirectory()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media.name)
+        self.settings_override.enable()
+        self.admin = User.objects.create_superuser("admin-economy@example.com", "admin-economy@example.com", "correct-horse-battery-staple")
+        self.submitter = User.objects.create_user("submitter@example.com", "submitter@example.com", "correct-horse-battery-staple")
+        self.submitter.profile.can_submit_expenses = True
+        self.submitter.profile.save(update_fields=["can_submit_expenses"])
+        self.account = FinancialAccount.objects.get(name="Compte bancari AFA")
+        self.expense_category = EconomicCategory.objects.get(name="Material", entry_type=EconomicEntryType.EXPENSE)
+        self.income_category = EconomicCategory.objects.get(name="Donacions", entry_type=EconomicEntryType.INCOME)
+
+    def tearDown(self):
+        self.settings_override.disable()
+        self.media.cleanup()
+
+    def _receipt(self, name="ticket.jpg"):
+        return SimpleUploadedFile(name, b"receipt", content_type="image/jpeg")
+
+    def test_authorized_user_can_submit_a_receipted_expense(self):
+        self.client.force_login(self.submitter)
+        response = self.client.post(reverse("cafeteria:economic_submission_create"), {
+            "date": "2026-09-04", "concept": "Cartolines", "category": self.expense_category.id,
+            "amount": "12.50", "attachments": self._receipt(),
+        })
+        self.assertRedirects(response, reverse("cafeteria:economic_my_expenses"))
+        entry = EconomicEntry.objects.get(concept="Cartolines")
+        self.assertEqual(entry.entry_type, EconomicEntryType.EXPENSE)
+        self.assertEqual(entry.review_status, EconomicReviewStatus.SUBMITTED)
+        self.assertEqual(entry.payment_status, EconomicPaymentStatus.PENDING)
+        self.assertEqual(entry.submitted_by, self.submitter)
+        self.assertEqual(entry.attachments.count(), 1)
+
+    def test_submission_requires_a_receipt_and_is_private(self):
+        self.client.force_login(self.submitter)
+        response = self.client.post(reverse("cafeteria:economic_submission_create"), {
+            "date": "2026-09-04", "concept": "Sense document", "category": self.expense_category.id, "amount": "4.00",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Adjunta com a mínim un justificant")
+        entry = EconomicEntry.objects.create(
+            entry_type=EconomicEntryType.EXPENSE, date=timezone.localdate(), concept="Privada", category=self.expense_category,
+            amount=Decimal("1.00"), review_status=EconomicReviewStatus.SUBMITTED, payment_status=EconomicPaymentStatus.PENDING,
+            submitted_by=self.submitter,
+        )
+        attachment = EconomicAttachment.objects.create(entry=entry, file=self._receipt(), original_name="ticket.jpg", uploaded_by=self.submitter)
+        other = User.objects.create_user("other@example.com", "other@example.com", "correct-horse-battery-staple")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("cafeteria:economic_attachment_download", args=[attachment.id])).status_code, 403)
+
+    def test_administrator_approves_and_marks_a_submission_paid(self):
+        entry = EconomicEntry.objects.create(
+            entry_type=EconomicEntryType.EXPENSE, date=timezone.localdate(), concept="Pintura", category=self.expense_category,
+            amount=Decimal("18.00"), review_status=EconomicReviewStatus.SUBMITTED,
+            payment_status=EconomicPaymentStatus.PENDING, submitted_by=self.submitter,
+        )
+        EconomicAttachment.objects.create(entry=entry, file=self._receipt(), original_name="ticket.jpg", uploaded_by=self.submitter)
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("cafeteria:economic_review", args=[entry.id]), {
+            "entry_type": EconomicEntryType.EXPENSE, "date": entry.date.isoformat(), "concept": entry.concept,
+            "category": self.expense_category.id, "account": self.account.id, "amount": "18.00",
+            "notes": "", "payment_status": EconomicPaymentStatus.PENDING, "paid_on": "", "action": "approve",
+        })
+        self.assertRedirects(response, reverse("cafeteria:economic_entries"))
+        entry.refresh_from_db()
+        self.assertEqual(entry.review_status, EconomicReviewStatus.APPROVED)
+        self.assertEqual(entry.account, self.account)
+        response = self.client.post(reverse("cafeteria:economic_mark_paid", args=[entry.id]), {"paid_on": "2026-09-05"})
+        self.assertRedirects(response, reverse("cafeteria:economic_entries"))
+        entry.refresh_from_db()
+        self.assertEqual(entry.payment_status, EconomicPaymentStatus.PAID)
+        self.assertEqual(entry.paid_on.isoformat(), "2026-09-05")
+
+    def test_reports_include_paid_entries_and_csv(self):
+        EconomicEntry.objects.create(
+            entry_type=EconomicEntryType.INCOME, date=timezone.localdate(), concept="Donació", category=self.income_category,
+            account=self.account, amount=Decimal("30.00"), review_status=EconomicReviewStatus.APPROVED,
+            payment_status=EconomicPaymentStatus.PAID, paid_on=timezone.localdate(), submitted_by=self.admin,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("cafeteria:economic_reports"), {"period": "calendar", "year": timezone.localdate().year})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Donacions")
+        response = self.client.get(reverse("cafeteria:economic_export_csv"), {"period": "calendar", "year": timezone.localdate().year})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Donació", response.content.decode())

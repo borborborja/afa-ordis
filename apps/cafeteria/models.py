@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import calendar
 import secrets
+import uuid
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission, User
@@ -43,6 +45,7 @@ class UserProfile(models.Model):
     receive_operational_emails = models.BooleanField(default=True)
     navigation_state = models.JSONField(default=dict, blank=True)
     dashboard_widgets = models.JSONField(default=list, blank=True)
+    can_submit_expenses = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return self.user.get_full_name() or self.user.email
@@ -213,6 +216,141 @@ class AfaMembership(models.Model):
 
     def __str__(self):
         return f"{self.family} · quota AFA {self.academic_year}"
+
+
+class FinancialAccountType(models.TextChoices):
+    BANK = "bank", "Compte bancari"
+    CASH = "cash", "Efectiu"
+    OTHER = "other", "Altres"
+
+
+class EconomicEntryType(models.TextChoices):
+    INCOME = "income", "Ingrés"
+    EXPENSE = "expense", "Despesa"
+
+
+class EconomicReviewStatus(models.TextChoices):
+    SUBMITTED = "submitted", "Pendent de revisar"
+    APPROVED = "approved", "Aprovada"
+    REJECTED = "rejected", "Rebutjada"
+    WITHDRAWN = "withdrawn", "Retirada"
+
+
+class EconomicPaymentStatus(models.TextChoices):
+    PENDING = "pending", "Pendent de pagament"
+    PAID = "paid", "Pagada"
+
+
+class EconomicSettings(models.Model):
+    """Single shared configuration for the simple AFA cash ledger."""
+
+    allow_all_users_expense_submissions = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="updated_economic_settings",
+    )
+
+    def clean(self):
+        if self.pk and type(self).objects.exclude(pk=self.pk).exists():
+            raise ValidationError("Només pot existir una configuració econòmica.")
+
+    def __str__(self):
+        return "Configuració econòmica"
+
+
+class FinancialAccount(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    account_type = models.CharField(max_length=12, choices=FinancialAccountType.choices, default=FinancialAccountType.BANK)
+    opening_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    opening_balance_date = models.DateField(default=timezone.localdate)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class EconomicCategory(models.Model):
+    name = models.CharField(max_length=100)
+    entry_type = models.CharField(max_length=10, choices=EconomicEntryType.choices)
+    active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["entry_type", "sort_order", "name"]
+        constraints = [models.UniqueConstraint(fields=["name", "entry_type"], name="unique_economic_category_type")]
+
+    def __str__(self):
+        return self.name
+
+
+class EconomicEntry(models.Model):
+    entry_type = models.CharField(max_length=10, choices=EconomicEntryType.choices)
+    date = models.DateField(default=timezone.localdate)
+    concept = models.CharField(max_length=180)
+    category = models.ForeignKey(EconomicCategory, on_delete=models.PROTECT, related_name="entries")
+    account = models.ForeignKey(FinancialAccount, null=True, blank=True, on_delete=models.PROTECT, related_name="entries")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    notes = models.TextField(blank=True)
+    review_status = models.CharField(max_length=12, choices=EconomicReviewStatus.choices, default=EconomicReviewStatus.APPROVED)
+    payment_status = models.CharField(max_length=12, choices=EconomicPaymentStatus.choices, default=EconomicPaymentStatus.PAID)
+    paid_on = models.DateField(null=True, blank=True)
+    rejected_reason = models.TextField(blank=True)
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="submitted_economic_entries"
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewed_economic_entries"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+
+    def clean(self):
+        if self.amount is not None and self.amount <= 0:
+            raise ValidationError({"amount": "L'import ha de ser superior a zero."})
+        if self.category_id and self.entry_type and self.category.entry_type != self.entry_type:
+            raise ValidationError({"category": "La categoria no correspon al tipus de moviment."})
+        if self.review_status == EconomicReviewStatus.APPROVED and not self.account_id:
+            raise ValidationError({"account": "Cal indicar el compte de l'AFA."})
+        if self.review_status == EconomicReviewStatus.REJECTED and not self.rejected_reason.strip():
+            raise ValidationError({"rejected_reason": "Cal indicar el motiu del rebuig."})
+        if self.payment_status == EconomicPaymentStatus.PAID and not self.paid_on:
+            self.paid_on = self.date
+
+    @property
+    def affects_balance(self):
+        return self.review_status == EconomicReviewStatus.APPROVED and self.payment_status == EconomicPaymentStatus.PAID
+
+    def __str__(self):
+        return f"{self.get_entry_type_display()} · {self.concept} · {self.amount} €"
+
+
+def economic_attachment_path(instance, filename):
+    suffix = Path(filename).suffix.lower()[:12]
+    return f"economia/{instance.entry_id}/{uuid.uuid4().hex}{suffix}"
+
+
+class EconomicAttachment(models.Model):
+    entry = models.ForeignKey(EconomicEntry, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to=economic_attachment_path)
+    original_name = models.CharField(max_length=255)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.original_name
 
 
 class MealPlan(models.TextChoices):

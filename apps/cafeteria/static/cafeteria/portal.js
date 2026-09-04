@@ -220,4 +220,58 @@
     });
     bookingCalendar.querySelector('[data-close-apply]')?.addEventListener('click', () => { if (applyPanel) applyPanel.hidden = true; });
   }
+
+  document.querySelectorAll('[data-receipt-upload]').forEach((form) => {
+    const previewList = form.querySelector('[data-receipt-previews]');
+    const inputs = [...form.querySelectorAll('[data-camera-input], [data-file-input]')];
+    if (!previewList || !inputs.length || !window.DataTransfer) return;
+    const selected = [];
+
+    const syncInput = (input) => {
+      const transfer = new DataTransfer();
+      selected.filter((item) => item.input === input).forEach((item) => transfer.items.add(item.file));
+      input.files = transfer.files;
+    };
+    const render = () => {
+      previewList.replaceChildren();
+      selected.forEach((item) => {
+        const row = document.createElement('li');
+        row.className = 'receipt-preview-item';
+        if (item.file.type.startsWith('image/')) {
+          const image = document.createElement('img');
+          image.alt = '';
+          image.src = URL.createObjectURL(item.file);
+          image.addEventListener('load', () => URL.revokeObjectURL(image.src), { once: true });
+          row.append(image);
+        } else {
+          const icon = document.createElement('span');
+          icon.textContent = 'PDF';
+          row.append(icon);
+        }
+        const name = document.createElement('span');
+        name.textContent = item.file.name;
+        row.append(name);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'icon-button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `Elimina ${item.file.name}`);
+        remove.addEventListener('click', () => {
+          const index = selected.indexOf(item);
+          if (index >= 0) selected.splice(index, 1);
+          syncInput(item.input);
+          render();
+        });
+        row.append(remove);
+        previewList.append(row);
+      });
+    };
+    inputs.forEach((input) => input.addEventListener('change', () => {
+      for (let index = selected.length - 1; index >= 0; index -= 1) {
+        if (selected[index].input === input) selected.splice(index, 1);
+      }
+      [...input.files].forEach((file) => selected.push({ input, file }));
+      render();
+    }));
+  });
 })();

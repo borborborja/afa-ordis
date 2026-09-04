@@ -1313,6 +1313,10 @@ td small {
   background: #edf0ed;
   color: #52615b;
 }
+.status.submitted { color: #875c00; background: #fff3cf; }
+.status.approved { color: #17624e; background: #dcf3e9; }
+.status.rejected,
+.status.withdrawn { color: #9d3a34; background: #fbe5e2; }
 .table-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2231,6 +2235,45 @@ td small {
 .monthly-booking-cell[data-state="packed"] { border-color: #e6c568; background: #fff7da; }
 .monthly-booking-cell[data-state="unavailable"] { background: #eef0ed; color: #91a09a; }
 .monthly-booking-cell[data-saving="true"] { opacity: .58; pointer-events: none; }
+
+.economic-stats .stat-card strong { font-size: 1.75rem; }
+.economic-account-list { display: grid; gap: 3px; }
+.economic-account-list li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.economic-account-list li:last-child { border-bottom: 0; }
+.economic-account-list span small { display: block; color: var(--muted); }
+.economic-pending-number { margin: 8px 0 0; color: var(--forest); font-size: 3.3rem; font-weight: 850; line-height: 1; }
+.compact-tabs { margin-top: -8px; }
+.receipt-upload { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; margin-top: 24px; padding: 18px; border: 1px dashed #7fa99d; border-radius: 14px; background: #f4fbf7; }
+.receipt-upload h2 { margin: 3px 0 5px; font-size: 1.05rem; }
+.receipt-upload p { margin: 0; color: var(--muted); font-size: .9rem; }
+.receipt-upload-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.receipt-upload-actions label { cursor: pointer; }
+.receipt-upload-actions input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.receipt-preview-list { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.receipt-preview-list:empty { display: none; }
+.receipt-preview-item { display: flex; min-width: 0; align-items: center; gap: 9px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.receipt-preview-item img { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 7px; object-fit: cover; }
+.receipt-preview-item .icon { width: 24px; height: 24px; flex: 0 0 auto; color: var(--forest); }
+.receipt-preview-item span { min-width: 0; overflow: hidden; font-size: .78rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.attached-documents { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--line); }
+.attached-documents h2 { margin: 0 0 10px; font-size: 1rem; }
+.attached-documents ul { display: flex; flex-wrap: wrap; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.attached-documents li, .attachment-link { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; color: var(--forest); font-size: .86rem; }
+.attached-documents .icon, .attachment-link .icon { width: 16px; height: 16px; flex: 0 0 auto; }
+.access-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.access-choice { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.access-choice > span:nth-child(2) { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--mint); color: var(--forest); }
+.access-choice .icon { width: 17px; height: 17px; }
+.access-choice small { display: block; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.review-actions { justify-content: space-between; }
+@media (max-width: 640px) {
+  .receipt-upload { grid-template-columns: 1fr; }
+  .receipt-upload-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .receipt-upload-actions .button { justify-content: center; padding-inline: 10px; }
+  .economic-filter { display: grid; grid-template-columns: 1fr 1fr; }
+  .economic-filter label { min-width: 0; }
+  .economic-filter .button { justify-content: center; }
+}
 .booking-cell-main {
   display: grid;
   width: 100%;

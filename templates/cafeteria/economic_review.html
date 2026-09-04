@@ -1,0 +1,13 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Revisa una despesa" %}{% endblock %}
+{% block content %}
+<section class="page-heading compact"><div><p class="eyebrow">{% translate "Tiquet pendent" %}</p><h1>{% translate "Revisa la despesa" %}</h1><p>{% translate "Comprova les dades, els documents i decideix si l’AFA l’aprova." %}</p></div><a class="button secondary" href="{% url 'cafeteria:economic_entries' %}?status=submitted">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Torna a pendents" %}</a></section>
+<form method="post" enctype="multipart/form-data" class="card form-card" data-receipt-upload>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-grid">{% for field in form %}{% if field.name == 'entry_type' %}{{ field.as_hidden }}{% else %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endif %}{% endfor %}<div class="field"><label for="rejected_reason">{% translate "Motiu del rebuig" %}</label><textarea id="rejected_reason" name="rejected_reason" rows="3" placeholder="{% translate 'Obligatori si rebutges la proposta' %}"></textarea></div></div>
+  {% include 'cafeteria/components/receipt_upload.html' %}
+  <section class="attached-documents"><h2>{% translate "Justificants presentats" %}</h2><ul>{% for attachment in entry.attachments.all %}<li>{% include 'cafeteria/components/icon.html' with name='document' %}<a href="{% url 'cafeteria:economic_attachment_download' attachment.id %}">{{ attachment.original_name }}</a></li>{% endfor %}</ul></section>
+  <div class="form-actions review-actions"><button class="button danger" name="action" value="reject">{% include 'cafeteria/components/icon.html' with name='alert' %}{% translate "Rebutja" %}</button><button class="button primary" name="action" value="approve">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Aprova la despesa" %}</button></div>
+</form>
+{% endblock %}

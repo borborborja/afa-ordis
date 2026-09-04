@@ -3,12 +3,15 @@ from __future__ import annotations
 import calendar
 import csv
 import hashlib
+import json
 import os
+import shutil
 import sqlite3
 import tempfile
 import threading
+import zipfile
 from datetime import date, datetime, timedelta
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
 
 from django.conf import settings
@@ -21,8 +24,8 @@ from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Count, Q
-from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.db.models import Count, Q, Sum
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -44,8 +47,13 @@ from .forms import (
     CSVImportForm,
     DailyReportRecipientForm,
     DietForm,
+    EconomicCategoryForm,
+    EconomicEntryForm,
+    EconomicSettingsForm,
+    EconomicSubmissionForm,
     FamilyContactForm,
     FamilyForm,
+    FinancialAccountForm,
     InvitationAcceptanceForm,
     InvitationForm,
     MealSettingsForm,
@@ -70,9 +78,17 @@ from .models import (
     DailyReport,
     DailyReportRecipient,
     Diet,
+    EconomicAttachment,
+    EconomicCategory,
+    EconomicEntry,
+    EconomicEntryType,
+    EconomicPaymentStatus,
+    EconomicReviewStatus,
+    EconomicSettings,
     Family,
     FamilyImportBatch,
     FamilyMembership,
+    FinancialAccount,
     Invitation,
     MealBooking,
     MealType,
@@ -88,6 +104,7 @@ from .models import (
     TeacherMealBooking,
     TeacherMealProfile,
     TeacherMonthlyStatement,
+    UserProfile,
     ensure_role_groups,
     log_event,
     user_has_role,
@@ -339,7 +356,7 @@ def dashboard_preferences(request):
 def navigation_preferences(request):
     section = request.POST.get("section", "")
     collapsed = request.POST.get("collapsed") == "1"
-    allowed_sections = {"menjador", "contactes", "calendari", "portal", "familia", "mi_menjador"}
+    allowed_sections = {"menjador", "economia", "contactes", "calendari", "portal", "familia", "mi_menjador"}
     if section not in allowed_sections:
         return HttpResponseForbidden(_("Aquesta secció no és vàlida."))
     state = dict(request.user.profile.navigation_state or {})
@@ -1257,7 +1274,7 @@ def teacher_profile_edit(request, profile_id):
     })
 
 
-def _sqlite_backup_response(request, filename):
+def _portal_backup_response(request, filename):
     if connection.vendor != "sqlite":
         messages.error(request, _("Les còpies des del portal només estan disponibles amb SQLite."))
         return None
@@ -1269,7 +1286,16 @@ def _sqlite_backup_response(request, filename):
         finally:
             destination.close()
         payload = Path(snapshot.name).read_bytes()
-    response = HttpResponse(payload, content_type="application/vnd.sqlite3")
+    archive = BytesIO()
+    media_root = Path(settings.MEDIA_ROOT)
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        bundle.writestr("backup.json", json.dumps({"format": "afa-ordis-backup", "version": 1}))
+        bundle.writestr("database.sqlite3", payload)
+        if media_root.exists():
+            for media_file in media_root.rglob("*"):
+                if media_file.is_file():
+                    bundle.write(media_file, f"media/{media_file.relative_to(media_root).as_posix()}")
+    response = HttpResponse(archive.getvalue(), content_type="application/zip")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
@@ -1277,8 +1303,8 @@ def _sqlite_backup_response(request, filename):
 @admin_required
 @require_POST
 def portal_backup_download(request):
-    filename = f"afa-ordis-{timezone.localtime():%Y%m%d-%H%M%S}.sqlite3"
-    response = _sqlite_backup_response(request, filename)
+    filename = f"afa-ordis-{timezone.localtime():%Y%m%d-%H%M%S}.zip"
+    response = _portal_backup_response(request, filename)
     if response is not None:
         request.session["restore_safety_backup_at"] = timezone.now().timestamp()
         log_event(request.user, "portal.backup_downloaded", None, {"filename": filename})
@@ -1327,6 +1353,52 @@ def _restore_sqlite_database(path):
     connection.close()
 
 
+def _extract_portal_backup(path):
+    staging = Path(tempfile.mkdtemp(prefix="afa-ordis-restore-"))
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = set(archive.namelist())
+            if "backup.json" not in names or "database.sqlite3" not in names:
+                raise ValueError(_("El fitxer ZIP no és una còpia completa del portal."))
+            try:
+                manifest = json.loads(archive.read("backup.json"))
+            except (json.JSONDecodeError, KeyError) as error:
+                raise ValueError(_("La còpia ZIP no conté un manifest vàlid.")) from error
+            if manifest.get("format") != "afa-ordis-backup" or manifest.get("version") != 1:
+                raise ValueError(_("La còpia ZIP no és compatible amb aquesta versió del portal."))
+            if len(names) > 5000 or sum(item.file_size for item in archive.infolist()) > MAX_BACKUP_UPLOAD_BYTES * 3:
+                raise ValueError(_("La còpia ZIP és massa gran o conté massa fitxers."))
+            for item in archive.infolist():
+                member = Path(item.filename)
+                if member.is_absolute() or ".." in member.parts or item.is_dir():
+                    if item.is_dir():
+                        continue
+                    raise ValueError(_("La còpia ZIP conté una ruta no segura."))
+                if item.filename not in {"backup.json", "database.sqlite3"} and not item.filename.startswith("media/"):
+                    raise ValueError(_("La còpia ZIP conté fitxers no reconeguts."))
+                destination = staging / member
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(item) as source, destination.open("wb") as target:
+                    shutil.copyfileobj(source, target)
+        return staging, staging / "database.sqlite3"
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+
+
+def _restore_media_from_staging(staging):
+    source = staging / "media"
+    if not source.exists():
+        return
+    destination = Path(settings.MEDIA_ROOT)
+    destination.mkdir(parents=True, exist_ok=True)
+    for media_file in source.rglob("*"):
+        if media_file.is_file():
+            target = destination / media_file.relative_to(source)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(media_file, target)
+
+
 @admin_required
 @require_POST
 def portal_restore(request):
@@ -1339,13 +1411,14 @@ def portal_restore(request):
         messages.error(request, _("Abans de restaurar, descarrega una còpia de seguretat actual des d'aquesta mateixa pantalla."))
         return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
     if not upload or upload.size > MAX_BACKUP_UPLOAD_BYTES:
-        messages.error(request, _("Puja una còpia SQLite vàlida de menys de 100 MB."))
+        messages.error(request, _("Puja una còpia ZIP o SQLite vàlida de menys de 100 MB."))
         return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
     if request.POST.get("confirmation") != RESTORE_CONFIRMATION or not request.user.check_password(request.POST.get("password", "")):
         messages.error(request, _("Cal indicar la contrasenya actual i escriure RESTAURA per confirmar l'operació."))
         return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
     suffix = Path(upload.name).suffix or ".sqlite3"
     temporary_path = None
+    staging_path = None
     if not DATABASE_RESTORE_LOCK.acquire(blocking=False):
         messages.error(request, _("Ja hi ha una restauració en curs. Torna-ho a provar en uns instants."))
         return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
@@ -1354,8 +1427,13 @@ def portal_restore(request):
             temporary_path = temporary_file.name
             for chunk in upload.chunks():
                 temporary_file.write(chunk)
-        _validate_restore_database(temporary_path)
-        _restore_sqlite_database(temporary_path)
+        database_path = temporary_path
+        if zipfile.is_zipfile(temporary_path):
+            staging_path, database_path = _extract_portal_backup(temporary_path)
+        _validate_restore_database(database_path)
+        _restore_sqlite_database(database_path)
+        if staging_path:
+            _restore_media_from_staging(staging_path)
         Session.objects.all().delete()
         log_event(None, "portal.database_restored", None, {"restored_by": request.user.email})
         request.session.pop("restore_safety_backup_at", None)
@@ -1372,6 +1450,386 @@ def portal_restore(request):
                 os.unlink(temporary_path)
             except FileNotFoundError:
                 pass
+        if staging_path:
+            shutil.rmtree(staging_path, ignore_errors=True)
+
+
+RECEIPT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"}
+MAX_RECEIPT_FILE_BYTES = 10 * 1024 * 1024
+
+
+def _economic_settings():
+    return EconomicSettings.objects.get_or_create(pk=1)[0]
+
+
+def _can_submit_expenses(user):
+    if not user.is_authenticated:
+        return False
+    if _is_admin(user):
+        return True
+    preferences = _economic_settings()
+    profile, _created = UserProfile.objects.get_or_create(user=user)
+    return preferences.allow_all_users_expense_submissions or profile.can_submit_expenses
+
+
+def _validate_receipts(files):
+    errors = []
+    for uploaded in files:
+        extension = Path(uploaded.name).suffix.lower()
+        if extension not in RECEIPT_EXTENSIONS:
+            errors.append(_("El fitxer %(name)s no és un PDF ni una imatge compatible.") % {"name": uploaded.name})
+        elif uploaded.size > MAX_RECEIPT_FILE_BYTES:
+            errors.append(_("El fitxer %(name)s supera els 10 MB.") % {"name": uploaded.name})
+    return errors
+
+
+def _store_receipts(entry, files, actor):
+    for uploaded in files:
+        EconomicAttachment.objects.create(
+            entry=entry, file=uploaded, original_name=Path(uploaded.name).name[:255], uploaded_by=actor,
+        )
+
+
+def _economic_entry_snapshot(entry):
+    return {
+        "type": entry.entry_type, "date": entry.date.isoformat(), "concept": entry.concept,
+        "category": entry.category_id, "account": entry.account_id, "amount": str(entry.amount),
+        "review": entry.review_status, "payment": entry.payment_status,
+        "paid_on": entry.paid_on.isoformat() if entry.paid_on else None, "notes": entry.notes,
+        "rejected_reason": entry.rejected_reason,
+    }
+
+
+def _economic_queryset(request):
+    entries = EconomicEntry.objects.select_related("category", "account", "submitted_by", "reviewed_by").prefetch_related("attachments")
+    selected_type = request.GET.get("type", "")
+    selected_status = request.GET.get("status", "")
+    selected_account = request.GET.get("account", "")
+    selected_category = request.GET.get("category", "")
+    mode = request.GET.get("period", "academic")
+    selected_year = request.GET.get("year", "")
+    selected_academic_year = request.GET.get("academic_year", "")
+    academic_year = AcademicYear.objects.filter(pk=selected_academic_year).first() if selected_academic_year else _active_year_or_none()
+    calendar_year = None
+    if mode == "calendar":
+        try:
+            calendar_year = int(selected_year)
+        except (TypeError, ValueError):
+            calendar_year = timezone.localdate().year
+        entries = entries.filter(date__year=calendar_year)
+    elif academic_year:
+        entries = entries.filter(date__gte=academic_year.starts_on, date__lte=academic_year.ends_on)
+    if selected_type in EconomicEntryType.values:
+        entries = entries.filter(entry_type=selected_type)
+    if selected_status in EconomicReviewStatus.values:
+        entries = entries.filter(review_status=selected_status)
+    if selected_account.isdigit():
+        entries = entries.filter(account_id=int(selected_account))
+    if selected_category.isdigit():
+        entries = entries.filter(category_id=int(selected_category))
+    return entries, {
+        "selected_type": selected_type, "selected_status": selected_status,
+        "selected_account": selected_account, "selected_category": selected_category,
+        "period_mode": mode, "academic_year": academic_year, "calendar_year": calendar_year,
+    }
+
+
+def _economic_summary(entries):
+    paid = entries.filter(review_status=EconomicReviewStatus.APPROVED, payment_status=EconomicPaymentStatus.PAID)
+    income = paid.filter(entry_type=EconomicEntryType.INCOME).aggregate(total=Sum("amount"))["total"] or 0
+    expense = paid.filter(entry_type=EconomicEntryType.EXPENSE).aggregate(total=Sum("amount"))["total"] or 0
+    pending_payment = entries.filter(
+        review_status=EconomicReviewStatus.APPROVED,
+        entry_type=EconomicEntryType.EXPENSE,
+        payment_status=EconomicPaymentStatus.PENDING,
+    ).aggregate(total=Sum("amount"))["total"] or 0
+    return {"income": income, "expense": expense, "balance": income - expense, "pending_payment": pending_payment}
+
+
+@admin_required
+def economic_dashboard(request):
+    entries, filters = _economic_queryset(request)
+    summary = _economic_summary(entries)
+    account_rows = []
+    for account in FinancialAccount.objects.filter(active=True):
+        account_entries = EconomicEntry.objects.filter(
+            account=account, review_status=EconomicReviewStatus.APPROVED,
+            payment_status=EconomicPaymentStatus.PAID,
+        )
+        income = account_entries.filter(entry_type=EconomicEntryType.INCOME).aggregate(total=Sum("amount"))["total"] or 0
+        expense = account_entries.filter(entry_type=EconomicEntryType.EXPENSE).aggregate(total=Sum("amount"))["total"] or 0
+        account_rows.append({"account": account, "balance": account.opening_balance + income - expense})
+    return render(request, "cafeteria/economic_dashboard.html", {
+        "summary": summary, "entries": entries[:8], "account_rows": account_rows,
+        "pending_review_count": EconomicEntry.objects.filter(review_status=EconomicReviewStatus.SUBMITTED).count(),
+        **filters,
+    })
+
+
+@admin_required
+def economic_entries(request):
+    entries, filters = _economic_queryset(request)
+    return render(request, "cafeteria/economic_entries.html", {
+        "entries": entries[:300], "categories": EconomicCategory.objects.filter(active=True),
+        "accounts": FinancialAccount.objects.filter(active=True), "years": AcademicYear.objects.all(), **filters,
+    })
+
+
+@admin_required
+def economic_export_csv(request):
+    entries, _filters = _economic_queryset(request)
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Data", "Tipus", "Concepte", "Categoria", "Compte", "Import", "Revisió", "Pagament", "Data de pagament", "Presentada per", "Justificants",
+    ])
+    for entry in entries:
+        writer.writerow([
+            entry.date.isoformat(), entry.get_entry_type_display(), entry.concept, entry.category.name,
+            entry.account.name if entry.account else "", f"{entry.amount:.2f}", entry.get_review_status_display(),
+            entry.get_payment_status_display(), entry.paid_on.isoformat() if entry.paid_on else "",
+            entry.submitted_by.get_full_name() or entry.submitted_by.email if entry.submitted_by else "",
+            entry.attachments.count(),
+        ])
+    response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="gestio-economica-afa.csv"'
+    return response
+
+
+@admin_required
+def economic_reports(request):
+    entries, filters = _economic_queryset(request)
+    paid_entries = entries.filter(
+        review_status=EconomicReviewStatus.APPROVED,
+        payment_status=EconomicPaymentStatus.PAID,
+    )
+    category_totals = paid_entries.values("entry_type", "category__name").annotate(total=Sum("amount")).order_by("entry_type", "category__name")
+    return render(request, "cafeteria/economic_reports.html", {
+        "summary": _economic_summary(entries), "category_totals": category_totals,
+        "categories": EconomicCategory.objects.filter(active=True), "accounts": FinancialAccount.objects.filter(active=True),
+        "years": AcademicYear.objects.all(), **filters,
+    })
+
+
+@admin_required
+def economic_entry_form(request, entry_id=None):
+    entry = get_object_or_404(EconomicEntry.objects.prefetch_related("attachments"), pk=entry_id) if entry_id else None
+    if entry and entry.review_status != EconomicReviewStatus.APPROVED:
+        messages.error(request, _("Només es poden editar moviments aprovats."))
+        return redirect("cafeteria:economic_entries")
+    before = _economic_entry_snapshot(entry) if entry else None
+    form = EconomicEntryForm(request.POST or None, instance=entry, initial={
+        "date": timezone.localdate(), "payment_status": EconomicPaymentStatus.PAID, "paid_on": timezone.localdate(),
+    } if entry is None else None)
+    uploads = request.FILES.getlist("attachments") + request.FILES.getlist("camera_attachments")
+    if request.method == "POST" and form.is_valid():
+        errors = _validate_receipts(uploads)
+        if not uploads and not (entry and entry.attachments.exists()):
+            errors.append(_("Adjunta com a mínim un justificant."))
+        if errors:
+            for error in errors:
+                form.add_error(None, error)
+        else:
+            saved = form.save(commit=False)
+            saved.review_status = EconomicReviewStatus.APPROVED
+            saved.rejected_reason = ""
+            saved.reviewed_by = request.user
+            saved.reviewed_at = timezone.now()
+            saved.submitted_by = saved.submitted_by or request.user
+            saved.full_clean()
+            saved.save()
+            _store_receipts(saved, uploads, request.user)
+            after = _economic_entry_snapshot(saved)
+            log_event(request.user, "economic_entry.created" if entry is None else "economic_entry.updated", saved, {
+                "before": before, "after": after, "attachments_added": len(uploads),
+            })
+            messages.success(request, _("S'ha desat el moviment econòmic."))
+            return redirect("cafeteria:economic_entries")
+    return render(request, "cafeteria/economic_entry_form.html", {
+        "form": form, "entry": entry, "title": _("Nou moviment") if entry is None else _("Edita el moviment"),
+        "back_url": reverse("cafeteria:economic_entries"),
+    })
+
+
+@admin_required
+def economic_review(request, entry_id):
+    entry = get_object_or_404(EconomicEntry.objects.prefetch_related("attachments"), pk=entry_id, review_status=EconomicReviewStatus.SUBMITTED)
+    form = EconomicEntryForm(request.POST or None, instance=entry)
+    uploads = request.FILES.getlist("attachments") + request.FILES.getlist("camera_attachments")
+    if request.method == "POST" and form.is_valid():
+        action = request.POST.get("action")
+        before = _economic_entry_snapshot(entry)
+        saved = form.save(commit=False)
+        saved.entry_type = EconomicEntryType.EXPENSE
+        saved.reviewed_by = request.user
+        saved.reviewed_at = timezone.now()
+        if action == "reject":
+            saved.review_status = EconomicReviewStatus.REJECTED
+            saved.rejected_reason = request.POST.get("rejected_reason", "").strip()
+        else:
+            saved.review_status = EconomicReviewStatus.APPROVED
+            saved.rejected_reason = ""
+            if not saved.account_id:
+                form.add_error("account", _("Selecciona el compte que assumirà la despesa."))
+        errors = _validate_receipts(uploads)
+        if errors:
+            for error in errors:
+                form.add_error(None, error)
+        if not form.errors:
+            try:
+                saved.full_clean()
+            except ValidationError as error:
+                form.add_error(None, error)
+            else:
+                saved.save()
+                _store_receipts(saved, uploads, request.user)
+                log_event(request.user, "economic_entry.approved" if action != "reject" else "economic_entry.rejected", saved, {
+                    "before": before, "after": _economic_entry_snapshot(saved), "attachments_added": len(uploads),
+                })
+                messages.success(request, _("S'ha actualitzat la proposta."))
+                return redirect("cafeteria:economic_entries")
+    return render(request, "cafeteria/economic_review.html", {"entry": entry, "form": form})
+
+
+@admin_required
+@require_POST
+def economic_mark_paid(request, entry_id):
+    entry = get_object_or_404(EconomicEntry, pk=entry_id, review_status=EconomicReviewStatus.APPROVED)
+    if entry.payment_status != EconomicPaymentStatus.PAID:
+        entry.payment_status = EconomicPaymentStatus.PAID
+        try:
+            entry.paid_on = date.fromisoformat(request.POST.get("paid_on", ""))
+        except ValueError:
+            entry.paid_on = timezone.localdate()
+        entry.full_clean()
+        entry.save(update_fields=["payment_status", "paid_on", "updated_at"])
+        log_event(request.user, "economic_entry.marked_paid", entry, {"paid_on": entry.paid_on.isoformat()})
+        messages.success(request, _("S'ha marcat com a pagada."))
+    return redirect(request.POST.get("next") or reverse("cafeteria:economic_entries"))
+
+
+@admin_required
+def economic_configuration(request):
+    settings_object = _economic_settings()
+    tab = request.GET.get("tab") or request.POST.get("tab") or "general"
+    account = FinancialAccount.objects.filter(pk=request.GET.get("account") or request.POST.get("account_id")).first()
+    category = EconomicCategory.objects.filter(pk=request.GET.get("category") or request.POST.get("category_id")).first()
+    settings_form = EconomicSettingsForm(instance=settings_object)
+    account_form = FinancialAccountForm(instance=account)
+    category_form = EconomicCategoryForm(instance=category)
+    if request.method == "POST":
+        intent = request.POST.get("intent")
+        if intent == "settings":
+            settings_form = EconomicSettingsForm(request.POST, instance=settings_object)
+            if settings_form.is_valid():
+                saved = settings_form.save(commit=False)
+                saved.updated_by = request.user
+                saved.save()
+                log_event(request.user, "economic_settings.updated", saved)
+                messages.success(request, _("S'ha actualitzat la configuració."))
+                return redirect(f"{reverse('cafeteria:economic_configuration')}?tab=general")
+        elif intent == "account":
+            account_form = FinancialAccountForm(request.POST, instance=account)
+            if account_form.is_valid():
+                saved = account_form.save()
+                log_event(request.user, "financial_account.created" if account is None else "financial_account.updated", saved)
+                messages.success(request, _("S'ha desat el compte."))
+                return redirect(f"{reverse('cafeteria:economic_configuration')}?tab=comptes")
+        elif intent == "category":
+            category_form = EconomicCategoryForm(request.POST, instance=category)
+            if category_form.is_valid():
+                saved = category_form.save()
+                log_event(request.user, "economic_category.created" if category is None else "economic_category.updated", saved)
+                messages.success(request, _("S'ha desat la categoria."))
+                return redirect(f"{reverse('cafeteria:economic_configuration')}?tab=categories")
+        elif intent == "access":
+            selected_ids = {int(value) for value in request.POST.getlist("user_ids") if value.isdigit()}
+            for profile in UserProfile.objects.select_related("user").filter(user__is_active=True):
+                desired = profile.user_id in selected_ids
+                if profile.can_submit_expenses != desired:
+                    profile.can_submit_expenses = desired
+                    profile.save(update_fields=["can_submit_expenses"])
+            log_event(request.user, "economic_submission_access.updated", settings_object, {"user_ids": sorted(selected_ids)})
+            messages.success(request, _("S'han actualitzat les autoritzacions."))
+            return redirect(f"{reverse('cafeteria:economic_configuration')}?tab=accessos")
+    profiles = UserProfile.objects.select_related("user").filter(user__is_active=True).order_by("user__first_name", "user__last_name", "user__email")
+    return render(request, "cafeteria/economic_configuration.html", {
+        "tab": tab, "settings_form": settings_form, "account_form": account_form, "category_form": category_form,
+        "editing_account": account, "editing_category": category, "accounts": FinancialAccount.objects.all(),
+        "categories": EconomicCategory.objects.all(), "profiles": profiles,
+    })
+
+
+@login_required
+def economic_my_expenses(request):
+    if not _can_submit_expenses(request.user):
+        return HttpResponseForbidden(_("No tens permís per presentar despeses."))
+    entries = EconomicEntry.objects.filter(submitted_by=request.user, entry_type=EconomicEntryType.EXPENSE).prefetch_related("attachments")
+    return render(request, "cafeteria/economic_my_expenses.html", {"entries": entries})
+
+
+@login_required
+def economic_submission_form(request, entry_id=None):
+    if not _can_submit_expenses(request.user):
+        return HttpResponseForbidden(_("No tens permís per presentar despeses."))
+    entry = None
+    if entry_id:
+        entry = get_object_or_404(
+            EconomicEntry.objects.prefetch_related("attachments"), pk=entry_id, submitted_by=request.user,
+            review_status=EconomicReviewStatus.SUBMITTED,
+        )
+    form = EconomicSubmissionForm(request.POST or None, instance=entry, initial={"date": timezone.localdate()} if entry is None else None)
+    uploads = request.FILES.getlist("attachments") + request.FILES.getlist("camera_attachments")
+    if request.method == "POST" and form.is_valid():
+        errors = _validate_receipts(uploads)
+        if not uploads and not (entry and entry.attachments.exists()):
+            errors.append(_("Adjunta com a mínim un justificant."))
+        if errors:
+            for error in errors:
+                form.add_error(None, error)
+        else:
+            saved = form.save(commit=False)
+            saved.entry_type = EconomicEntryType.EXPENSE
+            saved.account = None
+            saved.review_status = EconomicReviewStatus.SUBMITTED
+            saved.payment_status = EconomicPaymentStatus.PENDING
+            saved.paid_on = None
+            saved.rejected_reason = ""
+            saved.submitted_by = request.user
+            saved.reviewed_by = None
+            saved.reviewed_at = None
+            saved.save()
+            _store_receipts(saved, uploads, request.user)
+            log_event(request.user, "economic_entry.submitted" if entry is None else "economic_entry.submission_updated", saved, {"attachments_added": len(uploads)})
+            messages.success(request, _("S'ha enviat la despesa per revisar."))
+            return redirect("cafeteria:economic_my_expenses")
+    return render(request, "cafeteria/economic_submission_form.html", {
+        "form": form, "entry": entry, "title": _("Presenta una despesa") if entry is None else _("Edita la despesa"),
+    })
+
+
+@login_required
+@require_POST
+def economic_submission_withdraw(request, entry_id):
+    if not _can_submit_expenses(request.user):
+        return HttpResponseForbidden(_("No tens permís per presentar despeses."))
+    entry = get_object_or_404(
+        EconomicEntry, pk=entry_id, submitted_by=request.user, review_status=EconomicReviewStatus.SUBMITTED,
+    )
+    entry.review_status = EconomicReviewStatus.WITHDRAWN
+    entry.save(update_fields=["review_status", "updated_at"])
+    log_event(request.user, "economic_entry.withdrawn", entry)
+    messages.success(request, _("S'ha retirat la proposta."))
+    return redirect("cafeteria:economic_my_expenses")
+
+
+@login_required
+def economic_attachment_download(request, attachment_id):
+    attachment = get_object_or_404(EconomicAttachment.objects.select_related("entry"), pk=attachment_id)
+    if not _is_admin(request.user) and attachment.entry.submitted_by_id != request.user.id:
+        return HttpResponseForbidden(_("No tens permís per consultar aquest justificant."))
+    log_event(request.user, "economic_attachment.downloaded", attachment.entry, {"attachment": attachment.original_name})
+    return FileResponse(attachment.file.open("rb"), as_attachment=True, filename=attachment.original_name)
 
 
 @staff_required
