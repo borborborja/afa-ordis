@@ -451,6 +451,40 @@ class CafeteriaFlowTests(TestCase):
         booking.refresh_from_db()
         self.assertEqual(booking.meal_type, MealType.REGULAR)
 
+    def test_admin_can_edit_and_delete_a_diet_without_breaking_profiles_or_history(self):
+        admin = User.objects.create_superuser("diet-edit@example.com", "diet-edit@example.com", "correct-horse-battery-staple")
+        teacher_user = User.objects.create_user("teacher-diet@example.com", "teacher-diet@example.com", "correct-horse-battery-staple")
+        teacher = TeacherMealProfile.objects.create(user=teacher_user, default_diet=self.diet)
+        booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        original_diet_name = booking.diet_name
+        self.client.force_login(admin)
+
+        response = self.client.get(reverse("cafeteria:diet_edit", args=[self.diet.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edita la dieta")
+        response = self.client.post(reverse("cafeteria:diet_edit", args=[self.diet.id]), {
+            "name": "Vegetariana",
+            "description": "Sense carn ni peix",
+            "active": "on",
+            "sort_order": "2",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.diet.refresh_from_db()
+        self.assertEqual(self.diet.name, "Vegetariana")
+        self.assertEqual(self.diet.sort_order, 2)
+
+        response = self.client.post(reverse("cafeteria:diet_delete", args=[self.diet.id]))
+        self.assertEqual(response.status_code, 302)
+        self.student.refresh_from_db()
+        teacher.refresh_from_db()
+        booking.refresh_from_db()
+        self.assertFalse(Diet.objects.filter(pk=self.diet.pk).exists())
+        self.assertNotEqual(self.student.default_diet_id, self.diet.pk)
+        self.assertNotEqual(teacher.default_diet_id, self.diet.pk)
+        self.assertTrue(self.student.default_diet.active)
+        self.assertIsNone(booking.diet)
+        self.assertEqual(booking.diet_name, original_diet_name)
+
     def test_member_dashboard_and_responsive_booking_view_render(self):
         self.client.force_login(self.user)
         with translation.override("ca"):

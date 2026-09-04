@@ -1627,9 +1627,84 @@ def meal_configuration(request):
         messages.error(request, _("Revisa les dades del formulari."))
     return render(request, "cafeteria/meal_configuration.html", {
         "active_year": active_year, "settings_form": settings_form, "diet_form": diet_form,
-        "recipient_form": recipient_form, "diets": Diet.objects.all(),
+        "recipient_form": recipient_form,
+        "diets": Diet.objects.annotate(
+            student_total=Count("students", distinct=True),
+            teacher_total=Count("teacher_profiles", distinct=True),
+        ),
         "recipients": settings_object.daily_recipients.all() if settings_object else [],
     })
+
+
+@admin_required
+def diet_form(request, diet_id=None):
+    diet = get_object_or_404(Diet, pk=diet_id) if diet_id else None
+    form = DietForm(request.POST or None, instance=diet)
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        log_event(request.user, "diet.created" if diet is None else "diet.updated", saved)
+        messages.success(request, _("S'ha desat la dieta."))
+        return redirect("cafeteria:meal_configuration")
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Nova dieta") if diet is None else _("Edita la dieta"),
+        "back_url": reverse("cafeteria:meal_configuration"),
+        "help_text": _(
+            "Les dietes inactives no es poden seleccionar en reserves noves, però es conserven a les fitxes que ja les tenen."
+        ),
+    })
+
+
+def _replacement_diet(diet):
+    replacement = Diet.objects.filter(active=True).exclude(pk=diet.pk).first()
+    if replacement:
+        return replacement
+    replacement = Diet.objects.exclude(pk=diet.pk).first()
+    if replacement:
+        replacement.active = True
+        replacement.save(update_fields=["active"])
+        return replacement
+    name = "Dieta estàndard"
+    suffix = 2
+    while Diet.objects.filter(name=name).exists():
+        name = f"Dieta estàndard {suffix}"
+        suffix += 1
+    return Diet.objects.create(
+        name=name,
+        description="Dieta creada automàticament per conservar les fitxes existents.",
+        active=True,
+    )
+
+
+@admin_required
+@require_POST
+def diet_delete(request, diet_id):
+    diet = get_object_or_404(Diet, pk=diet_id)
+    with transaction.atomic():
+        student_count = diet.students.count()
+        teacher_count = diet.teacher_profiles.count()
+        replacement = _replacement_diet(diet) if student_count or teacher_count else None
+        if replacement:
+            Student.objects.filter(default_diet=diet).update(default_diet=replacement)
+            TeacherMealProfile.objects.filter(default_diet=diet).update(default_diet=replacement)
+        diet_name = diet.name
+        log_event(request.user, "diet.deleted", diet, {
+            "students_reassigned": student_count,
+            "teachers_reassigned": teacher_count,
+            "replacement_diet": replacement.name if replacement else None,
+        })
+        diet.delete()
+    if replacement:
+        messages.success(
+            request,
+            _("S'ha eliminat la dieta %(diet)s. Les fitxes que la tenien s'han actualitzat a %(replacement)s.") % {
+                "diet": diet_name,
+                "replacement": replacement.name,
+            },
+        )
+    else:
+        messages.success(request, _("S'ha eliminat la dieta %(diet)s.") % {"diet": diet_name})
+    return redirect("cafeteria:meal_configuration")
 
 
 CSV_COLUMNS = (
