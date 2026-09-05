@@ -255,7 +255,7 @@
         remove.type = 'button';
         remove.className = 'icon-button';
         remove.textContent = '×';
-        remove.setAttribute('aria-label', `Elimina ${item.file.name}`);
+        remove.setAttribute('aria-label', `${previewList.dataset.removeLabel || 'Elimina'} ${item.file.name}`);
         remove.addEventListener('click', () => {
           const index = selected.indexOf(item);
           if (index >= 0) selected.splice(index, 1);

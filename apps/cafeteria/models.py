@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import calendar
 import secrets
 import uuid
 from datetime import date, timedelta
@@ -12,14 +11,15 @@ from django.contrib.auth.models import Group, Permission, User
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
-from django.utils import timezone
+from django.utils import formats, timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class Role(models.TextChoices):
-    ADMIN = "admin", "Administració"
-    MANAGER = "manager", "Gestió de menjador"
-    TUTOR = "tutor", "Persona tutora"
-    TEACHER = "teacher", "Personal docent"
+    ADMIN = "admin", _("Administració")
+    MANAGER = "manager", _("Gestió de menjador")
+    TUTOR = "tutor", _("Persona tutora")
+    TEACHER = "teacher", _("Personal docent")
 
 
 STAFF_ROLES = {Role.ADMIN, Role.MANAGER}
@@ -41,7 +41,7 @@ def user_has_role(user: User, *roles: Role) -> bool:
 
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
-    language = models.CharField(max_length=2, choices=[("ca", "Català"), ("es", "Castellano")], default="ca")
+    language = models.CharField(max_length=2, choices=[("ca", _("Català")), ("es", _("Castellà"))], default="ca")
     receive_operational_emails = models.BooleanField(default=True)
     navigation_state = models.JSONField(default=dict, blank=True)
     dashboard_widgets = models.JSONField(default=list, blank=True)
@@ -66,14 +66,14 @@ class PortalSettings(models.Model):
 
     def clean(self):
         if self.pk and type(self).objects.exclude(pk=self.pk).exists():
-            raise ValidationError("Només pot existir una configuració del portal.")
+            raise ValidationError(_("Només pot existir una configuració del portal."))
 
     def __str__(self) -> str:
         return "Configuració del portal"
 
 
 class AcademicYear(models.Model):
-    name = models.CharField(max_length=9, unique=True, help_text="Exemple: 2026-2027")
+    name = models.CharField(max_length=9, unique=True, help_text=_("Exemple: 2026-2027"))
     starts_on = models.DateField()
     ends_on = models.DateField()
     is_active = models.BooleanField(default=False)
@@ -83,7 +83,7 @@ class AcademicYear(models.Model):
 
     def clean(self):
         if self.ends_on <= self.starts_on:
-            raise ValidationError("La data final ha de ser posterior a la inicial.")
+            raise ValidationError(_("La data final ha de ser posterior a la inicial."))
 
     def save(self, *args, **kwargs):
         if self.is_active:
@@ -121,7 +121,7 @@ class Diet(models.Model):
 
 
 class Family(models.Model):
-    name = models.CharField(max_length=160, help_text="Nom identificatiu de la família")
+    name = models.CharField(max_length=160, help_text=_("Nom identificatiu de la família"))
     billing_email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
     address = models.TextField(blank=True)
@@ -150,7 +150,7 @@ class Family(models.Model):
 class FamilyMembership(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_memberships")
-    label = models.CharField(max_length=80, blank=True, help_text="Exemple: persona tutora o contacte principal")
+    label = models.CharField(max_length=80, blank=True, help_text=_("Exemple: persona tutora o contacte principal"))
     is_primary_contact = models.BooleanField(default=False)
 
     class Meta:
@@ -161,16 +161,16 @@ class FamilyMembership(models.Model):
 
 
 class AfaMembershipStatus(models.TextChoices):
-    PENDING = "pending", "Pendent de cobrament"
-    PAID = "paid", "Pagada"
-    EXEMPT = "exempt", "Exempta"
+    PENDING = "pending", _("Pendent de cobrament")
+    PAID = "paid", _("Pagada")
+    EXEMPT = "exempt", _("Exempta")
 
 
 class AfaPaymentMethod(models.TextChoices):
-    TRANSFER = "transfer", "Transferència"
-    CASH = "cash", "Efectiu"
-    CARD = "card", "Targeta"
-    OTHER = "other", "Altres"
+    TRANSFER = "transfer", _("Transferència")
+    CASH = "cash", _("Efectiu")
+    CARD = "card", _("Targeta")
+    OTHER = "other", _("Altres")
 
 
 class AfaFeeSettings(models.Model):
@@ -212,33 +212,33 @@ class AfaMembership(models.Model):
 
     def clean(self):
         if self.status == AfaMembershipStatus.PAID and not self.paid_on:
-            raise ValidationError("Cal indicar la data de cobrament d'una quota pagada.")
+            raise ValidationError(_("Cal indicar la data de cobrament d'una quota pagada."))
 
     def __str__(self):
         return f"{self.family} · quota AFA {self.academic_year}"
 
 
 class FinancialAccountType(models.TextChoices):
-    BANK = "bank", "Compte bancari"
-    CASH = "cash", "Efectiu"
-    OTHER = "other", "Altres"
+    BANK = "bank", _("Compte bancari")
+    CASH = "cash", _("Efectiu")
+    OTHER = "other", _("Altres")
 
 
 class EconomicEntryType(models.TextChoices):
-    INCOME = "income", "Ingrés"
-    EXPENSE = "expense", "Despesa"
+    INCOME = "income", _("Ingrés")
+    EXPENSE = "expense", _("Despesa")
 
 
 class EconomicReviewStatus(models.TextChoices):
-    SUBMITTED = "submitted", "Pendent de revisar"
-    APPROVED = "approved", "Aprovada"
-    REJECTED = "rejected", "Rebutjada"
-    WITHDRAWN = "withdrawn", "Retirada"
+    SUBMITTED = "submitted", _("Pendent de revisar")
+    APPROVED = "approved", _("Aprovada")
+    REJECTED = "rejected", _("Rebutjada")
+    WITHDRAWN = "withdrawn", _("Retirada")
 
 
 class EconomicPaymentStatus(models.TextChoices):
-    PENDING = "pending", "Pendent de pagament"
-    PAID = "paid", "Pagada"
+    PENDING = "pending", _("Pendent de pagament")
+    PAID = "paid", _("Pagada")
 
 
 class EconomicSettings(models.Model):
@@ -253,7 +253,7 @@ class EconomicSettings(models.Model):
 
     def clean(self):
         if self.pk and type(self).objects.exclude(pk=self.pk).exists():
-            raise ValidationError("Només pot existir una configuració econòmica.")
+            raise ValidationError(_("Només pot existir una configuració econòmica."))
 
     def __str__(self):
         return "Configuració econòmica"
@@ -316,13 +316,13 @@ class EconomicEntry(models.Model):
 
     def clean(self):
         if self.amount is not None and self.amount <= 0:
-            raise ValidationError({"amount": "L'import ha de ser superior a zero."})
+            raise ValidationError({"amount": _("L'import ha de ser superior a zero.")})
         if self.category_id and self.entry_type and self.category.entry_type != self.entry_type:
-            raise ValidationError({"category": "La categoria no correspon al tipus de moviment."})
+            raise ValidationError({"category": _("La categoria no correspon al tipus de moviment.")})
         if self.review_status == EconomicReviewStatus.APPROVED and not self.account_id:
-            raise ValidationError({"account": "Cal indicar el compte de l'AFA."})
+            raise ValidationError({"account": _("Cal indicar el compte de l'AFA.")})
         if self.review_status == EconomicReviewStatus.REJECTED and not self.rejected_reason.strip():
-            raise ValidationError({"rejected_reason": "Cal indicar el motiu del rebuig."})
+            raise ValidationError({"rejected_reason": _("Cal indicar el motiu del rebuig.")})
         if self.payment_status == EconomicPaymentStatus.PAID and not self.paid_on:
             self.paid_on = self.date
 
@@ -354,13 +354,13 @@ class EconomicAttachment(models.Model):
 
 
 class MealPlan(models.TextChoices):
-    FIXED = "fixed", "Fix"
-    SPORADIC = "sporadic", "Esporàdic"
+    FIXED = "fixed", _("Fix")
+    SPORADIC = "sporadic", _("Esporàdic")
 
 
 class MealType(models.TextChoices):
-    REGULAR = "regular", "Menú convencional"
-    PACKED_LUNCH = "packed_lunch", "Carmanyola"
+    REGULAR = "regular", _("Menú convencional")
+    PACKED_LUNCH = "packed_lunch", _("Carmanyola")
 
 
 class Student(models.Model):
@@ -374,7 +374,7 @@ class Student(models.Model):
     contact_notes = models.TextField(blank=True)
     default_diet = models.ForeignKey(Diet, on_delete=models.PROTECT, related_name="students")
     dietary_notes = models.TextField(blank=True)
-    is_scholarship = models.BooleanField(default=False, verbose_name="Ajut de menjador")
+    is_scholarship = models.BooleanField(default=False, verbose_name=_("Ajut de menjador"))
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices, default=MealPlan.FIXED)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -429,7 +429,7 @@ class ServiceDay(models.Model):
 
     def clean(self):
         if not self.academic_year.starts_on <= self.date <= self.academic_year.ends_on:
-            raise ValidationError("El dia ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("El dia ha de ser dins del curs acadèmic."))
 
     def __str__(self) -> str:
         return f"{self.date:%d/%m/%Y} · {'Servei' if self.is_service_day else 'Sense servei'}"
@@ -438,7 +438,7 @@ class ServiceDay(models.Model):
 class CourseClosure(models.Model):
     course_group = models.ForeignKey(CourseGroup, on_delete=models.CASCADE, related_name="closures")
     date = models.DateField()
-    title = models.CharField(max_length=160, default="Excursió")
+    title = models.CharField(max_length=160, default=_("Excursió"))
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -447,16 +447,16 @@ class CourseClosure(models.Model):
 
     def clean(self):
         if not self.course_group.academic_year.starts_on <= self.date <= self.course_group.academic_year.ends_on:
-            raise ValidationError("L'excursió ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("L'excursió ha de ser dins del curs acadèmic."))
 
     def __str__(self) -> str:
         return f"{self.title} · {self.course_group.name} · {self.date:%d/%m/%Y}"
 
 
 class AcademicHolidayType(models.TextChoices):
-    GENERAL = "general", "Festiu general"
-    LOCAL = "local", "Festiu local"
-    SCHOOL = "school", "Festiu de centre"
+    GENERAL = "general", _("Festiu general")
+    LOCAL = "local", _("Festiu local")
+    SCHOOL = "school", _("Festiu de centre")
 
 
 class AcademicHoliday(models.Model):
@@ -473,11 +473,11 @@ class AcademicHoliday(models.Model):
 
     def clean(self):
         if self.ends_on < self.starts_on:
-            raise ValidationError("La data final no pot ser anterior a la inicial.")
+            raise ValidationError(_("La data final no pot ser anterior a la inicial."))
         if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
-            raise ValidationError("L'inici del festiu ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("L'inici del festiu ha de ser dins del curs acadèmic."))
         if not self.academic_year.starts_on <= self.ends_on <= self.academic_year.ends_on:
-            raise ValidationError("El final del festiu ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("El final del festiu ha de ser dins del curs acadèmic."))
 
     def __str__(self):
         return f"{self.get_holiday_type_display()} · {self.title} · {self.starts_on:%d/%m/%Y}"
@@ -489,7 +489,7 @@ class AcademicIntensivePeriod(models.Model):
     academic_year = models.ForeignKey(
         AcademicYear, on_delete=models.CASCADE, related_name="intensive_periods"
     )
-    title = models.CharField(max_length=160, default="Jornada intensiva")
+    title = models.CharField(max_length=160, default=_("Jornada intensiva"))
     starts_on = models.DateField()
     ends_on = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -500,19 +500,19 @@ class AcademicIntensivePeriod(models.Model):
 
     def clean(self):
         if self.ends_on < self.starts_on:
-            raise ValidationError("La data final no pot ser anterior a la inicial.")
+            raise ValidationError(_("La data final no pot ser anterior a la inicial."))
         if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
-            raise ValidationError("L'inici de la jornada intensiva ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("L'inici de la jornada intensiva ha de ser dins del curs acadèmic."))
         if not self.academic_year.starts_on <= self.ends_on <= self.academic_year.ends_on:
-            raise ValidationError("El final de la jornada intensiva ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("El final de la jornada intensiva ha de ser dins del curs acadèmic."))
 
     def __str__(self):
         return f"{self.title} · {self.starts_on:%d/%m/%Y}"
 
 
 class AcademicNoticeLevel(models.TextChoices):
-    INFORMATION = "information", "Informació"
-    ALERT = "alert", "Alerta"
+    INFORMATION = "information", _("Informació")
+    ALERT = "alert", _("Alerta")
 
 
 class AcademicNotice(models.Model):
@@ -537,11 +537,11 @@ class AcademicNotice(models.Model):
 
     def clean(self):
         if self.ends_on < self.starts_on:
-            raise ValidationError("La data final no pot ser anterior a la inicial.")
+            raise ValidationError(_("La data final no pot ser anterior a la inicial."))
         if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
-            raise ValidationError("L'inici de la incidència ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("L'inici de la incidència ha de ser dins del curs acadèmic."))
         if not self.academic_year.starts_on <= self.ends_on <= self.academic_year.ends_on:
-            raise ValidationError("El final de la incidència ha de ser dins del curs acadèmic.")
+            raise ValidationError(_("El final de la incidència ha de ser dins del curs acadèmic."))
 
     def __str__(self):
         return f"{self.get_level_display()} · {self.title} · {self.starts_on:%d/%m/%Y}"
@@ -549,8 +549,8 @@ class AcademicNotice(models.Model):
 
 class MealSettings(models.Model):
     academic_year = models.OneToOneField(AcademicYear, on_delete=models.CASCADE, related_name="meal_settings")
-    daily_cutoff = models.TimeField(null=True, blank=True, help_text="Sense valor: les famílies poden modificar reserves fins al final del dia.")
-    daily_report_send_time = models.TimeField(null=True, blank=True, help_text="Sense valor: no s'envia cap informe diari automàtic.")
+    daily_cutoff = models.TimeField(null=True, blank=True, help_text=_("Sense valor: les famílies poden modificar reserves fins al final del dia."))
+    daily_report_send_time = models.TimeField(null=True, blank=True, help_text=_("Sense valor: no s'envia cap informe diari automàtic."))
     monthly_preparation_day = models.PositiveSmallIntegerField(default=1)
     monthly_preparation_hour = models.TimeField(default="08:00")
     daily_reports_enabled = models.BooleanField(default=False)
@@ -558,7 +558,7 @@ class MealSettings(models.Model):
 
     def clean(self):
         if not 1 <= self.monthly_preparation_day <= 28:
-            raise ValidationError("El dia de preparació mensual ha d'estar entre 1 i 28.")
+            raise ValidationError(_("El dia de preparació mensual ha d'estar entre 1 i 28."))
 
     def __str__(self) -> str:
         return f"Configuració de menjador · {self.academic_year}"
@@ -609,8 +609,8 @@ class PriceRule(models.Model):
 
 
 class BookingStatus(models.TextChoices):
-    ACTIVE = "active", "Activa"
-    CANCELLED = "cancelled", "Anul·lada"
+    ACTIVE = "active", _("Activa")
+    CANCELLED = "cancelled", _("Anul·lada")
 
 
 class MealBooking(models.Model):
@@ -690,9 +690,9 @@ class DailyReport(models.Model):
 
 
 class StatementStatus(models.TextChoices):
-    PREPARED = "prepared", "Preparat"
-    CLOSED = "closed", "Tancat"
-    SENT = "sent", "Enviat"
+    PREPARED = "prepared", _("Preparat")
+    CLOSED = "closed", _("Tancat")
+    SENT = "sent", _("Enviat")
 
 
 class MonthlyStatement(models.Model):
@@ -712,7 +712,7 @@ class MonthlyStatement(models.Model):
 
     @property
     def label(self) -> str:
-        return f"{calendar.month_name[self.month]} {self.year}"
+        return formats.date_format(date(self.year, self.month, 1), "F Y")
 
     def __str__(self) -> str:
         return f"{self.family} · {self.month:02d}/{self.year}"
@@ -784,9 +784,9 @@ class Invitation(models.Model):
 
     def clean(self):
         if self.role == Role.TUTOR and not self.family:
-            raise ValidationError("Una invitació de tutor necessita una família.")
+            raise ValidationError(_("Una invitació de tutor necessita una família."))
         if self.role != Role.TUTOR and self.family:
-            raise ValidationError("Només els tutors es vinculen a una família.")
+            raise ValidationError(_("Només les persones tutores es vinculen a una família."))
 
     def save(self, *args, **kwargs):
         if not self.token:
@@ -822,9 +822,9 @@ class FamilyImportBatch(models.Model):
     """A short-lived, reviewed CSV import.  The source file is never stored."""
 
     class Status(models.TextChoices):
-        PREVIEW = "preview", "Pendent de confirmar"
-        IMPORTED = "imported", "Importat"
-        EXPIRED = "expired", "Caducat"
+        PREVIEW = "preview", _("Pendent de confirmar")
+        IMPORTED = "imported", _("Importat")
+        EXPIRED = "expired", _("Caducat")
 
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT, related_name="family_imports")
     uploaded_by = models.ForeignKey(

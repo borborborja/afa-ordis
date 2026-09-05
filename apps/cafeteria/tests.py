@@ -5,6 +5,7 @@ import tempfile
 from unittest.mock import patch
 import zipfile
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.exceptions import ValidationError
@@ -57,6 +58,7 @@ from .tasks import send_daily_report
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class CafeteriaFlowTests(TestCase):
     def setUp(self):
+        translation.activate("ca")
         self.today = timezone.localdate()
         self.year = AcademicYear.objects.create(
             name="2026-2027",
@@ -79,6 +81,9 @@ class CafeteriaFlowTests(TestCase):
         )
         ServiceDay.objects.create(academic_year=self.year, date=self.today, is_service_day=True)
         PriceRule.objects.create(scholarship=False, meal_plan=MealPlan.FIXED, effective_from=self.today - timedelta(days=10), amount=Decimal("6.50"))
+
+    def tearDown(self):
+        translation.deactivate()
 
     def test_tutor_can_create_a_booking_for_own_child(self):
         self.client.force_login(self.user)
@@ -643,8 +648,55 @@ class CafeteriaFlowTests(TestCase):
         with translation.override("ca"):
             response = self.client.post(reverse("cafeteria:set_language"), {"language": "es", "next": reverse("cafeteria:dashboard")})
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/es/")
+        self.assertEqual(response.cookies[settings.LANGUAGE_COOKIE_NAME].value, "es")
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.language, "es")
+
+    def test_catalan_is_the_default_even_with_a_spanish_browser(self):
+        response = self.client.get("/", HTTP_ACCEPT_LANGUAGE="es-ES,es;q=0.9")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/ca/")
+
+        response = self.client.get("/ca/comptes/entrada/", HTTP_ACCEPT_LANGUAGE="es-ES,es;q=0.9")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Language"], "ca")
+        self.assertContains(response, 'lang="ca"')
+        self.assertContains(response, "Benvinguda")
+
+    def test_switching_language_keeps_the_same_internal_page_and_query(self):
+        self.client.force_login(self.user)
+        spanish_path = f"/es/families/{self.family.id}/menjador/?month=2026-09"
+        response = self.client.post("/es/comptes/idioma/", {"language": "ca", "next": spanish_path})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], f"/ca/families/{self.family.id}/menjador/?month=2026-09")
+        self.assertEqual(response.cookies[settings.LANGUAGE_COOKIE_NAME].value, "ca")
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.language, "ca")
+
+    def test_anonymous_language_choice_is_remembered_in_a_cookie(self):
+        response = self.client.post("/ca/comptes/idioma/", {
+            "language": "es",
+            "next": "/ca/comptes/entrada/",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/es/comptes/entrada/")
+        self.assertEqual(response.cookies[settings.LANGUAGE_COOKIE_NAME].value, "es")
+
+        self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = "es"
+        response = self.client.get("/es/comptes/entrada/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Language"], "es")
+        self.assertContains(response, "Bienvenida")
+        self.assertContains(response, "reservas de comedor vinculadas a tu cuenta")
+
+    def test_language_choice_does_not_redirect_to_an_external_url(self):
+        response = self.client.post("/ca/comptes/idioma/", {
+            "language": "es",
+            "next": "https://example.invalid/",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/es/")
 
     @override_settings(EMAIL_HOST="", APP_BASE_URL="")
     def test_invitation_link_can_be_created_without_smtp(self):

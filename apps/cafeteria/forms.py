@@ -395,6 +395,6 @@ class PriceRuleForm(forms.ModelForm):
 class BookingBulkForm(forms.Form):
     student_id = forms.IntegerField()
     dates = forms.CharField(widget=forms.HiddenInput())
-    action = forms.ChoiceField(choices=[("add", "Apuntar a dinar"), ("cancel", "Anul·lar")])
+    action = forms.ChoiceField(choices=[("add", _("Apuntar a dinar")), ("cancel", _("Anul·lar"))])
     diet_id = forms.IntegerField(required=False)
     override_reason = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))

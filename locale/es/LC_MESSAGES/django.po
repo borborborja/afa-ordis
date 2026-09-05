@@ -1,53 +1,1377 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-06 00:28+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
-"MIME-Version: 1.0\n"
 "Language: es\n"
+"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Correu electrònic"
+msgstr "Correo electrónico"
+
+msgid "Tipus d'accés"
+msgstr "Tipo de acceso"
+
+msgid "Família"
+msgstr "Familia"
+
+msgid "Cal seleccionar una família per convidar una persona tutora."
+msgstr "Debe seleccionarse una familia para invitar a una persona tutora."
+
+msgid "Les invitacions de personal no es vinculen a una família."
+msgstr "Las invitaciones del personal no están vinculadas a una familia."
+
+msgid "Nom"
+msgstr "Nombre"
+
+msgid "Cognoms"
+msgstr "Apellidos"
+
+msgid "Correu de facturació"
+msgstr "Correo electrónico de facturación"
+
+msgid "Telèfon de contacte"
+msgstr "Teléfono de contacto"
+
+msgid "Adreça"
+msgstr "Dirección"
+
+msgid "Rebre els resums mensuals per correu"
+msgstr "Recibir resúmenes mensuales por correo"
+
+msgid "Dieta predeterminada"
+msgstr "Dieta predeterminada"
+
+msgid "Modalitat"
+msgstr "Modalidad"
+
+msgid "Actiu"
+msgstr "Activo"
+
+msgid "Observacions"
+msgstr "Comentarios"
+
+msgid "Curs acadèmic"
+msgstr "Curso académico"
+
+msgid "Nom del festiu"
+msgstr "Nombre del día festivo"
+
+msgid "Tipus de festiu"
+msgstr "Tipo de festivo"
+
+msgid "Data inicial"
+msgstr "Fecha de inicio"
+
+msgid "Data final"
+msgstr "Fecha de finalización"
+
+msgid "Nom del període"
+msgstr "Nombre del periodo"
+
+msgid "Títol de la incidència"
+msgstr "Título del incidente"
+
+msgid "Informació per a les famílies"
+msgstr "Información para familias"
+
+msgid "Tipus"
+msgstr "Tipo"
+
+msgid "Quota anual AFA (€)"
+msgstr "Tarifa anual de la AFA (€)"
+
+msgid "Nom del compte"
+msgstr "Nombre de la cuenta"
+
+msgid "Tipus de compte"
+msgstr "Tipo de cuenta"
+
+msgid "Saldo inicial (€)"
+msgstr "Saldo inicial (€)"
+
+msgid "Data del saldo inicial"
+msgstr "Fecha del saldo inicial"
+
+msgid "Nom de la categoria"
+msgstr "Nombre de la categoría"
+
+msgid "Tipus de moviment"
+msgstr "Tipos de movimiento"
+
+msgid "Activa"
+msgstr "Activar"
+
+msgid "Ordre"
+msgstr "Orden"
+
+msgid "Permet que qualsevol persona registrada presenti despeses"
+msgstr "Permite a cualquier persona registrada presentar gastos"
+
+msgid "Data"
+msgstr "Fecha"
+
+msgid "Concepte o proveïdor"
+msgstr "Concepto o proveedor"
+
+msgid "Categoria"
+msgstr "Categoría"
+
+msgid "Compte de l'AFA"
+msgstr "Cuenta AFA"
+
+msgid "Import (€)"
+msgstr "Importe (€)"
+
+msgid "Estat de pagament"
+msgstr "Estado del pago"
+
+msgid "Data de pagament"
+msgstr "Fecha de pago"
+
+msgid "Selecciona una categoria del mateix tipus que el moviment."
+msgstr "Seleccione una categoría del mismo tipo que el movimiento."
+
+msgid "Data de la despesa"
+msgstr "Fecha del gasto"
+
+msgid "Estat de la quota"
+msgstr "Estado de la cuota"
+
+msgid "Import de la quota (€)"
+msgstr "Importe de la tasa (€)"
+
+msgid "Data de cobrament"
+msgstr "Fecha de cobro"
+
+msgid "Mètode de cobrament"
+msgstr "Método de cobro"
+
+msgid "Referència"
+msgstr "Referencia"
+
+msgid "Hora límit per a canvis de les famílies"
+msgstr "Fecha límite para cambios familiares"
+
+msgid "Hora d'enviament automàtic del llistat"
+msgstr "Hora de envío automático del listado"
+
+msgid "Activa l'enviament automàtic del llistat diari"
+msgstr "Activar el envío automático del listado diario"
+
+msgid "Dia de preparació dels resums mensuals"
+msgstr "Día de preparación del resumen mensual"
+
+msgid "Hora de preparació dels resums mensuals"
+msgstr "Hora de preparación de los resúmenes mensuales"
+
+msgid "Activa la preparació automàtica de resums"
+msgstr "Habilitar la preparación automática de resúmenes"
+
+msgid "Enllaç al menú de l'escola"
+msgstr "Enlace al menú de la escuela"
+
+msgid "Fitxer CSV"
+msgstr "Archivo CSV"
+
+msgid "El fitxer no pot superar 2 MB."
+msgstr "El archivo no puede exceder los 2 MB."
+
+msgid "Cal pujar un fitxer CSV."
+msgstr "Es necesario cargar un archivo CSV."
+
+msgid "Amb ajut de menjador"
+msgstr "Con ayuda de comedor"
+
+msgid "Vàlida des de"
+msgstr "Válido desde"
+
+msgid "Preu per àpat (€)"
+msgstr "Precio por comida (€)"
+
+msgid "Apuntar a dinar"
+msgstr "Reservar comida"
+
+msgid "Anul·lar"
+msgstr "Cancelar"
+
+msgid "Administració"
+msgstr "Administración"
+
+msgid "Gestió de menjador"
+msgstr "Gestión del comedor"
+
+msgid "Persona tutora"
+msgstr "Persona tutora"
+
+msgid "Personal docent"
+msgstr "Personal docente"
+
+msgid "Català"
+msgstr "Catalán"
+
+msgid "Castellà"
+msgstr "Español"
+
+#| msgid "Només pot existir una configuració econòmica."
+msgid "Només pot existir una configuració del portal."
+msgstr "Solo puede existir una configuración del portal."
+
+msgid "Exemple: 2026-2027"
+msgstr "Ejemplo: 2026-2027"
+
+msgid "La data final ha de ser posterior a la inicial."
+msgstr "La fecha de finalización debe ser posterior a la inicial."
+
+msgid "Nom identificatiu de la família"
+msgstr "Nombre identificativo de la familia"
+
+msgid "Exemple: persona tutora o contacte principal"
+msgstr "Ejemplo: persona tutora o contacto principal"
+
+msgid "Pendent de cobrament"
+msgstr "Pago pendiente"
+
+msgid "Pagada"
+msgstr "Pagada"
+
+msgid "Exempta"
+msgstr "Exento"
+
+msgid "Transferència"
+msgstr "Transferencia"
+
+msgid "Efectiu"
+msgstr "Efectivo"
+
+msgid "Targeta"
+msgstr "Tarjeta"
+
+msgid "Altres"
+msgstr "Otros"
+
+msgid "Cal indicar la data de cobrament d'una quota pagada."
+msgstr "Debe indicarse la fecha de cobro de una cuota pagada."
+
+msgid "Compte bancari"
+msgstr "Cuenta bancaria"
+
+msgid "Ingrés"
+msgstr "Ingresos"
+
+msgid "Despesa"
+msgstr "Gastos"
+
+msgid "Pendent de revisar"
+msgstr "Pendiente de revisión"
+
+msgid "Aprovada"
+msgstr "Aprobado"
+
+msgid "Rebutjada"
+msgstr "Rechazado"
+
+msgid "Retirada"
+msgstr "Retiro"
+
+msgid "Pendent de pagament"
+msgstr "Pendiente de pago"
+
+msgid "Només pot existir una configuració econòmica."
+msgstr "Solo puede existir una configuración económica."
+
+msgid "L'import ha de ser superior a zero."
+msgstr "El importe debe ser superior a cero."
+
+#| msgid "Selecciona una categoria del mateix tipus que el moviment."
+msgid "La categoria no correspon al tipus de moviment."
+msgstr "La categoría no corresponde al tipo de movimiento."
+
+#| msgid "Compte de l'AFA"
+msgid "Cal indicar el compte de l'AFA."
+msgstr "Debe indicarse la cuenta de la AFA."
+
+#| msgid "Cal indicar el motiu del canvi fora de termini."
+msgid "Cal indicar el motiu del rebuig."
+msgstr "Debe indicarse el motivo del rechazo."
+
+msgid "Fix"
+msgstr "Arreglar"
+
+msgid "Esporàdic"
+msgstr "Esporádico"
+
+msgid "Menú convencional"
+msgstr "Menú convencional"
+
+msgid "Carmanyola"
+msgstr "Fiambrera"
+
+msgid "Ajut de menjador"
+msgstr "Ayuda de comedor"
+
+msgid "El dia ha de ser dins del curs acadèmic."
+msgstr "El día debe estar dentro del curso académico."
+
+msgid "Excursió"
+msgstr "Excursión"
+
+msgid "L'excursió ha de ser dins del curs acadèmic."
+msgstr "La excursión debe estar dentro del curso académico."
+
+msgid "Festiu general"
+msgstr "Festivo general"
+
+msgid "Festiu local"
+msgstr "Festivo local"
+
+msgid "Festiu de centre"
+msgstr "Festivo de centro"
+
+msgid "La data final no pot ser anterior a la inicial."
+msgstr "La fecha de finalización no puede ser anterior a la fecha de inicio."
+
+msgid "L'inici del festiu ha de ser dins del curs acadèmic."
+msgstr "El inicio del festivo debe estar dentro del curso académico."
+
+msgid "El final del festiu ha de ser dins del curs acadèmic."
+msgstr "El final del festivo debe estar dentro del curso académico."
+
+msgid "Jornada intensiva"
+msgstr "Jornada intensiva"
+
+msgid "L'inici de la jornada intensiva ha de ser dins del curs acadèmic."
+msgstr "El inicio de la jornada intensiva debe ser dentro del curso académico."
+
+msgid "El final de la jornada intensiva ha de ser dins del curs acadèmic."
+msgstr ""
+"El final de la jornada intensiva debe estar dentro del curso académico."
+
+msgid "Informació"
+msgstr "Información"
+
+msgid "Alerta"
+msgstr "Alerta"
+
+msgid "L'inici de la incidència ha de ser dins del curs acadèmic."
+msgstr "El inicio de la incidencia debe estar dentro del curso académico."
+
+msgid "El final de la incidència ha de ser dins del curs acadèmic."
+msgstr "El final de la incidencia debe estar dentro del curso académico."
+
+msgid ""
+"Sense valor: les famílies poden modificar reserves fins al final del dia."
+msgstr ""
+"Sin valor: las familias pueden cambiar las reservas hasta el final del día."
+
+msgid "Sense valor: no s'envia cap informe diari automàtic."
+msgstr "Sin valor: no se envía ningún informe diario automático."
+
+msgid "El dia de preparació mensual ha d'estar entre 1 i 28."
+msgstr "El día de preparación mensual debe ser entre 1 y 28."
+
+msgid "Anul·lada"
+msgstr "Cancelado"
+
+msgid "Preparat"
+msgstr "Listo"
+
+msgid "Tancat"
+msgstr "Cerrado"
+
+msgid "Enviat"
+msgstr "Enviado"
+
+msgid "Una invitació de tutor necessita una família."
+msgstr "Una invitación de una persona tutora necesita una familia."
+
+msgid "Només les persones tutores es vinculen a una família."
+msgstr "Solo las personas tutoras se vinculan a una familia."
+
+msgid "Pendent de confirmar"
+msgstr "Pendiente de confirmación"
+
+msgid "Importat"
+msgstr "Importado"
+
+msgid "Caducat"
+msgstr "Vencido"
+
+msgid "No tens permís per accedir a aquesta pàgina."
+msgstr "No tiene permiso para acceder a esta página."
+
+msgid "Ordinària"
+msgstr "Regular"
+
+msgid "Àpats d'avui"
+msgstr "Comidas de hoy"
+
+msgid "reserves actives previstes"
+msgstr "reservas activas planificadas"
+
+msgid "Dietes d'avui"
+msgstr "Dietas de hoy"
+
+#, python-format
+msgid "%(count)d tipus"
+msgstr "%(count)d tipo"
+
+msgid "Sense reserves"
+msgstr "Sin reservas"
+
+msgid "Llistats per actualitzar"
+msgstr "Listas para actualizar"
+
+msgid "llistats enviats amb canvis posteriors"
+msgstr "listas enviadas con cambios posteriores"
+
+msgid "Resums pendents"
+msgstr "Resúmenes pendientes"
+
+msgid "resums mensuals per revisar"
+msgstr "resúmenes mensuales para revisar"
+
+msgid "Planificació"
+msgstr "Planificación"
+
+msgid "àpats programats aquest mes"
+msgstr "comidas programadas para este mes"
+
+msgid "Contactes actius"
+msgstr "Contactos activos"
+
+msgid "famílies registrades"
+msgstr "familias registradas"
+
+msgid "Quotes AFA pendents"
+msgstr "Tarifas AFA pendientes"
+
+msgid "quotes per regularitzar"
+msgstr "cuotas A regularizar"
+
+msgid "Invitacions pendents"
+msgstr "Invitaciones pendientes"
+
+msgid "enllaços d'alta vigents"
+msgstr "enlaces DE carreteras actuales"
+
+msgid "Calendari escolar"
+msgstr "Calendario escolar"
+
+msgid "dies lectius amb servei"
+msgstr "días escolares con servicio"
+
+msgid "Selecciona com a mínim un giny per a l'inici."
+msgstr "Seleccione al menos un widget para el inicio."
+
+msgid "S'ha personalitzat l'inici."
+msgstr "Comienza a personalizar."
+
+msgid "Aquesta secció no és vàlida."
+msgstr "Esta sección no es válida."
+
+msgid "No tens cap família activa vinculada al teu compte."
+msgstr "No tienes ninguna familia activa vinculada a tu cuenta."
+
+msgid "S'han actualitzat les dades de contacte de la família."
+msgstr "Se han actualizado los datos de contacto de la familia."
+
+msgid "El termini de canvis per a aquest dia ha acabat."
+msgstr "El periodo de cambio para este día ha terminado."
+
+msgid "Aquest dia no té servei de menjador."
+msgstr "No hay servicio de comedor en este día."
+
+msgid "Cal indicar el motiu del canvi fora de termini."
+msgstr "Se debe indicar el motivo del cambio tardío."
+
+msgid "No s'ha pogut actualitzar la reserva."
+msgstr "No se ha podido actualizar la reserva."
+
+msgid "La data no és vàlida."
+msgstr "Fecha no válida."
+
+msgid "Selecciona una dieta disponible per a una reserva activa."
+msgstr "Selecciona una dieta disponible para una reserva activa."
+
+msgid "L'acció de reserva no és vàlida."
+msgstr "La acción de reserva no es válida."
+
+msgid "Primer reserva l'àpat de l'infant seleccionat."
+msgstr "Primero reserva la comida de la persona seleccionada."
+
+msgid "Cal indicar el motiu de qualsevol canvi després de l'hora límit."
+msgstr ""
+"Se debe indicar el motivo de cualquier cambio después de la hora límite."
+
+#, python-format
+msgid "S'han actualitzat %(count)s dies de menjador."
+msgstr "%(count)s días de comida actualizados."
+
+#, python-format
+msgid "S'han ignorat %(count)s dies no disponibles o bloquejats."
+msgstr "Se ignoraron %(count)s días no disponibles o bloqueados."
+
+#, python-format
+msgid "S'han actualitzat %(count)s reserves de menjador."
+msgstr "Se actualizaron %(count)s reservas de comedor."
+
+msgid "Selecciona com a mínim un dia abans d'escollir una acció."
+msgstr "Selecciona al menos un día antes de elegir una acción."
+
+msgid "Aquesta pàgina és per al personal docent."
+msgstr "Esta página es para el personal docente."
+
+msgid "No tens permís per modificar aquestes reserves."
+msgstr "No tienes permiso para modificar estas reservas."
+
+#, python-format
+msgid "S'han actualitzat %(count)s reserves."
+msgstr "Se han actualizado %(count)s reservas."
+
+msgid ""
+"Alguns dies no es poden modificar perquè no hi ha servei o ja s'ha tancat el "
+"termini."
+msgstr ""
+"Algunos días no se pueden cambiar porque no hay servicio o el plazo ya ha "
+"vencido."
+
+#, python-format
+msgid "S'ha actualitzat la fitxa de %(name)s."
+msgstr "Se ha actualizado la ficha de %(name)s."
+
+msgid ""
+"La invitació s'ha creat. Copia l'enllaç i comparteix-lo manualment perquè la "
+"persona pugui crear la contrasenya."
+msgstr ""
+"Se ha creado la invitación. Copia el enlace y compártelo manualmente para "
+"que la persona pueda crear la contraseña."
+
+msgid "Invitació al portal AFA Ordis"
+msgstr "Invitación al portal AFA Ordis"
+
+#, python-format
+msgid ""
+"Has rebut una invitació. Crea el teu compte aquí:\n"
+"%(url)s"
+msgstr ""
+"Has sido invitado. Crea tu cuenta aquí:\n"
+"%(url)s"
+
+msgid "S'ha enviat la invitació. També en pots copiar l'enllaç."
+msgstr "Invitación enviada. También puedes copiar el enlace."
+
+msgid ""
+"La invitació s'ha creat, però no s'ha pogut enviar el correu. Copia l'enllaç "
+"manualment."
+msgstr ""
+"Se ha creado la invitación, pero no se ha podido enviar el correo "
+"electrónico. Copia el enlace manualmente."
+
+msgid "Aquesta invitació ha caducat o ja s'ha utilitzat."
+msgstr "Esta invitación ha caducado o ya se ha utilizado."
+
+msgid "Inicia sessió amb el compte convidat per acceptar la invitació."
+msgstr "Inicia sesión con la cuenta de invitado para aceptar la invitación."
+
+msgid "Aquesta invitació correspon a un altre compte."
+msgstr "Esta invitación es para otra cuenta."
+
+msgid "La invitació s'ha acceptat correctament."
+msgstr "Invitación aceptada con éxito."
+
+msgid "El teu compte ja està actiu."
+msgstr "Tu cuenta ya está activa."
+
+msgid "Data no vàlida."
+msgstr "Fecha no válida."
+
+msgid "No s'ha pogut enviar l'informe. Revisa la configuració SMTP."
+msgstr ""
+"No se ha podido enviar el informe. Por favor, revise su configuración SMTP."
+
+msgid "S'ha enviat l'informe."
+msgstr "Se ha enviado el informe."
+
+msgid "No hi ha configuració de destinataris per a aquest dia."
+msgstr "No hay configuraciones de destinatarios para este día."
+
+msgid "Mes no vàlid."
+msgstr "Mes no válido."
+
+#, python-format
+msgid "S'han preparat %(count)s resums mensuals."
+msgstr "Se han preparado %(count)s resúmenes mensuales."
+
+msgid "No tens permís per veure aquest resum."
+msgstr "No tiene permiso para ver este resumen."
+
+msgid "El resum s'ha tancat."
+msgstr "El resumen ha sido cerrado."
+
+msgid "Cal tancar el resum abans d'enviar-lo."
+msgstr "Debe cerrar el resumen antes de enviarlo."
+
+msgid "No s'ha pogut enviar el resum. Revisa la configuració SMTP."
+msgstr ""
+"No se ha podido enviar el resumen. Por favor, revise su configuración SMTP."
+
+msgid "S'ha enviat el resum."
+msgstr "Se ha enviado el resumen."
+
+msgid "La família no té cap correu configurat."
+msgstr "La familia no tiene ningún correo electrónico configurado."
+
+msgid "No tens permís per descarregar aquest resum."
+msgstr "No tiene permiso para descargar este resumen."
+
+msgid ""
+"No hi ha SMTP configurat. Pots descarregar o consultar el resum des del "
+"portal."
+msgstr ""
+"Sin SMTP configurado. Puede descargar o ver el resumen desde el portal."
+
+msgid "La persona no té cap correu configurat."
+msgstr "La persona no tiene ningún correo electrónico configurado."
+
+msgid ""
+"No s'ha pogut enviar el correu de recuperació. Torna-ho a provar o contacta "
+"amb ARAM (lleure@aramemporda.com)."
+msgstr ""
+"No se ha podido enviar el correo electrónico de recuperación. Inténtelo de "
+"nuevo o póngase en contacto con ARAM (lleure@aramemporda.com)."
+
+msgid ""
+"La recuperació per correu encara no està configurada. Demana a "
+"l'administració un enllaç personal de restauració."
+msgstr ""
+"La recuperación de correo aún no está configurada. Solicite a la "
+"administración un enlace de restauración personal."
+
+#, python-format
+msgid "S'ha enviat l'enllaç de restauració a %(email)s."
+msgstr "Enlace de restauración enviado a %(email)s."
+
+msgid "No s'ha pogut enviar el correu. Copia l'enllaç manualment."
+msgstr ""
+"No se ha podido enviar el correo electrónico. Copia el enlace manualmente."
+
+msgid ""
+"Copia l'enllaç i comparteix-lo de manera segura amb la persona registrada."
+msgstr ""
+"Copia el enlace y compártelo de forma segura con el solicitante de registro."
+
+msgid "S'ha actualitzat el perfil de menjador."
+msgstr "Perfil del comedor actualizado."
+
+#, python-format
+msgid "Perfil de menjador de %(name)s"
+msgstr "Perfil gastronómico de %(name)s"
+
+msgid "Les còpies des del portal només estan disponibles amb SQLite."
+msgstr "Las copias del portal solo están disponibles con SQLite."
+
+msgid "La còpia no supera la comprovació d'integritat SQLite."
+msgstr "La copia falla la comprobación de integridad de SQLite."
+
+msgid "El fitxer no sembla ser una còpia del portal AFA Ordis."
+msgstr "El archivo no parece ser una copia del portal AFA Ordis."
+
+msgid "La còpia no és compatible amb la versió actual del portal."
+msgstr "La copia no es compatible con la versión actual del portal."
+
+msgid "El fitxer no conté l'estructura necessària del portal."
+msgstr "El archivo no contiene la estructura de portal necesaria."
+
+msgid "No es pot restaurar una base de dades en memòria."
+msgstr "No se puede restaurar una base de datos en memoria."
+
+msgid "El fitxer ZIP no és una còpia completa del portal."
+msgstr "El archivo ZIP no es una copia completa del portal."
+
+msgid "La còpia ZIP no conté un manifest vàlid."
+msgstr "La copia ZIP no contiene un manifiesto válido."
+
+msgid "La còpia ZIP no és compatible amb aquesta versió del portal."
+msgstr "La copia ZIP no es compatible con esta versión del portal."
+
+msgid "La còpia ZIP és massa gran o conté massa fitxers."
+msgstr "La copia ZIP es demasiado grande o contiene demasiados archivos."
+
+msgid "La còpia ZIP conté una ruta no segura."
+msgstr "La copia ZIP contiene una ruta insegura."
+
+msgid "La còpia ZIP conté fitxers no reconeguts."
+msgstr "La copia ZIP contiene archivos no reconocidos."
+
+msgid ""
+"Abans de restaurar, descarrega una còpia de seguretat actual des d'aquesta "
+"mateixa pantalla."
+msgstr ""
+"Antes de restaurar, descargue una copia de seguridad actual desde esta misma "
+"pantalla."
+
+msgid "Puja una còpia ZIP o SQLite vàlida de menys de 100 MB."
+msgstr "Cargue una copia ZIP o SQLite válida de menos de 100 MB."
+
+msgid ""
+"Cal indicar la contrasenya actual i escriure RESTAURA per confirmar "
+"l'operació."
+msgstr ""
+"Debe introducir la contraseña actual y escribir RESTAURAR para confirmar la "
+"operación."
+
+msgid "Ja hi ha una restauració en curs. Torna-ho a provar en uns instants."
+msgstr ""
+"Una restauración ya está en curso. Inténtalo de nuevo en unos momentos."
+
+msgid ""
+"S'ha restaurat la base de dades. Per seguretat, cal tornar a iniciar sessió."
+msgstr "Base de datos restaurada. Vuelve a iniciar sesión por seguridad."
+
+msgid "No s'ha pogut restaurar la còpia."
+msgstr "No se ha podido restaurar la copia."
+
+#, python-format
+msgid "El fitxer %(name)s no és un PDF ni una imatge compatible."
+msgstr "El archivo %(name)s no es un PDF ni una imagen admitida."
+
+#, python-format
+msgid "El fitxer %(name)s supera els 10 MB."
+msgstr "El archivo %(name)s supera los 10 MB."
+
+msgid "Només es poden editar moviments aprovats."
+msgstr "Solo se pueden editar los movimientos aprobados."
+
+msgid "Adjunta com a mínim un justificant."
+msgstr "Adjunte al menos un recibo."
+
+msgid "S'ha desat el moviment econòmic."
+msgstr "El movimiento económico se ha salvado."
+
+msgid "Nou moviment"
+msgstr "Nuevo movimiento"
+
+msgid "Edita el moviment"
+msgstr "Editar movimiento"
+
+msgid "Selecciona el compte que assumirà la despesa."
+msgstr "Selecciona la cuenta que cubrirá el gasto."
+
+msgid "S'ha actualitzat la proposta."
+msgstr "Propuesta actualizada."
+
+msgid "S'ha marcat com a pagada."
+msgstr "Marcado como pagado."
+
+msgid "S'ha actualitzat la configuració."
+msgstr "Configuración actualizada."
+
+msgid "S'ha desat el compte."
+msgstr "Cuenta guardada."
+
+msgid "S'ha desat la categoria."
+msgstr "La categoría se ha guardado."
+
+msgid "S'han actualitzat les autoritzacions."
+msgstr "Los permisos se han actualizado."
+
+msgid "No tens permís per presentar despeses."
+msgstr "No se le permite presentar gastos."
+
+msgid "S'ha enviat la despesa per revisar."
+msgstr "El gasto se ha enviado para su revisión."
+
+msgid "Presenta una despesa"
+msgstr "Presentar un gasto"
+
+msgid "Edita la despesa"
+msgstr "Editar gasto"
+
+msgid "S'ha retirat la proposta."
+msgstr "Propuesta retirada."
+
+msgid "No tens permís per consultar aquest justificant."
+msgstr "No tienes permiso para ver este cupón."
+
+msgid "Primer crea un curs acadèmic per gestionar les quotes AFA."
+msgstr "Primero crea un curso académico para gestionar las cuotas de la AFA."
+
+msgid "S'ha actualitzat la quota AFA de referència."
+msgstr "Se ha actualizado la cuota AFA de referencia."
+
+msgid "Cal crear un curs acadèmic abans de registrar una quota AFA."
+msgstr ""
+"Debe crearse un curso académico antes de registrar una cuota de la AFA."
+
+msgid "S'ha desat la quota AFA de la família."
+msgstr "Se ha guardado la cuota de la AFA de la familia."
+
+#, python-format
+msgid "Quota AFA de %(family)s"
+msgstr "Cuota de AFA de %(family)s"
+
+msgid "Aquesta quota no afecta les reserves ni els imports del menjador."
+msgstr "Esta cuota no afecta a las reservas ni a los importes del comedor."
+
+msgid "La família consta com a no sòcia en aquest curs."
+msgstr "La familia aparece como no miembro en este curso."
+
+msgid "S'ha desat la família."
+msgstr "Familia salvada."
+
+msgid "Nova família"
+msgstr "Nueva familia"
+
+msgid "Edita la família"
+msgstr "Editar familia"
+
+msgid ""
+"Les persones tutores s'afegeixen amb una invitació un cop creada la família."
+msgstr ""
+"Los tutores se añaden con una invitación una vez que se crea la familia."
+
+msgid "S'ha desat la fitxa de l'alumne."
+msgstr "Se ha guardado el expediente del estudiante."
+
+msgid "Nou alumne"
+msgstr "Estudiante nuevo"
+
+msgid "Edita la fitxa de l'alumne"
+msgstr "Editar tarjeta de estudiante"
+
+msgid "S'ha desat el curs acadèmic."
+msgstr "Se ha guardado el curso académico."
+
+msgid ""
+"S'han ajustat els elements del calendari i les reserves afectades que "
+"quedaven fora del nou període."
+msgstr ""
+"Se han ajustado los elementos del calendario y las reservas afectadas que "
+"estaban fuera del nuevo periodo."
+
+msgid "No s'ha pogut desar el curs. Revisa les dates."
+msgstr "No se ha podido guardar el curso. Consulta las fechas."
+
+msgid "Nou curs acadèmic"
+msgstr "Nuevo curso académico"
+
+msgid "Edita el curs acadèmic"
+msgstr "Editar el curso académico"
+
+msgid ""
+"Pots corregir el nom i el període del curs. Si l'amplies, genera després els "
+"nous dies lectius. En escurçar-lo es retiren els dies, les excursions i les "
+"reserves que queden fora del període."
+msgstr ""
+"Puede corregir el nombre y el periodo del curso. Si lo expande, genere los "
+"nuevos días escolares. Cuando se acorta, se retiran los días, excursiones y "
+"reservas que están fuera del periodo."
+
+msgid "Fora del període lectiu corregit"
+msgstr "Fuera del periodo escolar corregido"
+
+msgid "S'han preparat els dies lectius de dilluns a divendres."
+msgstr "Los días escolares se han preparado de lunes a viernes."
+
+msgid "La data no pertany al curs seleccionat."
+msgstr "La fecha no pertenece al curso seleccionado."
+
+msgid "S'ha actualitzat el dia del calendari."
+msgstr "El día calendario se ha actualizado."
+
+msgid "S'ha desat el curs o grup."
+msgstr "El curso o grupo se ha guardado."
+
+msgid "No s'ha pogut desar el grup."
+msgstr "El grupo no se ha podido guardar."
+
+msgid "Nou grup"
+msgstr "Nuevo grupo"
+
+msgid "Edita el grup"
+msgstr "Editar grupo"
+
+msgid ""
+"Pots corregir el nom i l'ordre del grup. Per mantenir coherents les "
+"excursions, el grup es manté dins del seu curs acadèmic."
+msgstr ""
+"Puede corregir el nombre y el orden del grupo. Para mantener la coherencia "
+"de las excursiones, el grupo se mantiene dentro de su curso académico."
+
+#, python-format
+msgid ""
+"S'ha eliminat el grup %(group)s. %(students)d alumnat queda sense grup i "
+"%(closures)d excursions s'han eliminat."
+msgstr ""
+"El grupo %(group)s se ha eliminado. %(students)d estudiantes se quedan sin "
+"grupo y %(closures)d excursiones se han eliminado."
+
+msgid ""
+"S'ha desat l'excursió. Les reserves es mantenen i, si cal, es mostraran com "
+"a carmanyola."
+msgstr ""
+"La excursión se ha guardado. Las reservas se mantienen y, si es necesario, "
+"se mostrarán como carmanyola."
+
+msgid "No s'ha pogut desar l'excursió."
+msgstr "No se ha podido guardar la excursión."
+
+msgid "Nova excursió"
+msgstr "Nueva excursión"
+
+msgid "Edita l'excursió"
+msgstr "Editar la excursión"
+
+msgid ""
+"L'excursió és informativa: les famílies encara poden reservar l'àpat, que "
+"s'identificarà com a carmanyola al llistat."
+msgstr ""
+"La excursión es informativa: las familias aún pueden reservar la comida, que "
+"se identificará como fiambrera en el listado."
+
+msgid "S'ha eliminat l'excursió."
+msgstr "La excursión se ha eliminado."
+
+msgid "S'ha desat el període festiu."
+msgstr "Se ha guardado el periodo festivo."
+
+msgid "Nou festiu acadèmic"
+msgstr "Nuevo feriado académico"
+
+msgid "Edita el festiu acadèmic"
+msgstr "Editar el festivo académico"
+
+msgid ""
+"Els festius generals, locals i de centre tanquen el servei de menjador "
+"durant tot el període."
+msgstr ""
+"Los días festivos generales, locales y del centro cierran el servicio de "
+"comedor durante todo el período."
+
+msgid ""
+"S'ha eliminat el període festiu. Les reserves anul·lades no es reactiven "
+"automàticament."
+msgstr ""
+"Se ha eliminado el periodo festivo. Las reservas canceladas no se reactivan "
+"automáticamente."
+
+msgid "S'ha desat el període de jornada intensiva."
+msgstr "Se ha guardado el periodo de jornada intensiva."
+
+msgid "Nou període de jornada intensiva"
+msgstr "Nuevo periodo de jornada intensiva"
+
+msgid "Edita la jornada intensiva"
+msgstr "Editar la jornada intensiva"
+
+msgid ""
+"Aquest període només s'informa als calendaris i no modifica el servei de "
+"menjador."
+msgstr ""
+"Este periodo solo se informa en los calendarios y no cambia el servicio de "
+"comedor."
+
+msgid "S'ha eliminat el període de jornada intensiva."
+msgstr "Se ha eliminado el periodo de jornada intensiva."
+
+msgid "S'ha desat la incidència del calendari."
+msgstr "Problema de calendario guardado."
+
+msgid "Nova incidència"
+msgstr "Nuevo incidente"
+
+msgid "Edita la incidència"
+msgstr "Editar problema"
+
+msgid ""
+"Les incidències informen totes les famílies i no modifiquen el servei de "
+"menjador."
+msgstr ""
+"Los incidentes informan a todas las familias y no alteran el servicio de "
+"comedor."
+
+msgid "S'ha eliminat la incidència del calendari."
+msgstr "Se ha eliminado el problema del calendario."
+
+msgid "S'ha actualitzat la configuració del menjador."
+msgstr "La configuración del comedor se ha actualizado."
+
+msgid "S'ha afegit la dieta."
+msgstr "Se ha añadido la dieta."
+
+msgid "S'ha afegit el destinatari."
+msgstr "Destinatario añadido."
+
+msgid "S'ha guardat la tarifa amb data d'efecte."
+msgstr "Se ha guardado la tarifa con fecha de vigencia."
+
+msgid "S'ha actualitzat l'enllaç al menú de l'escola."
+msgstr "Se ha actualizado el enlace al menú de la escuela."
+
+msgid "Revisa les dades del formulari."
+msgstr "Revise los detalles del formulario."
+
+msgid "S'ha desat la dieta."
+msgstr "La dieta se ha salvado."
+
+msgid "Nova dieta"
+msgstr "Nueva dieta"
+
+msgid "Edita la dieta"
+msgstr "Editar dieta"
+
+msgid ""
+"Les dietes inactives no es poden seleccionar en reserves noves, però es "
+"conserven a les fitxes que ja les tenen."
+msgstr ""
+"Las dietas inactivas no se pueden seleccionar en las reservas nuevas, pero "
+"se conservan en los anuncios existentes."
+
+#, python-format
+msgid ""
+"S'ha eliminat la dieta %(diet)s. Les fitxes que la tenien s'han actualitzat "
+"a %(replacement)s."
+msgstr ""
+"Se ha eliminado la dieta %(diet)s. Los anuncios que lo tenían se han "
+"actualizado a %(replacement)s."
+
+#, python-format
+msgid "S'ha eliminat la dieta %(diet)s."
+msgstr "Se ha eliminado la dieta %(diet)s."
+
+msgid "cal indicar Sí o No"
+msgstr "Sí o No"
+
+msgid "El CSV ha d'estar codificat en UTF-8."
+msgstr "El CSV debe estar codificado en UTF-8."
+
+msgid "Les columnes no coincideixen amb la plantilla descarregable."
+msgstr "Las columnas no coinciden con la plantilla descargable."
+
+#, python-format
+msgid "falta %(column)s"
+msgstr "Falta %(column)s"
+
+msgid "el grup no existeix en el curs seleccionat"
+msgstr "grupo no existe en el curso seleccionado"
+
+msgid "la dieta no existeix o no està activa"
+msgstr "la dieta no existe o no está activa"
+
+msgid "la data de naixement ha de tenir format AAAA-MM-DD"
+msgstr "la fecha de nacimiento debe estar en formato AAAA-MM-DD"
+
+msgid "la modalitat ha de ser Fix o Esporàdic"
+msgstr "la modalidad debe ser Fija o Esporádica"
+
+msgid "l'alumne es repeteix dins del fitxer"
+msgstr "el estudiante repite dentro del archivo"
+
+msgid "ja existeix un alumne amb aquesta família i nom"
+msgstr "un estudiante con esta familia y nombre ya existe"
+
+msgid ""
+"Aquesta previsualització ja no es pot importar. Torna a pujar el fitxer."
+msgstr "Esta vista previa ya no se puede importar. Vuelve a subir el archivo."
+
+msgid ""
+"No s'ha pogut completar la importació perquè alguna dada ja existeix. No "
+"s'ha desat cap fila."
+msgstr ""
+"No se ha podido completar la importación porque ya existen algunos datos. No "
+"se han guardado filas."
+
+#, python-format
+msgid ""
+"Importació feta: %(families)s famílies i %(students)s alumnes. Ara pots "
+"enviar les invitacions manualment."
+msgstr ""
+"Importación realizada: %(families)s familias y %(students)s estudiantes. "
+"Ahora puedes enviar invitaciones manualmente."
+
+msgid "Gestió acadèmica"
+msgstr "Gestión académica"
+
+msgid "Curs escolar"
+msgstr "Curso escolar"
+
+msgid "Defineix quan hi ha servei de menjador i en quins grups s'aplica."
+msgstr "Defina cuándo hay servicio de comedor y en qué grupos se aplica."
+
+msgid "Obre el calendari"
+msgstr "Abrir calendario"
+
+msgid "grups o cursos"
+msgstr "grupos o cursos"
+
+msgid "períodes festius"
+msgstr "días festivos"
+
+msgid "excursions de grup"
+msgstr "excursiones EN grupo"
+
+msgid "Gestió del curs"
+msgstr "Gestión de cursos"
+
+msgid "Crea cursos, genera dies lectius i mantén els grups."
+msgstr "Crear cursos, generar días escolares y mantener grupos."
+
+msgid "Calendari anual"
+msgstr "Calendario anual"
+
+msgid "Gestiona festius, jornada intensiva, excursions i incidències."
+msgstr "Gestiona festivos, jornada intensiva, excursiones e incidencias."
+
+msgid "Comptes"
+msgstr "Cuentas"
+
+msgid "Persones registrades"
+msgstr "Personas registradas"
+
+msgid ""
+"Consulta els accessos i genera enllaços segurs de restauració de contrasenya."
+msgstr ""
+"Ver los inicios de sesión y generar enlaces seguros para restablecer la "
+"contraseña."
+
+msgid "Crea una invitació"
+msgstr "Crear una invitación"
+
+msgid "Cerca per nom o correu"
+msgstr "Buscar por nombre o correo electrónico"
+
+msgid "Cerca"
+msgstr "Buscar"
+
+msgid "Enllaç de restauració per a"
+msgstr "Enlace de restauración para"
+
+msgid "Enllaç de restauració"
+msgstr "Enlace de restauración"
+
+msgid ""
+"Comparteix-lo de forma privada. Caduca quan es fa servir o canvia la "
+"contrasenya."
+msgstr "Compartir en privado. Caduca cuando se utiliza o cambia la contraseña."
+
+msgid "Persona"
+msgstr "Persona"
+
+msgid "Accés"
+msgstr "Acceso"
+
+msgid "Vinculació"
+msgstr "Vinculante"
+
+msgid "Sense rol"
+msgstr "Sin rol"
+
+msgid "Restableix contrasenya"
+msgstr "Restablecer contraseña"
+
+msgid "Perfil de menjador"
+msgstr "Perfil del comedor"
+
+msgid "No s'han trobat comptes."
+msgstr "No se han encontrado cuentas."
+
+msgid "Quotes AFA"
+msgstr "Tarifas de la AFA"
+
+msgid "AFA"
+msgstr "AFA"
+
+msgid ""
+"Ser membre de l'AFA és opcional i no modifica mai l'accés ni la facturació "
+"del menjador."
+msgstr ""
+"Ser miembro de la AFA es opcional y nunca cambia el acceso ni la facturación "
+"del comedor."
+
+msgid "Contactes i AFA"
+msgstr "Contactos y AFA"
+
+msgid "Estat"
+msgstr "Estado"
+
+msgid "Tots"
+msgstr "Todos"
+
+msgid "Pendents"
+msgstr "Pendiente"
+
+msgid "Pagades"
+msgstr "Pagadas"
+
+msgid "Exemptes"
+msgstr "Exenciones"
+
+msgid "Desa la quota de referència"
+msgstr "Guardar la cuota de referencia"
+
+msgid "Famílies sòcies"
+msgstr "Familias asociadas"
+
+msgid "Import"
+msgstr "Importar"
+
+msgid "Cobrament"
+msgstr "Cobro"
+
+msgid "Edita"
+msgstr "Editar"
+
+msgid "No és sòcia"
+msgstr "No es socio"
+
+msgid "Encara no hi ha cap quota registrada per a aquest curs."
+msgstr "Todavía no hay cuotas registradas para este curso."
+
+msgid "Famílies no sòcies"
+msgstr "Familias no asociadas"
+
+msgid "Contacte de facturació"
+msgstr "Contacto de facturación"
+
+msgid "Registra la quota"
+msgstr "Registrar la cuota"
+
+msgid "Totes les famílies actives tenen una quota registrada."
+msgstr "Todas las familias activas tienen una cuota registrada."
+
+msgid "Registre"
+msgstr "Inscripción"
+
+msgid "Registre de canvis"
+msgstr "Registro de cambios"
+
+msgid "Traçabilitat de les accions importants del portal."
+msgstr "Trazabilidad de acciones importantes del portal."
+
+msgid "Quan"
+msgstr "Cuando"
+
+msgid "Usuari"
+msgstr "Usuario"
+
+msgid "Acció"
+msgstr "Acción"
+
+msgid "Element"
+msgstr "Artículo"
+
+msgid "Detall"
+msgstr "Detalle"
+
+msgid "No hi ha canvis registrats."
+msgstr "No se han registrado cambios."
+
+msgid "Navegació principal"
+msgstr "Navegación principal"
+
+msgid "Escola Maria Pagès i Texer, Ordis"
+msgstr "Escuela Maria Pagès i Texer, Ordis"
+
+msgid "Família activa"
+msgstr "Familia activa"
+
 msgid "Inici"
 msgstr "Inicio"
 
-msgid "Gestió"
-msgstr "Gestión"
+msgid "Menjador"
+msgstr "Comedor"
 
-msgid "Famílies i alumnes"
-msgstr "Familias y alumnado"
+msgid "Reserva de menjador"
+msgstr "Reserva de comedor"
 
-msgid "Calendari"
-msgstr "Calendario"
-
-msgid "Configuració"
-msgstr "Configuración"
-
-msgid "Importa CSV"
-msgstr "Importar CSV"
-
-msgid "Llistats diaris"
-msgstr "Listados diarios"
-
-msgid "Tarifes"
-msgstr "Tarifas"
-
-msgid "Resums"
-msgstr "Resúmenes"
-
-msgid "Invitacions"
-msgstr "Invitaciones"
-
-msgid "Portal de l'AFA d'Ordis"
-msgstr "Portal de la AFA de Ordis"
+msgid "Informes"
+msgstr "Informes"
 
 msgid "Menú"
 msgstr "Menú"
 
-msgid "Menjador escolar"
-msgstr "Comedor escolar"
+msgid "La meva família"
+msgstr "Mi familia"
+
+msgid "Dades i contactes"
+msgstr "Detalles y contactos"
+
+msgid "Les meves despeses"
+msgstr "Mis gastos"
+
+msgid "Llistats diaris"
+msgstr "Listados diarios"
+
+msgid "Planificació mensual"
+msgstr "Planificación mensual"
+
+msgid "Informes mensuals"
+msgstr "Informes mensuales"
+
+msgid "Configuració del menjador"
+msgstr "Configuración del comedor"
+
+msgid "Gestió econòmica"
+msgstr "Gestión económica"
+
+msgid "Visió general"
+msgstr "Descripción general"
+
+msgid "Moviments"
+msgstr "Movimientos"
+
+msgid "Tiquets pendents"
+msgstr "Tickets pendientes"
+
+msgid "Configuració"
+msgstr "Configuración"
+
+msgid "Famílies, alumnat i docents"
+msgstr "Familias, estudiantes y maestros"
+
+msgid "Importa CSV"
+msgstr "Importar CSV"
+
+msgid "Administració del portal"
+msgstr "Administración del portal"
+
+msgid "Invitacions"
+msgstr "Invitaciones"
+
+msgid "Còpies de seguretat"
+msgstr "Copias de seguridad"
+
+msgid "Auditoria"
+msgstr "Auditoría"
+
+msgid "El meu menjador"
+msgstr "Mi comedor"
+
+msgid "Les meves reserves"
+msgstr "Mis reservas"
+
+msgid "Portal de l'AFA d'Ordis"
+msgstr "Portal de la AFA de Ordis"
+
+msgid "Obre el menú"
+msgstr "Abrir menú"
+
+msgid "A Safari, toca Comparteix i després Afegeix a la pantalla d’inici."
+msgstr "En Safari, toca Compartir y luego Añadir a la pantalla de inicio."
+
+msgid "Instal·la l'app"
+msgstr "Instalar la aplicación"
+
+msgid "Portal AFA Ordis"
+msgstr "Portal AFA Ordis"
 
 msgid "Idioma"
 msgstr "Idioma"
@@ -58,158 +1382,588 @@ msgstr "Cerrar sesión"
 msgid "Portal autogestionat"
 msgstr "Portal autogestionado"
 
-msgid "Benvinguda"
-msgstr "Bienvenida"
+msgid "Tanca"
+msgstr "Cerrar"
 
-msgid "Hola, %(name)s"
-msgstr "Hola, %(name)s"
+msgid "Justificants"
+msgstr "Justificantes"
 
-msgid "Des d'aquí pots gestionar el menjador dels teus fills amb tranquil·litat."
-msgstr "Desde aquí puedes gestionar el comedor de tus hijos con tranquilidad."
+msgid "Tiquet, factura o comprovant"
+msgstr "Tique, factura o justificante"
 
-msgid "Els teus fills"
-msgstr "Tus hijos"
+msgid "Adjunta almenys un document. Pots afegir-ne tants com calgui."
+msgstr "Adjunte al menos un documento. Puedes añadir tantas como necesites."
 
-msgid "Escull un infant per veure i modificar les reserves."
-msgstr "Elige un niño o niña para ver y modificar las reservas."
+msgid "Fer una foto"
+msgstr "Haz una foto"
 
-msgid "Gestiona"
-msgstr "Gestionar"
+msgid "Pujar arxius"
+msgstr "Subir archivos"
 
-msgid "Pròxims àpats"
-msgstr "Próximas comidas"
+msgid "Elimina"
+msgstr "Eliminar"
 
-msgid "No hi ha cap reserva pròxima."
-msgstr "No hay ninguna reserva próxima."
+msgid "Dades i AFA"
+msgstr "Datos y AFA"
 
-msgid "Necessites ajuda?"
-msgstr "¿Necesitas ayuda?"
-
-msgid "Reserva de menjador"
-msgstr "Reserva de comedor"
-
-msgid "Marca els dies i la dieta. Els canvis es desen en prémer el botó final."
-msgstr "Marca los días y la dieta. Los cambios se guardan al pulsar el botón final."
-
-msgid "Torna"
-msgstr "Volver"
-
-msgid "Setmana del"
-msgstr "Semana del"
-
-msgid "Fitxa"
-msgstr "Ficha"
-
-msgid "Dieta predeterminada"
-msgstr "Dieta predeterminada"
-
-msgid "Apunta"
-msgstr "Reservar"
-
-msgid "Anul·la"
-msgstr "Cancelar"
-
-msgid "No hi ha alumnes actius"
-msgstr "No hay alumnos activos"
-
-msgid "Edita fitxa"
-msgstr "Editar ficha"
-
-msgid "Dieta"
-msgstr "Dieta"
-
-msgid "Apunta dies marcats"
-msgstr "Reservar días marcados"
-
-msgid "Anul·la dies marcats"
-msgstr "Cancelar días marcados"
-
-msgid "Panell d'administració"
-msgstr "Panel de administración"
-
-msgid "Tot a punt per al menjador"
-msgstr "Todo listo para el comedor"
-
-msgid "Gestiona les dades, el calendari i les comunicacions des d'un sol lloc."
-msgstr "Gestiona los datos, el calendario y las comunicaciones desde un solo lugar."
-
-msgid "Afegeix una família"
-msgstr "Añadir una familia"
+msgid ""
+"Gestiona les dades necessàries per al menjador, independentment de ser o no "
+"membre de l'AFA."
+msgstr ""
+"Gestionar los datos necesarios para el comedor, independientemente de que "
+"seas o no miembro de la AFA."
 
 msgid "famílies actives"
 msgstr "familias activas"
 
 msgid "alumnes actius"
-msgstr "alumnos activos"
+msgstr "alumnado activo"
 
-msgid "dies de servei"
-msgstr "días de servicio"
+msgid "persones docents"
+msgstr "personal docente"
 
-msgid "àpats avui"
-msgstr "comidas hoy"
+msgid "quotes AFA pendents"
+msgstr "cuotas AFA pendientes"
 
-msgid "Crea fitxes, revisa dades i prepara invitacions."
-msgstr "Crea fichas, revisa datos y prepara invitaciones."
+msgid "Fitxes de contacte i perfils de menjador."
+msgstr "Hojas de contacto y perfiles de comedor."
 
-msgid "Calendari escolar"
-msgstr "Calendario escolar"
+msgid "Quota anual única, amb seguiment manual de cobraments."
+msgstr "Tarifa anual única, con seguimiento manual de los cobros."
 
-msgid "Genera dies lectius, tanca festius i marca excursions."
-msgstr "Genera días lectivos, cierra festivos y marca excursiones."
+msgid ""
+"Crea i corregeix els cursos acadèmics, els dies lectius i els grups de "
+"l'escola."
+msgstr "Crear y editar cursos académicos, días escolares y grupos escolares."
 
-msgid "Configuració del menjador"
-msgstr "Configuración del comedor"
+msgid "Veure el calendari anual"
+msgstr "Ver calendario anual"
 
-msgid "Defineix dietes, avisos i correus de cuina."
-msgstr "Define dietas, avisos y correos de cocina."
+msgid "actiu"
+msgstr "activo"
 
-msgid "Importa famílies"
-msgstr "Importar familias"
+msgid "Edita el curs"
+msgstr "Editar curso"
 
-msgid "Valida un CSV abans de crear cap registre."
-msgstr "Valida un CSV antes de crear ningún registro."
+msgid "Genera dies lectius"
+msgstr "Generar días lectivos"
 
-msgid "Invitacions pendents"
-msgstr "Invitaciones pendientes"
+msgid "Curs seleccionat"
+msgstr "Curso seleccionado"
 
-msgid "Envia una invitació"
-msgstr "Enviar una invitación"
+msgid "Període lectiu"
+msgstr "Periodo lectivo"
 
-msgid "Últimes importacions"
-msgstr "Últimas importaciones"
+msgid "És el curs actiu."
+msgstr "Es el curso activo."
 
-msgid "Encara no n'hi ha cap."
-msgstr "Todavía no hay ninguna."
+msgid "No és el curs actiu."
+msgstr "No es el curso activo."
 
-msgid "Persones"
-msgstr "Personas"
+msgid ""
+"Per modificar festius, jornades intensives, incidències, excursions o un dia "
+"concret, utilitza el Calendari anual."
+msgstr ""
+"Para cambiar días festivos, días intensivos, incidentes, excursiones o un "
+"día específico, utilice el Calendario Anual."
 
-msgid "Les dades del menjador, ordenades de manera clara."
-msgstr "Los datos del comedor, ordenados de forma clara."
+msgid "Crea un curs nou"
+msgstr "Crear un nuevo curso"
 
-msgid "Família"
-msgstr "Familia"
+msgid ""
+"Crea el curs següent sense tocar les dades ni l'històric del curs actual."
+msgstr ""
+"Cree el siguiente curso sin tocar los datos o el historial del curso actual."
 
-msgid "Alumne"
-msgstr "Alumno"
+msgid "Final"
+msgstr "Final"
 
-msgid "Cerca"
-msgstr "Buscar"
+msgid "Curs actiu"
+msgstr "Curso activo"
 
-msgid "Cerca per nom de família o alumne"
-msgstr "Buscar por nombre de familia o alumno"
+msgid "Crea el curs"
+msgstr "Crear el curso"
 
-msgid "Contacte"
-msgstr "Contacto"
+msgid "Grups del curs"
+msgstr "Grupos de cursos"
 
-msgid "Alumnes"
-msgstr "Alumnos"
+msgid "Els grups serveixen per assignar alumnat i informar les excursions."
+msgstr ""
+"Los grupos se utilizan para asignar estudiantes e informar excursiones."
 
-msgid "Edita"
-msgstr "Editar"
+msgid "Afegeix grup"
+msgstr "Añadir grupo"
 
-msgid "Grup"
-msgstr "Grupo"
+#, python-format
+msgid "%(students)s alumne assignat"
+msgid_plural "%(students)s alumnes assignats"
+msgstr[0] "%(students)s estudiante asignado"
+msgstr[1] "%(students)s estudiantes asignados"
+
+#, python-format
+msgid "%(closures)s excursió"
+msgid_plural "%(closures)s excursions"
+msgstr[0] "Recorrido de %(closures)s"
+msgstr[1] "%(closures)s excursiones"
+
+msgid "Encara no hi ha grups. Crea'n un per poder-hi assignar alumnat."
+msgstr ""
+"Todavía no hay grupos. Cree uno para poder asignarlo a los estudiantes."
+
+msgid "Primer pas"
+msgstr "Primer paso"
+
+msgid "Crea el primer curs acadèmic"
+msgstr "Crear el primer curso académico"
+
+msgid ""
+"Indica el període escolar. Després podràs generar els dies lectius i crear "
+"els grups."
+msgstr ""
+"Indica el término escolar. A continuación, puede generar los días escolares "
+"y crear los grupos."
+
+msgid "Llistat diari"
+msgstr "Listado diario"
+
+msgid "Consulta qualsevol data i envia el llistat actualitzat a cuina."
+msgstr "Marque cualquier fecha y envíe la lista actualizada a la cocina."
+
+msgid "Mostra"
+msgstr "Mostrar"
+
+msgid "Envia aquest llistat"
+msgstr "Enviar este listado"
+
+msgid "àpats programats"
+msgstr "comidas programadas"
+
+msgid "No hi ha àpats programats per a aquesta data."
+msgstr "No hay comidas programadas para esta fecha."
+
+msgid "Llegenda"
+msgstr "Leyendas"
+
+msgid ""
+"Les excursions es marquen al calendari. Si hi ha una reserva aquell dia, el "
+"llistat mostra carmanyola."
+msgstr ""
+"Las excursiones están marcadas en el calendario. Si hay una reserva ese día, "
+"la lista muestra carmanyola."
+
+msgid "Enviaments recents"
+msgstr "Envíos recientes"
+
+msgid "Destinataris"
+msgstr "Destinatarios"
+
+msgid "Cal actualitzar"
+msgstr "Actualización requerida"
+
+msgid "Pendent"
+msgstr "Pendiente"
+
+msgid "Envia"
+msgstr "Enviar"
+
+msgid "Encara no s'ha generat cap informe."
+msgstr "Todavía no se ha generado ningún informe."
+
+msgid "Un resum personalitzable de la informació que necessites consultar."
+msgstr "Un resumen personalizable de la información que necesitas consultar."
+
+msgid "Personalitza l'inici"
+msgstr "Personaliza tu alojamiento"
+
+msgid "Ginys de l'inici"
+msgstr "Widgets de inicio"
+
+msgid "El teu inici"
+msgstr "Tu comienzo"
+
+msgid "Tria els ginys"
+msgstr "Elegir widgets"
+
+msgid ""
+"Marca la informació que vols veure. L'ordre de la llista serà l'ordre de "
+"l'inici."
+msgstr ""
+"Comprueba la información que quieres ver. El orden de la lista será el orden "
+"de inicio."
+
+msgid "Mou amunt"
+msgstr "Subir"
+
+msgid "Mou avall"
+msgstr "Mover hacia abajo"
+
+msgid "Desa l'inici"
+msgstr "Guardar inicio"
+
+msgid "Menjador del personal docent"
+msgstr "Comedor del personal docente"
+
+msgid ""
+"Reserva els teus àpats i consulta els resums mensuals des d'un sol lloc."
+msgstr ""
+"Reserva tus comidas y consulta los resúmenes mensuales en un solo lugar."
+
+msgid "Gestiona les reserves"
+msgstr "Gestionar reservas"
+
+msgid "Properes reserves"
+msgstr "Próximas reservas"
+
+msgid "Encara no hi ha cap reserva programada."
+msgstr "Aún no hay reservas programadas."
+
+msgid "Espai familiar"
+msgstr "Espacio familiar"
+
+msgid "Benvinguda al menjador"
+msgstr "Bienvenido al comedor"
+
+msgid ""
+"Consulta les reserves, el calendari escolar i les dades de la família des "
+"del menú lateral."
+msgstr ""
+"Consulta las reservas, el calendario escolar y los detalles familiares en el "
+"menú lateral."
+
+msgid "Gestiona"
+msgstr "Gestionar"
+
+msgid "Encara no hi ha alumnat"
+msgstr "Aún no hay estudiantes"
+
+msgid "Contacta amb ARAM si hi falta alguna fitxa."
+msgstr "Póngase en contacto con ARAM si falta algún token."
+
+msgid "Gestió del menjador"
+msgstr "Gestión del comedor"
+
+msgid "Operativa diària"
+msgstr "Operación diaria"
+
+msgid ""
+"Les eines necessàries per preparar els àpats, informar la cuina i revisar "
+"imports."
+msgstr ""
+"Las herramientas necesarias para preparar las comidas, informar a la cocina "
+"y revisar las cantidades."
+
+msgid "Torna a l'inici"
+msgstr "Volver arriba"
+
+msgid "àpats previstos avui"
+msgstr "comidas planeadas para hoy"
+
+msgid "resums pendents de tancar"
+msgstr "resúmenes pendientes DE cierre"
+
+msgid "llistats a actualitzar"
+msgstr "listas para actualizar"
+
+msgid "Consulta qualsevol dia, descarrega'l o envia'l a cuina."
+msgstr "Compruébalo cualquier día, descárgalo o envíalo a la cocina."
+
+msgid "Visualitza d'un cop d'ull els àpats ja programats."
+msgstr "Echa un vistazo a tus comidas programadas."
+
+msgid "Tarifes"
+msgstr "Tarifas"
+
+msgid "Revisa els imports fixos, esporàdics i amb ajut de menjador."
+msgstr "Revise las cantidades fijas, esporádicas y asistidas por comidas."
+
+msgid "Resums mensuals"
+msgstr "Resúmenes mensuales"
+
+msgid "Prepara, revisa i envia els imports per família o docent."
+msgstr "Prepare, revise y envíe los montos por familia o maestro."
+
+msgid "Enllaç del menú"
+msgstr "Enlace del menú"
+
+msgid "Actualitza la pàgina del menú que veuran les famílies."
+msgstr "Actualiza la página del menú que verán las familias."
+
+msgid "Dietes, horaris de tancament i enviaments automàtics."
+msgstr "Dietas, horarios de cierre y envíos automáticos."
+
+msgid "Configuració econòmica"
+msgstr "Configuración económica"
+
+msgid "Organitza comptes, categories i qui pot presentar tiquets."
+msgstr "Organiza cuentas, categorías y quién puede enviar tickets."
+
+msgid "Avisos i accés"
+msgstr "Avisos y acceso"
+
+msgid "Categories"
+msgstr "Categorías"
+
+msgid "Persones autoritzades"
+msgstr "Personas autorizadas"
+
+msgid "Presentació de tiquets"
+msgstr "Presentación de tickets"
+
+msgid ""
+"Pots obrir la presentació de despeses a tots els comptes actius o autoritzar "
+"persones concretes a la pestanya corresponent."
+msgstr ""
+"Puede abrir la presentación de gastos a todas las cuentas activas o "
+"autorizar a personas específicas en la pestaña correspondiente."
+
+msgid "Desa la configuració"
+msgstr "Guardar ajustes"
+
+msgid "Edita el compte"
+msgstr "Editar cuenta"
+
+msgid "Afegeix un compte"
+msgstr "Añadir una cuenta"
+
+msgid "Desa el compte"
+msgstr "Guardar cuenta"
+
+msgid "Comptes disponibles"
+msgstr "Cuentas disponibles"
+
+msgid "Saldo inicial"
+msgstr "Saldo inicial"
+
+msgid "Inactiu"
+msgstr "Inactivo"
+
+msgid "No hi ha comptes."
+msgstr "Sin cuentas."
+
+msgid "Edita la categoria"
+msgstr "Editar categoría"
+
+msgid "Afegeix una categoria"
+msgstr "Añadir una categoría"
+
+msgid "Desa la categoria"
+msgstr "Guardar categoría"
+
+msgid "Inactiva"
+msgstr "Inactivo"
+
+msgid "No hi ha categories."
+msgstr "No hay categorías."
+
+msgid "Persones autoritzades a presentar despeses"
+msgstr "Personas autorizadas a presentar gastos"
+
+msgid "Aquesta llista només és necessària si l’accés global no està activat."
+msgstr "Esta lista solo es necesaria si el acceso global no está habilitado."
+
+msgid "Desa les autoritzacions"
+msgstr "Guardar autorizaciones"
+
+msgid ""
+"Consulta el saldo, registra moviments i revisa les despeses presentades."
+msgstr ""
+"Verifique el saldo, registre los movimientos y revise los gastos presentados."
+
+msgid "Saldo del període"
+msgstr "Saldo del ejercicio"
+
+msgid "Ingressos cobrats"
+msgstr "Ingresos cobrados"
+
+msgid "Despeses pagades"
+msgstr "Gastos pagados"
+
+msgid "Saldo disponible"
+msgstr "Saldo disponible"
+
+msgid "Configura"
+msgstr "Configurar"
+
+msgid "Encara no hi ha cap compte actiu."
+msgstr "Aún no hay cuentas activas."
+
+msgid "Revisió"
+msgstr "Revisión"
+
+msgid "Tiquets per validar"
+msgstr "Tickets a validar"
+
+msgid "Obre la safata"
+msgstr "Abrir bandeja"
+
+msgid "propostes esperen la decisió d’administració."
+msgstr "propuestas a la espera de la decisión de la dirección."
+
+msgid "Últims moviments"
+msgstr "Últimos movimientos"
+
+msgid "Activitat recent"
+msgstr "Actividad reciente"
+
+msgid "Veure tots"
+msgstr "Ver todo"
+
+msgid "Concepte"
+msgstr "Concepto"
+
+msgid "Encara no hi ha moviments en aquest període."
+msgstr "Todavía no hay movimientos en este periodo."
+
+msgid "Moviments econòmics"
+msgstr "Movimientos económicos"
+
+msgid "Ingressos, despeses, pagaments i justificants en un únic registre."
+msgstr "Ingresos, gastos, pagos y comprobantes en un solo registro."
+
+msgid "Període"
+msgstr "Periodo"
+
+msgid "Any natural"
+msgstr "Año natural"
+
+msgid "Curs"
+msgstr "Curso"
+
+msgid "Any"
+msgstr "Año"
+
+msgid "Ingressos"
+msgstr "Ingresos"
+
+msgid "Despeses"
+msgstr "Gastos"
+
+msgid "Aprovades"
+msgstr "Aprobado"
+
+msgid "Rebutjades"
+msgstr "Rechazado"
+
+msgid "Filtra"
+msgstr "Filtro"
+
+msgid "Compte"
+msgstr "Cuenta"
+
+msgid "Pagament"
+msgstr "Pago"
+
+msgid "Presentada per"
+msgstr "Enviado por"
+
+msgid "Revisa"
+msgstr "Revisión"
+
+msgid "Marca pagada"
+msgstr "Marca de pago"
+
+msgid "No s'han trobat moviments amb aquests filtres."
+msgstr "No se han encontrado movimientos con estos filtros."
+
+msgid "Afegeix un ingrés o una despesa. Cal conservar almenys un justificant."
+msgstr "Añadir un ingreso o gasto. Se debe conservar al menos un recibo."
+
+msgid "Torna"
+msgstr "Volver"
+
+msgid "Justificants ja adjuntats"
+msgstr "Comprobantes ya adjuntos"
+
+msgid "Cancel·la"
+msgstr "Cancelar"
+
+msgid "Desa el moviment"
+msgstr "Guardar movimiento"
+
+msgid "Presenta tiquets perquè administració els pugui revisar i gestionar."
+msgstr "Enviar tickets para que la administración los revise y gestione."
+
+msgid "Pendent de reemborsament"
+msgstr "Reembolso pendiente"
+
+msgid "Retira"
+msgstr "Retirar"
+
+msgid "Encara no has presentat cap despesa."
+msgstr "Aún no ha presentado ningún gasto."
+
+msgid "Informes econòmics"
+msgstr "Informes económicos"
+
+msgid "Analitza ingressos i despeses per període i categoria."
+msgstr "Analizar los ingresos y gastos por periodo y categoría."
+
+msgid "Exporta CSV"
+msgstr "Exportar CSV"
+
+msgid "Totes"
+msgstr "Todos"
+
+msgid "Actualitza"
+msgstr "Actualización"
+
+msgid "Resultat del període"
+msgstr "Resultado del ejercicio"
+
+msgid "Desglossament"
+msgstr "Desglose"
+
+msgid "Totals per categoria"
+msgstr "Totales por categoría"
+
+msgid "Total pagat"
+msgstr "Total pagado"
+
+msgid "No hi ha moviments pagats en aquest període."
+msgstr "No hay transacciones pagadas en este periodo."
+
+msgid "Revisa una despesa"
+msgstr "Revisar un gasto"
+
+msgid "Tiquet pendent"
+msgstr "Ticket pendiente"
+
+msgid "Revisa la despesa"
+msgstr "Revisar gasto"
+
+msgid "Comprova les dades, els documents i decideix si l’AFA l’aprova."
+msgstr "Verificar los datos, los documentos y decidir si la AFA lo aprueba."
+
+msgid "Torna a pendents"
+msgstr "Volver a pendientes"
+
+msgid "Motiu del rebuig"
+msgstr "Motivo de rechazo"
+
+msgid "Obligatori si rebutges la proposta"
+msgstr "Obligatorio si la propuesta es rechazada"
+
+msgid "Justificants presentats"
+msgstr "Documentos justificativos presentados"
+
+msgid "Rebutja"
+msgstr "Rechazar"
+
+msgid "Aprova la despesa"
+msgstr "Aprobar gasto"
+
+msgid ""
+"Explica la despesa i adjunta el tiquet o la factura. Administració la "
+"revisarà abans de gestionar el pagament."
+msgstr ""
+"Explique el gasto y adjunte el ticket o la factura. La administración lo "
+"revisará antes de procesar el pago."
+
+msgid "Envia per revisar"
+msgstr "Enviar a revisión"
+
+msgid "Gestió"
+msgstr "Gestión"
 
 msgid "Dades"
 msgstr "Datos"
@@ -217,53 +1971,134 @@ msgstr "Datos"
 msgid "Desa els canvis"
 msgstr "Guardar cambios"
 
-msgid "Cancel·la"
-msgstr "Cancelar"
+msgid ""
+"Toca un dia per reservar-lo. Les reserves es desen de seguida, sense cap "
+"botó de desar."
+msgstr ""
+"Toca un día para reservar. Las reservas se guardan de inmediato, sin botón "
+"de guardar."
 
-msgid "Organització"
-msgstr "Organización"
+msgid "Canvis d'avui"
+msgstr "Cambios de hoy"
 
-msgid "Els dies lectius s'ofereixen per defecte de dilluns a divendres. Després pots tancar un dia o marcar una excursió."
-msgstr "Los días lectivos se ofrecen por defecto de lunes a viernes. Después puedes cerrar un día o marcar una excursión."
+msgid "Encara pots modificar la reserva d'avui:"
+msgstr "Aún puedes modificar la reserva de hoy:"
 
-msgid "Curs"
-msgstr "Curso"
+msgid "hores"
+msgstr "horas"
 
-msgid "Mes"
-msgstr "Mes"
+msgid "i"
+msgstr "i"
 
-msgid "Genera dies lectius"
-msgstr "Generar días lectivos"
+msgid "minuts"
+msgstr "minutos"
 
-msgid "Obert"
-msgstr "Abierto"
+msgid "Canvis d'avui tancats"
+msgstr "Cambios de hoy cerrados"
 
-msgid "Tancat"
-msgstr "Cerrado"
+msgid "El termini de canvis d'avui ha acabat a les"
+msgstr "La fecha límite de cambio de hoy ha terminado a las"
 
-msgid "Nou curs acadèmic"
-msgstr "Nuevo curso académico"
+msgid "Reserva l’àpat"
+msgstr "Reserva la comida"
 
-msgid "Crea el curs"
-msgstr "Crear el curso"
+msgid "Anul·la la reserva"
+msgstr "Cancelar reserva"
 
-msgid "Grup o curs"
-msgstr "Grupo o curso"
+msgid "Reserva desada"
+msgstr "Reserva guardada"
 
-msgid "Afegeix el grup"
-msgstr "Añadir el grupo"
+msgid "No hi havia cap reserva nova per aplicar."
+msgstr "No había nuevas reservas para aplicar."
 
-msgid "Excursió o dia sense menjador per a un grup"
-msgstr "Excursión o día sin comedor para un grupo"
+msgid "Cada infant conservarà la seva dieta habitual."
+msgstr "Cada menor conservará su dieta habitual."
 
-msgid "Marca l'excursió"
-msgstr "Marcar la excursión"
+msgid "No s’ha pogut desar el canvi."
+msgstr "El cambio no se ha podido guardar."
 
-msgid "Primer crea un curs acadèmic"
-msgstr "Primero crea un curso académico"
+msgid ""
+"Per gestionar les reserves automàtiques cal activar JavaScript al navegador."
+msgstr ""
+"Para gestionar las reservas automáticas, debes habilitar JavaScript en tu "
+"navegador."
 
-msgid "La configuració del menjador pertany a un curs."
-msgstr "La configuración del comedor pertenece a un curso."
+msgid "Mes anterior"
+msgstr "Mes anterior"
+
+msgid "Mes següent"
+msgstr "El mes que viene"
+
+msgid "Reserva"
+msgstr "Reservar"
+
+msgid "Disponible"
+msgstr "Disponible"
+
+msgid "Carmanyola per excursió"
+msgstr "Fiambrera para excursión"
+
+msgid "Canvis tancats"
+msgstr "Cambios cerrados"
+
+msgid ""
+"Per canviar la dieta d’un dia reservat, toca la icona del menú al costat de "
+"la reserva."
+msgstr ""
+"Para cambiar la dieta de un día reservado, toca el icono del menú junto a la "
+"reserva."
+
+msgid "Calendari mensual de reserves"
+msgstr "Calendario de reservas mensuales"
+
+msgid "Infant"
+msgstr "Alumno/a"
+
+msgid "Anul·la la reserva de"
+msgstr "Cancelar reserva para"
+
+msgid "Reserva l’àpat de"
+msgstr "Reserva la comida de"
+
+msgid "Dia sense servei per a"
+msgstr "Día sin servicio por"
+
+msgid "Canvia la dieta de"
+msgstr "Cambiar la dieta de"
+
+msgid "També vols reservar aquest dia per a la resta?"
+msgstr "¿También quieres reservar este día para el resto?"
+
+msgid "Aplica la reserva"
+msgstr "Aplicar reserva"
+
+msgid "Ara no"
+msgstr "Ahora no"
+
+msgid "No hi ha infants actius en aquesta família."
+msgstr "No hay alumnado activo en esta familia."
+
+msgid ""
+"Tria la família amb què vols treballar per consultar les reserves, el "
+"calendari escolar i les dades de contacte."
+msgstr ""
+"Elige la familia con la que quieres trabajar para consultar las reservas, el "
+"calendario escolar y los datos de contacto."
+
+msgid "infants vinculats"
+msgstr "menores vinculados"
+
+msgid "Selecciona"
+msgstr "Seleccionar"
+
+msgid "Gestiona els àpats de l'alumnat."
+msgstr "Gestionar las comidas de los estudiantes."
+
+msgid "Festius, jornada intensiva i excursions."
+msgstr "Festivos, jornada intensiva y excursiones."
+
+msgid "Actualitza la informació compartida."
+msgstr "Actualizar la información compartida."
 
 msgid "Importació segura"
 msgstr "Importación segura"
@@ -271,8 +2106,12 @@ msgstr "Importación segura"
 msgid "Afegeix famílies des d'un CSV"
 msgstr "Añadir familias desde un CSV"
 
-msgid "Primer validarem totes les files. Només es crearan les dades quan confirmis la previsualització."
-msgstr "Primero validaremos todas las filas. Los datos solo se crearán al confirmar la previsualización."
+msgid ""
+"Primer validarem totes les files. Només es crearan les dades quan confirmis "
+"la previsualització."
+msgstr ""
+"Primero validaremos todas las filas. Los datos solo se crearán al confirmar "
+"la previsualización."
 
 msgid "Baixa la plantilla"
 msgstr "Descargar plantilla"
@@ -283,16 +2122,40 @@ msgstr "Subir el archivo"
 msgid "Valida i previsualitza"
 msgstr "Validar y previsualizar"
 
+msgid "Abans de començar"
+msgstr "Antes de empezar"
+
+msgid "Descarrega la plantilla i mantén les columnes en el mateix ordre."
+msgstr "Descarga la plantilla y mantén las columnas en el mismo orden."
+
+msgid "Els grups i les dietes s'han d'haver creat prèviament."
+msgstr "Los grupos y las dietas deben haberse creado de antemano."
+
+msgid ""
+"No s'envia cap invitació automàtica: les podràs enviar quan revisis les "
+"famílies."
+msgstr ""
+"No se envían invitaciones automáticas. Podrás enviarlas cuando evalúes a las "
+"familias."
+
+msgid ""
+"El fitxer original no es desa; la previsualització caduca en dues hores."
+msgstr "El archivo original no se guarda; la vista previa caduca en dos horas."
+
 msgid "Pas final"
 msgstr "Paso final"
 
 msgid "Revisa la importació"
 msgstr "Revisar la importación"
 
-msgid "fila vàlida"
-msgid_plural "files vàlides"
-msgstr[0] "fila válida"
-msgstr[1] "filas válidas"
+#, python-format
+msgid "%(count)s fila vàlida"
+msgid_plural "%(count)s files vàlides"
+msgstr[0] "%(count)s fila válida"
+msgstr[1] "%(count)s filas válidas"
+
+msgid "Torna a pujar"
+msgstr "Subir de nuevo"
 
 msgid "Hi ha files que no s'importaran:"
 msgstr "Hay filas que no se importarán:"
@@ -300,11 +2163,803 @@ msgstr "Hay filas que no se importarán:"
 msgid "Fila"
 msgstr "Fila"
 
+msgid "Alumne"
+msgstr "Alumno/a"
+
+msgid "Grup"
+msgstr "Grupo"
+
+msgid "Dieta"
+msgstr "Dieta"
+
 msgid "No hi ha cap fila vàlida per importar."
 msgstr "No hay ninguna fila válida para importar."
 
-msgid "Aquesta acció crearà les famílies i alumnes mostrats. Les invitacions es faran després, manualment."
-msgstr "Esta acción creará las familias y alumnos mostrados. Las invitaciones se harán después, manualmente."
+msgid ""
+"Aquesta acció crearà les famílies i alumnes mostrats. Les invitacions es "
+"faran després, manualment."
+msgstr ""
+"Esta acción creará las familias y alumnos mostrados. Las invitaciones se "
+"harán después, manualmente."
 
 msgid "Confirma la importació"
 msgstr "Confirmar la importación"
+
+msgid "Aquesta previsualització no es pot confirmar. Torna a pujar el fitxer."
+msgstr "Esta vista previa no se puede confirmar. Vuelve a subir el archivo."
+
+msgid "Dades de la família"
+msgstr "Datos familiares"
+
+msgid ""
+"Mantén actualitzades les dades compartides de la família i les fitxes de "
+"l'alumnat."
+msgstr ""
+"Mantenga actualizados los datos familiares compartidos y los registros de "
+"los estudiantes."
+
+msgid "Contacte de la família"
+msgstr "Contacto familiar"
+
+msgid "Desa les dades"
+msgstr "Guardar detalles"
+
+msgid "Necessites ajuda?"
+msgstr "¿Necesitas ayuda?"
+
+msgid ""
+"Per a canvis de grup, ajut de menjador o altres dades administratives, "
+"posa't en contacte amb ARAM."
+msgstr ""
+"Para cambios de grupo, asistencia gastronómica u otros detalles "
+"administrativos, comuníquese con ARAM."
+
+msgid "Fitxes de l'alumnat"
+msgstr "Registros estudiantiles"
+
+msgid "Dieta habitual"
+msgstr "Dieta habitual"
+
+msgid "Edita la fitxa"
+msgstr "Editar la ficha"
+
+msgid "No hi ha alumnat actiu vinculat a aquesta família."
+msgstr "No hay estudiantes activos vinculados a esta familia."
+
+msgid ""
+"Consulta el curs d'un cop d'ull. Fes clic en un dia per llegir festius, "
+"excursions i avisos."
+msgstr ""
+"Echa un vistazo al curso de un vistazo. Haz clic en un día para leer días "
+"festivos, excursiones y avisos."
+
+msgid "Excursions dels grups"
+msgstr "Excursiones de los grupos"
+
+msgid "L'alumnat no té cap grup assignat en aquest curs."
+msgstr "Los estudiantes no tienen ningún grupo asignado en este curso."
+
+msgid "Aplica el filtre"
+msgstr "Aplicar filtro"
+
+msgid "Llegenda del calendari"
+msgstr "Leyenda del calendario"
+
+msgid "Dia lectiu amb servei"
+msgstr "Día escolar con servicio"
+
+msgid "Dia sense servei"
+msgstr "Día sin servicio"
+
+msgid "Festiu"
+msgstr "Festivo"
+
+msgid "Incidència"
+msgstr "Incidente"
+
+msgid "Calendari del curs"
+msgstr "Calendario del curso"
+
+msgid "Dl"
+msgstr "Lu"
+
+msgid "Dt"
+msgstr "Ma"
+
+msgid "Dc"
+msgstr "Mi"
+
+msgid "Dj"
+msgstr "Ju"
+
+msgid "Dv"
+msgstr "Vi"
+
+msgid "Ds"
+msgstr "Sá"
+
+msgid "Dg"
+msgstr "Do"
+
+msgid "Dia lectiu amb servei de menjador."
+msgstr "Día escolar con servicio de comedor."
+
+msgid "Dia sense servei de menjador."
+msgstr "Día sin servicio de comedor."
+
+msgid "Excursions dels grups seleccionats"
+msgstr "Excursiones de los grupos seleccionados"
+
+msgid "No hi ha excursions per als grups seleccionats."
+msgstr "No hay excursiones para los grupos seleccionados."
+
+msgid "Incidències i avisos"
+msgstr "Incidentes y advertencias"
+
+msgid "No hi ha incidències registrades."
+msgstr "No hay incidentes registrados."
+
+msgid "No hi ha cap curs acadèmic disponible"
+msgstr "No hay ningún curso académico disponible"
+
+msgid "Contacta amb ARAM si cal configurar el calendari escolar."
+msgstr "Comuníquese con ARAM si es necesario establecer el calendario escolar."
+
+msgid "Activa el teu compte"
+msgstr "Activa tu cuenta"
+
+#, python-format
+msgid "Crearàs un compte de %(role)s amb el correu <strong>%(email)s</strong>."
+msgstr ""
+"Crearás una cuenta %(role)s con el correo electrónico <strong>%(email)s.</"
+"strong>"
+
+msgid "Activa el compte"
+msgstr "Activar la cuenta"
+
+msgid "Accés al portal"
+msgstr "Acceso al portal"
+
+msgid "Convida una persona"
+msgstr "Invitar a una persona"
+
+msgid "L'enllaç és d'un sol ús i caduca al cap de set dies."
+msgstr "El enlace es de un solo uso y caduca al cabo de siete días."
+
+msgid "Crea i envia la invitació"
+msgstr "Crear y enviar invitación"
+
+msgid "Qui pots convidar?"
+msgstr "¿A quién puedes invitar?"
+
+msgid "Tutor"
+msgstr "Persona tutora"
+
+msgid "accedeix només a la seva família."
+msgstr "accede solo a su familia."
+
+msgid "Gestor de menjador"
+msgstr "Gestor/a de comedor"
+
+msgid "consulta llistats, tarifes i facturació."
+msgstr "consulta listados, tarifas y facturación."
+
+msgid "Administrador"
+msgstr "Administrador"
+
+msgid "també pot gestionar dades, calendari i invitacions."
+msgstr "también puede gestionar datos, calendario e invitaciones."
+
+msgid "Enllaç d'invitació"
+msgstr "Enlace de referencia"
+
+msgid ""
+"Copia'l i envia'l a la persona convidada. Des d'aquí podrà crear la "
+"contrasenya i entrar al portal."
+msgstr ""
+"Cópialo y envíalo al huésped. Desde aquí puedes crear tu contraseña y entrar "
+"en el portal."
+
+msgid "Obre l'enllaç d'alta"
+msgstr "Abre el enlace de registro"
+
+msgid "Organitza el portal"
+msgstr "Organizar el portal"
+
+msgid ""
+"Tria l'àrea que vols gestionar. Les dades de l'AFA no afecten mai les "
+"reserves de menjador."
+msgstr ""
+"Elige el área que quieres gestionar. Los datos de la AFA nunca afectan a las "
+"reservas de comedor."
+
+msgid "dies de servei"
+msgstr "días de servicio"
+
+msgid "Àrees d’administració"
+msgstr "Áreas de administración"
+
+msgid "Operativa"
+msgstr "Operativo"
+
+msgid ""
+"Llistats, planificació, tarifes, dietes, correus de cuina i enllaç del menú."
+msgstr ""
+"Anuncios, planificación, tarifas, dietas, correos de cocina y enlace al menú."
+
+msgid ""
+"Famílies, alumnat, personal docent, comptes, invitacions i quotes anuals."
+msgstr ""
+"Familias, estudiantes, personal docente, cuentas, invitaciones y cuotas "
+"anuales."
+
+msgid "Curs acadèmic, grups, dies lectius, festius locals i excursions."
+msgstr ""
+"Curso académico, grupos, días lectivos, festivos locales y excursiones."
+
+msgid "Últimes importacions"
+msgstr "Últimas importaciones"
+
+msgid "Encara no n'hi ha cap."
+msgstr "Todavía no hay ninguna."
+
+msgid "Agrupa les opcions del servei en un sol espai."
+msgstr "Agrupa tus opciones de servicios en un solo espacio."
+
+msgid "Seccions de configuració"
+msgstr "Secciones de configuración"
+
+msgid "Avisos"
+msgstr "Avisos"
+
+msgid "Dietes"
+msgstr "Dietas"
+
+msgid "Avisos i automatitzacions"
+msgstr "Alertas y automatizaciones"
+
+msgid ""
+"L'hora límit bloqueja els canvis de les famílies; l'hora d'enviament del "
+"llistat és independent."
+msgstr ""
+"Los bloques de tiempo límite cambian de familias; el tiempo de envío del "
+"anuncio es independiente."
+
+msgid "Destinataris del llistat diari"
+msgstr "Lista diaria de destinatarios"
+
+msgid "Afegeix les adreces que han de rebre automàticament el resum d'àpats."
+msgstr ""
+"Añade las direcciones que deberían recibir automáticamente el resumen de la "
+"comida."
+
+msgid "Afegeix destinatari"
+msgstr "Añadir destinatario"
+
+msgid "inactiu"
+msgstr "inactivo"
+
+msgid "Encara no hi ha cap destinatari."
+msgstr "Todavía no hay destinatarios."
+
+msgid ""
+"Les famílies podran triar una dieta disponible per a dies concrets, a partir "
+"de la dieta predeterminada de cada infant."
+msgstr ""
+"Las familias podrán elegir una dieta disponible para días concretos, según "
+"la dieta predeterminada de cada menor."
+
+msgid "Afegeix la dieta"
+msgstr "Añadir dieta"
+
+msgid "Dietes disponibles"
+msgstr "Dietas disponibles"
+
+#, python-format
+msgid "%(students)s alumne amb aquesta dieta"
+msgid_plural "%(students)s alumnes amb aquesta dieta"
+msgstr[0] "%(students)s estudiantes con esta dieta"
+msgstr[1] "%(students)s estudiantes con esta dieta"
+
+msgid "Encara no hi ha dietes configurades."
+msgstr "Todavía no hay dietas configuradas."
+
+msgid "Afegeix una tarifa"
+msgstr "Añadir una tarifa"
+
+msgid ""
+"Cada tarifa s'aplica a partir de la data indicada i preserva l'històric dels "
+"àpats ja facturats."
+msgstr ""
+"Cada tarifa se aplica a partir de la fecha indicada y conserva el historial "
+"de las comidas ya facturadas."
+
+msgid "Desa la tarifa"
+msgstr "Guardar tarifa"
+
+msgid "Històric de tarifes"
+msgstr "Historial de tasas"
+
+msgid "Des de"
+msgstr "Desde"
+
+msgid "Ajut"
+msgstr "Ayuda"
+
+msgid "Preu"
+msgstr "Precio"
+
+msgid "Amb ajut"
+msgstr "Con ayuda"
+
+msgid "Sense ajut"
+msgstr "Sin ayuda"
+
+msgid "Encara no hi ha tarifes configurades."
+msgstr "Todavía no hay tarifas configuradas."
+
+msgid "Aquest enllaç apareix a l'espai de les famílies, dins de Menjador."
+msgstr "Este enlace aparece en el espacio familiar debajo de Comedor."
+
+msgid "Desa l'enllaç"
+msgstr "Guardar enlace"
+
+msgid "Com ho veuran les famílies"
+msgstr "Cómo lo verán las familias"
+
+msgid ""
+"A la barra lateral trobaran Menjador, amb Reserva de menjador, Informes i "
+"Menú."
+msgstr ""
+"En la barra lateral encontrarás Comedor, con Reserva de Comedor, Informes y "
+"Menú."
+
+msgid "Obre l'enllaç actual"
+msgstr "Abrir enlace actual"
+
+msgid "Primer crea un curs acadèmic"
+msgstr "Primero crea un curso académico"
+
+msgid "La configuració del menjador pertany a un curs."
+msgstr "La configuración del comedor pertenece a un curso."
+
+msgid "Gestiona el curs"
+msgstr "Gestionar curso"
+
+msgid "Aquest enllaç apareix a totes les persones usuàries a l'apartat Menú."
+msgstr "Este enlace aparece para todos los usuarios en la sección Menú."
+
+msgid "Consulta d'un cop d'ull les reserves programades per a cada dia."
+msgstr "Echa un vistazo a las reservas programadas para cada día."
+
+msgid "àpats"
+msgstr "comidas"
+
+msgid "carmanyoles"
+msgstr "carmanyoles"
+
+msgid "No hi ha dies de servei en aquest mes."
+msgstr "No hay días de servicio en este mes."
+
+msgid "Resums"
+msgstr "Resúmenes"
+
+msgid "Facturació"
+msgstr "Facturación"
+
+msgid ""
+"Prepara, revisa i envia els imports de menjador per famílies i personal "
+"docent."
+msgstr ""
+"Preparar, revisar y enviar las cantidades del comedor para las familias y el "
+"personal docente."
+
+msgid "Consulta els teus resums de menjador quan els necessitis."
+msgstr "Echa un vistazo a tus resúmenes de comidas cuando los necesites."
+
+msgid "Prepara un període"
+msgstr "Preparar un periodo"
+
+msgid "Només es recalculen resums que encara estan preparats."
+msgstr "Solo se recalculan los resúmenes que aún están preparados."
+
+msgid "Mes"
+msgstr "Mes"
+
+msgid "Prepara resums"
+msgstr "Preparar resúmenes"
+
+msgid "Famílies"
+msgstr "Familias"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Veure el resum"
+msgstr "Ver resumen"
+
+msgid "Encara no hi ha resums preparats."
+msgstr "Todavía no hay resúmenes preparados."
+
+msgid "Contactes"
+msgstr "Contactos"
+
+msgid ""
+"Dades de contacte i de menjador. Una família pot fer servir el menjador "
+"sense ser sòcia de l'AFA."
+msgstr ""
+"Datos de contacto y comedor. Una familia puede usar el comedor sin ser "
+"miembro de la AFA."
+
+msgid "Cerca per família, alumne o docent"
+msgstr "Buscar por familia, estudiante o maestro"
+
+msgid "Contacte"
+msgstr "Contacto"
+
+msgid "Alumnat"
+msgstr "Alumni"
+
+msgid "Quota AFA"
+msgstr "Tarifa AFA"
+
+msgid "No sòcia"
+msgstr "Sin socio"
+
+msgid "No s'han trobat famílies."
+msgstr "No se han encontrado familias."
+
+msgid "No s'han trobat alumnes."
+msgstr "No se han encontrado estudiantes."
+
+msgid "Correu"
+msgstr "Correo electrónico"
+
+msgid "Encara no hi ha personal docent amb perfil de menjador."
+msgstr "Todavía no hay personal docente con perfil de comedor."
+
+msgid ""
+"Gestiona accessos, invitacions, còpies de seguretat i el registre d'accions."
+msgstr ""
+"Gestiona los inicios de sesión, las invitaciones, las copias de seguridad y "
+"los registros de acciones."
+
+msgid "Seccions d'administració"
+msgstr "Secciones de administración"
+
+msgid "Consulta accessos i genera enllaços segurs per restaurar contrasenyes."
+msgstr ""
+"Consulte los inicios de sesión y genere enlaces seguros para restaurar las "
+"contraseñas."
+
+msgid ""
+"Comparteix-lo de forma privada. Caduca quan s'utilitza o en canviar la "
+"contrasenya."
+msgstr "Compartir en privado. Caduca cuando usas o cambias tu contraseña."
+
+msgid ""
+"Crea enllaços d'alta per a persones tutores, docents, gestió o administració."
+msgstr ""
+"Crear enlaces de registro para tutores, maestros, gerencia o administración."
+
+msgid "Rol"
+msgstr "Rol"
+
+msgid "Caduca"
+msgstr "Caduca"
+
+msgid "Acceptada"
+msgstr "Aceptado"
+
+msgid "Vigent"
+msgstr "Actual"
+
+msgid "Caducada"
+msgstr "Vencido"
+
+msgid "Encara no hi ha invitacions."
+msgstr "Todavía no hay invitaciones."
+
+msgid "Còpia manual"
+msgstr "Copia manual"
+
+msgid "Descarrega una còpia completa"
+msgstr "Descargar una copia completa"
+
+msgid ""
+"Inclou la base de dades i tots els documents adjuntats, com ara tiquets i "
+"factures. No es conserva cap fitxer de còpia al servidor."
+msgstr ""
+"Incluye la base de datos y todos los documentos adjuntos, como tickets y "
+"facturas. No se guarda ningún archivo de copia en el servidor."
+
+msgid "Descarrega la còpia ZIP"
+msgstr "Descargue la copia ZIP"
+
+msgid "Operació delicada"
+msgstr "Operación delicada"
+
+msgid "Restaura una còpia"
+msgstr "Restaurar una copia"
+
+msgid ""
+"Aquesta operació substitueix totes les dades actuals. Primer descarrega la "
+"còpia de seguretat actual; després tindràs 15 minuts per restaurar un fitxer "
+"compatible."
+msgstr ""
+"Esta operación reemplaza todos los datos actuales. Primero descargue la "
+"copia de seguridad actual, luego tendrá 15 minutos para restaurar un archivo "
+"compatible."
+
+msgid "Fitxer ZIP o SQLite"
+msgstr "ARCHIVO ZIP o SQLite"
+
+msgid "Contrasenya actual"
+msgstr "Contraseña actual"
+
+msgid "Escriu"
+msgstr "Tipo"
+
+msgid "per confirmar"
+msgstr "para confirmar"
+
+msgid "Restaura la còpia"
+msgstr "Restaurar copia"
+
+msgid "Mesures de seguretat"
+msgstr "Medidas de seguridad"
+
+msgid ""
+"Es comprova la integritat SQLite, el manifest ZIP i la compatibilitat amb la "
+"versió actual."
+msgstr ""
+"Se verificó la integridad de SQLite, el manifiesto ZIP y la compatibilidad "
+"con la versión actual."
+
+msgid ""
+"El fitxer pujat és temporal i s'elimina en acabar, tant si la restauració té "
+"èxit com si falla."
+msgstr ""
+"El archivo cargado es temporal y se elimina cuando finaliza, ya sea que la "
+"restauración tenga éxito o falle."
+
+msgid "En restaurar es tanquen totes les sessions per protegir els comptes."
+msgstr "La restauración cierra todas las sesiones para proteger las cuentas."
+
+msgid "Tarifes de menjador"
+msgstr "Tarifas de comedor"
+
+msgid ""
+"Crea un preu per a cada combinació de beca i modalitat. Els canvis només "
+"afecten reserves obertes."
+msgstr ""
+"Crear un precio por cada combinación de beca y modalidad. Los cambios solo "
+"afectan a las reservas abiertas."
+
+msgid "Nova tarifa"
+msgstr "Nueva tarifa"
+
+msgid "Com funciona"
+msgstr "Cómo funciona"
+
+msgid ""
+"La plataforma conserva el preu assignat a cada reserva. Per això, un canvi "
+"posterior no altera resums ja tancats."
+msgstr ""
+"La plataforma mantiene el precio asignado a cada reserva. Por lo tanto, un "
+"cambio posterior no altera los resúmenes ya cerrados."
+
+msgid "Alumne becat + fix"
+msgstr "Beca + estudiantes fijos"
+
+msgid "Alumne becat + esporàdic"
+msgstr "Becas + estudiantes esporádicos"
+
+msgid "Alumne no becat + fix"
+msgstr "Estudiante sin beca + fijo"
+
+msgid "Alumne no becat + esporàdic"
+msgstr "Estudiante no becado + esporádico"
+
+msgid "Condició"
+msgstr "Condición"
+
+msgid "Becat"
+msgstr "Becat"
+
+msgid "No becat"
+msgstr "Sin beca"
+
+msgid "Encara no hi ha tarifes."
+msgstr "Sin tarifas todavía."
+
+msgid ""
+"Tots els mesos del curs en una sola vista. Fes clic en un dia per consultar-"
+"ne els detalls."
+msgstr ""
+"Todos los meses del curso en una sola vista. Haz clic en un día para obtener "
+"más información."
+
+msgid "Vista anual del curs"
+msgstr "Vista anual del curso"
+
+msgid "Marca com a dia sense servei"
+msgstr "Marcar como día no servido"
+
+msgid "Marca com a dia lectiu amb servei"
+msgstr "Marcar como día escolar con servicio"
+
+msgid "Festius"
+msgstr "Festivos"
+
+msgid "Afegeix"
+msgstr "Añadir"
+
+msgid "No hi ha cap festiu registrat."
+msgstr "No hay días festivos registrados."
+
+msgid "Jornades intensives"
+msgstr "Sesiones intensivas"
+
+msgid "No hi ha cap jornada intensiva registrada."
+msgstr "No hay ninguna jornada intensiva registrada."
+
+msgid "Excursions"
+msgstr "Excursiones"
+
+msgid "No hi ha cap excursió registrada."
+msgstr "No hay ninguna excursión registrada."
+
+msgid "S'informen a totes les famílies i no modifiquen el menjador."
+msgstr "Se informan a todas las familias y no alteran el comedor."
+
+msgid "No hi ha cap incidència registrada."
+msgstr "No hay ninguna incidencia registrada."
+
+msgid "La vista anual necessita un curs amb dates d'inici i final."
+msgstr "La vista anual necesita un curso con fechas de inicio y finalización."
+
+msgid "Resum de"
+msgstr "Resumen de"
+
+msgid "Imprimeix / PDF"
+msgstr "Imprimir / PDF"
+
+msgid "No hi ha àpats facturables aquest mes."
+msgstr "No hay comidas facturables este mes."
+
+msgid "Tanca el resum"
+msgstr "Cerrar el resumen"
+
+msgid "Envia a la família"
+msgstr "Enviar a la familia"
+
+msgid "Fitxa de l'alumne"
+msgstr "Ficha del alumno o la alumna"
+
+msgid "Fitxa de"
+msgstr "Ficha de"
+
+msgid ""
+"Pots actualitzar les dades de contacte, dieta i modalitat. La condició de "
+"beca i l'assignació de grup les modifica l'administració."
+msgstr ""
+"Puedes actualizar tus datos de contacto, dieta y modalidad. La condición de "
+"beca y la asignación de grupo son modificadas por la administración."
+
+msgid "Reserva d'àpats"
+msgstr "Reserva de comida"
+
+msgid ""
+"La dieta habitual s'utilitza per defecte; pots canviar-la per als dies "
+"marcats."
+msgstr ""
+"La dieta habitual se utiliza de forma predeterminada; puedes cambiarla por "
+"los días marcados."
+
+msgid "Setmana anterior"
+msgstr "Semana anterior"
+
+msgid "Setmana del"
+msgstr "Semana del"
+
+msgid "Setmana següent"
+msgstr "Semana siguiente"
+
+msgid "Desa les reserves"
+msgstr "Guardar las reservas"
+
+msgid "Anul·la les reserves"
+msgstr "Cancelar las reservas"
+
+msgid "Resum mensual"
+msgstr "Resumen mensual"
+
+msgid "Resum de menjador"
+msgstr "Resumen de comedor"
+
+msgid "Torna als resums"
+msgstr "Volver a los resúmenes"
+
+msgid "No hi ha àpats registrats."
+msgstr "No hay comidas registradas."
+
+msgid "Envia per correu"
+msgstr "Enviar por correo electrónico"
+
+msgid "Entra"
+msgstr "Entra"
+
+msgid "Portal de menjador"
+msgstr "Portal del comedor"
+
+msgid "Benvinguda"
+msgstr "Bienvenida"
+
+msgid "Entra per gestionar les reserves de menjador vinculades al teu compte."
+msgstr ""
+"Inicia sesión para gestionar las reservas de comedor vinculadas a tu cuenta."
+
+msgid "Contrasenya"
+msgstr "Contraseña"
+
+msgid "Has oblidat la contrasenya?"
+msgstr "—&gt; ¿Has olvidado tu contraseña?"
+
+msgid "Contrasenya actualitzada"
+msgstr "Contraseña actualizada"
+
+msgid "Ja pots entrar amb la teva nova contrasenya."
+msgstr "Ahora puede iniciar sesión con su nueva contraseña."
+
+msgid "Nova contrasenya"
+msgstr "Nueva contraseña"
+
+msgid "Desa la contrasenya"
+msgstr "Guardar contraseña"
+
+msgid "L’enllaç no és vàlid o ja s’ha utilitzat."
+msgstr "El enlace no es válido o ya se ha utilizado."
+
+msgid "Revisa el correu"
+msgstr "Comprueba tu correo electrónico"
+
+msgid ""
+"Si hi ha un compte amb aquest correu, rebràs les instruccions per restablir "
+"la contrasenya."
+msgstr ""
+"Si tienes una cuenta con este correo electrónico, recibirás instrucciones "
+"sobre cómo restablecer tu contraseña."
+
+msgid "Has demanat restablir la contrasenya del portal AFA Ordis."
+msgstr "Ha solicitado restablecer la contraseña del portal AFA Ordis."
+
+msgid "Per establir una contrasenya nova, obre aquest enllaç:"
+msgstr "Para establecer una nueva contraseña, abra este enlace:"
+
+msgid "Si no has fet aquesta petició, pots ignorar aquest correu."
+msgstr ""
+"Si no has hecho esta solicitud, puedes ignorar este correo electrónico."
+
+msgid "Recupera la contrasenya"
+msgstr "Recuperar contraseña"
+
+msgid ""
+"Escriu el correu del teu compte i rebràs un enllaç per establir-ne una de "
+"nova."
+msgstr ""
+"Escribe el correo electrónico de tu cuenta y recibirás un enlace para "
+"configurar uno nuevo."
+
+msgid ""
+"La recuperació per correu encara no està disponible. Demana a "
+"l'administració un enllaç segur de restauració."
+msgstr ""
+"La recuperación de correo aún no está disponible. Solicite a la "
+"administración un enlace de restauración seguro."
+
+msgid "Sol·licita l'enllaç"
+msgstr "Solicitar enlace"
+
+msgid "Restableix la contrasenya del portal AFA Ordis"
+msgstr "Restablecer la contraseña del portal AFA Ordis"

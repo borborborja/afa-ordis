@@ -1833,6 +1833,11 @@ td small {
   left: 32px;
   color: var(--forest);
 }
+.auth-language-form {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+}
 .auth-card {
   width: min(460px, 100%);
   padding: 34px;
@@ -2144,6 +2149,11 @@ td small {
   .auth-brand {
     position: static;
     margin-bottom: 32px;
+  }
+  .auth-language-form {
+    position: absolute;
+    top: 20px;
+    right: 20px;
   }
   .auth-shell {
     align-content: center;

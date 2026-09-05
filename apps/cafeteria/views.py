@@ -13,6 +13,7 @@ import zipfile
 from datetime import date, datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from django.conf import settings
 from django.contrib import messages
@@ -31,7 +32,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils import timezone
-from django.utils.http import urlsafe_base64_encode
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
 from django.utils import translation
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
@@ -1222,18 +1223,52 @@ def audit_log(request):
     return redirect(f"{reverse('cafeteria:portal_administration')}?tab=auditoria")
 
 
+def _language_redirect_path(request, language):
+    """Keep an internal portal URL while replacing its explicit language prefix."""
+    with translation.override(language):
+        fallback = reverse("cafeteria:dashboard")
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return fallback
+
+    parts = urlsplit(next_url)
+    segments = parts.path.split("/")
+    supported = {code for code, _label in settings.LANGUAGES}
+    if len(segments) < 2 or segments[1] not in supported:
+        return fallback
+
+    localized_path = "/" + "/".join([language, *segments[2:]])
+    return urlunsplit(("", "", localized_path, parts.query, ""))
+
+
 @require_POST
-@login_required
 def set_language(request):
     language = request.POST.get("language")
     supported = {code for code, _label in settings.LANGUAGES}
     if language in supported:
-        request.session["django_language"] = language
-        translation.activate(language)
-        profile, _created = request.user.profile, False
-        profile.language = language
-        profile.save(update_fields=["language"])
-    return redirect(request.POST.get("next") or reverse("cafeteria:dashboard"))
+        if request.user.is_authenticated:
+            try:
+                request.user.profile.language = language
+                request.user.profile.save(update_fields=["language"])
+            except Exception:
+                pass
+        response = redirect(_language_redirect_path(request, language))
+        response.set_cookie(
+            settings.LANGUAGE_COOKIE_NAME,
+            language,
+            max_age=getattr(settings, "LANGUAGE_COOKIE_AGE", None),
+            path=getattr(settings, "LANGUAGE_COOKIE_PATH", "/"),
+            domain=getattr(settings, "LANGUAGE_COOKIE_DOMAIN", None),
+            secure=getattr(settings, "LANGUAGE_COOKIE_SECURE", False),
+            httponly=getattr(settings, "LANGUAGE_COOKIE_HTTPONLY", False),
+            samesite=getattr(settings, "LANGUAGE_COOKIE_SAMESITE", "Lax"),
+        )
+        return response
+    return redirect(reverse("cafeteria:dashboard"))
 
 
 def password_reset_request(request):

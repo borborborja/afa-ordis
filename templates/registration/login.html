@@ -1,16 +1,17 @@
 {% extends 'cafeteria/base.html' %}
-{% block title %}Entrar · AFA Ordis{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Entra" %} · AFA Ordis{% endblock %}
 {% block content %}
 <section class="auth-card card">
-  <p class="eyebrow">Portal de menjador</p>
-  <h1>Benvinguda</h1>
-  <p>Entra per gestionar les reserves de menjador vinculades al teu compte.</p>
+  <p class="eyebrow">{% translate "Portal de menjador" %}</p>
+  <h1>{% translate "Benvinguda" %}</h1>
+  <p>{% translate "Entra per gestionar les reserves de menjador vinculades al teu compte." %}</p>
   <form method="post" class="stack-form">{% csrf_token %}
     {{ form.non_field_errors }}
-    <label>Correu electrònic {{ form.username }}</label>
-    <label>Contrasenya {{ form.password }}</label>
-    <button class="button primary" type="submit">Entrar</button>
-    <a href="{% url 'cafeteria:password_reset' %}">Has oblidat la contrasenya?</a>
+    <label>{% translate "Correu electrònic" %} {{ form.username }}</label>
+    <label>{% translate "Contrasenya" %} {{ form.password }}</label>
+    <button class="button primary" type="submit">{% translate "Entra" %}</button>
+    <a href="{% url 'cafeteria:password_reset' %}">{% translate "Has oblidat la contrasenya?" %}</a>
   </form>
 </section>
 {% endblock %}
