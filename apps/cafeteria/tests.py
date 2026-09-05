@@ -128,10 +128,28 @@ class CafeteriaFlowTests(TestCase):
         manifest = response.json()
         self.assertEqual(manifest["display"], "standalone")
         self.assertEqual(manifest["start_url"], reverse("cafeteria:dashboard"))
-        self.assertTrue(any(icon["src"].endswith("pwa-logo-escola.svg") for icon in manifest["icons"]))
+        self.assertEqual(
+            manifest["icons"],
+            [
+                {
+                    "src": "/static/cafeteria/images/pwa-logo-escola-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png",
+                    "purpose": "any",
+                },
+                {
+                    "src": "/static/cafeteria/images/pwa-logo-escola-512.png",
+                    "sizes": "512x512",
+                    "type": "image/png",
+                    "purpose": "any maskable",
+                },
+            ],
+        )
         response = self.client.get(reverse("web_app_service_worker"))
         self.assertEqual(response.status_code, 200)
-        self.assertIn("/static/", response.content.decode())
+        script = response.content.decode()
+        self.assertIn("/static/", script)
+        self.assertIn("afa-ordis-static-v2", script)
 
     def test_monthly_booking_api_reserves_cancels_and_changes_one_diet(self):
         alternative_diet = Diet.objects.create(name="Vegetariana")

@@ -141,16 +141,16 @@ def web_app_manifest(request):
         "theme_color": "#185c51",
         "icons": [
             {
-                "src": static("cafeteria/images/pwa-logo-escola.svg"),
-                "sizes": "any",
-                "type": "image/svg+xml",
-                "purpose": "any maskable",
-            },
-            {
-                "src": static("cafeteria/images/logo-escola-maria-pages-ordis.png"),
-                "sizes": "1024x970",
+                "src": static("cafeteria/images/pwa-logo-escola-192.png"),
+                "sizes": "192x192",
                 "type": "image/png",
                 "purpose": "any",
+            },
+            {
+                "src": static("cafeteria/images/pwa-logo-escola-512.png"),
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable",
             },
         ],
     }, content_type="application/manifest+json")
@@ -164,10 +164,10 @@ def web_app_service_worker(request):
     assets = [
         static("cafeteria/style.css"),
         static("cafeteria/portal.js"),
-        static("cafeteria/images/logo-escola-maria-pages-ordis.png"),
-        static("cafeteria/images/pwa-logo-escola.svg"),
+        static("cafeteria/images/pwa-logo-escola-192.png"),
+        static("cafeteria/images/pwa-logo-escola-512.png"),
     ]
-    script = """const CACHE = 'afa-ordis-static-v1';
+    script = """const CACHE = 'afa-ordis-static-v2';
 const ASSETS = %s;
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
