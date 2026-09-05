@@ -27,6 +27,7 @@ from django.db import IntegrityError, connection, transaction
 from django.db.models import Count, Q, Sum
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils import timezone
@@ -121,6 +122,76 @@ DATABASE_RESTORE_LOCK = threading.Lock()
 RESTORE_CONFIRMATION = "RESTAURA"
 RESTORE_SAFETY_WINDOW_SECONDS = 15 * 60
 MAX_BACKUP_UPLOAD_BYTES = 100 * 1024 * 1024
+
+
+@require_GET
+def web_app_manifest(request):
+    """Install metadata follows the active language URL without caching private pages."""
+    start_url = reverse("cafeteria:dashboard")
+    response = JsonResponse({
+        "id": start_url,
+        "name": "Portal AFA Ordis",
+        "short_name": "AFA Ordis",
+        "description": "Portal de gestió de l'AFA d'Ordis",
+        "lang": translation.get_language() or "ca",
+        "start_url": start_url,
+        "scope": start_url,
+        "display": "standalone",
+        "background_color": "#f6f7f2",
+        "theme_color": "#185c51",
+        "icons": [
+            {
+                "src": static("cafeteria/images/pwa-logo-escola.svg"),
+                "sizes": "any",
+                "type": "image/svg+xml",
+                "purpose": "any maskable",
+            },
+            {
+                "src": static("cafeteria/images/logo-escola-maria-pages-ordis.png"),
+                "sizes": "1024x970",
+                "type": "image/png",
+                "purpose": "any",
+            },
+        ],
+    }, content_type="application/manifest+json")
+    response["Cache-Control"] = "no-cache"
+    return response
+
+
+@require_GET
+def web_app_service_worker(request):
+    """Cache only static public assets: application and family data always stays online."""
+    assets = [
+        static("cafeteria/style.css"),
+        static("cafeteria/portal.js"),
+        static("cafeteria/images/logo-escola-maria-pages-ordis.png"),
+        static("cafeteria/images/pwa-logo-escola.svg"),
+    ]
+    script = """const CACHE = 'afa-ordis-static-v1';
+const ASSETS = %s;
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || !url.pathname.startsWith('/static/')) return;
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+    if (!response || !response.ok) return response;
+    const copy = response.clone();
+    caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+    return response;
+  })));
+});
+""" % json.dumps(assets)
+    response = HttpResponse(script, content_type="application/javascript; charset=utf-8")
+    response["Cache-Control"] = "no-cache"
+    response["Service-Worker-Allowed"] = "/"
+    return response
 
 
 def _is_staff(user):

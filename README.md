@@ -42,6 +42,7 @@ Gestió de menjador pot operar les reserves, preus, llistats, planificació mens
 
 ## Operativa
 
+- El portal es pot instal·lar com una aplicació al mòbil. En Android/Chrome, inicia sessió, toca **Instal·la l'app** a la capçalera i confirma; en iPhone/iPad, obre el portal amb Safari, toca **Comparteix** i escull **Afegeix a la pantalla d’inici**. La icona i el favicon són el logotip de l'Escola Maria Pagès i Texer.
 - Les persones tutores disposen d’un menú propi amb reserva de menjador, resums, menú escolar, calendari escolar i dades de contacte. Veuen una matriu mensual conjunta amb tots els infants de la família: tocar un dia disponible reserva l’àpat amb la dieta habitual, tocar una reserva l’anul·la i la icona de dieta permet canviar-la només per a aquell dia. Cada canvi es desa automàticament; una reserva nova es pot aplicar ràpidament a la resta d’infants, mantenint la dieta predeterminada de cadascun.
 - El calendari familiar mostra tot el curs d'un cop d’ull, amb dies lectius, festius, jornada intensiva, excursions i incidències. Les excursions es filtren per grup i, per defecte, es mostren les dels grups de l'alumnat de la família.
 - En arribar a l’hora límit es bloquegen els canvis de les famílies. L'enviament del llistat diari es programa amb una hora pròpia, posterior o no segons convingui. Abans del tancament, la reserva familiar mostra el temps que queda; canvis posteriors només els poden fer gestió de menjador o administració, amb motiu i auditoria.

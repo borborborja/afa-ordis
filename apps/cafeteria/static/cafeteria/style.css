@@ -660,6 +660,19 @@ small {
 .mobile-menu {
   display: none;
 }
+.install-app-button {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #9dcfc0;
+  border-radius: 9px;
+  padding: 7px 9px;
+  background: #effaf5;
+  color: var(--forest);
+  font-size: .78rem;
+  font-weight: 800;
+}
+.install-app-button .icon { width: 16px; height: 16px; }
 .page-shell {
   width: min(1180px, 100%);
   padding: clamp(28px, 5vw, 58px) clamp(20px, 4vw, 54px);
@@ -1860,6 +1873,7 @@ td small {
     display: block;
     position: relative;
   }
+  .install-app-button:not([hidden]) { display: inline-flex; }
   .mobile-menu summary {
     color: var(--forest);
     font-weight: 800;
@@ -1926,6 +1940,8 @@ td small {
   .account-menu {
     gap: 4px;
   }
+  .install-app-button span { display: none; }
+  .install-app-button { padding: 7px; }
   .account-name {
     display: none;
   }

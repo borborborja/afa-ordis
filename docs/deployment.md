@@ -66,7 +66,7 @@ sudo docker compose logs --tail=100 app
 
 La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. Només hi ha el contenidor `app`, que inclou Django, SQLite i el planificador de correus. Traefik el detecta a través de les etiquetes Docker i publica HTTPS amb el seu resolutor configurat.
 
-Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, festius, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md). El portal no publica Django Admin: el superusuari disposa dels espais visuals **Menjador**, **Gestió econòmica**, **Contactes i AFA**, **Calendari escolar** i **Administració del portal**.
+Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, festius, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md). El portal no publica Django Admin: el superusuari disposa dels espais visuals **Menjador**, **Gestió econòmica**, **Contactes i AFA**, **Calendari escolar** i **Administració del portal**. HTTPS és també necessari perquè les famílies puguin instal·lar el portal com a aplicació web al mòbil.
 
 ## 4. Actualitzar
 

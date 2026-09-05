@@ -3,7 +3,13 @@ from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.urls import include, path
 
-urlpatterns = [path("i18n/", include("django.conf.urls.i18n"))]
+from apps.cafeteria import views as cafeteria_views
+
+urlpatterns = [
+    path("i18n/", include("django.conf.urls.i18n")),
+    path("manifest.webmanifest", cafeteria_views.web_app_manifest, name="web_app_manifest"),
+    path("service-worker.js", cafeteria_views.web_app_service_worker, name="web_app_service_worker"),
+]
 urlpatterns += i18n_patterns(
     path("", include("apps.cafeteria.urls")),
 )

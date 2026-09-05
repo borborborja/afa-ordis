@@ -121,6 +121,18 @@ class CafeteriaFlowTests(TestCase):
         self.assertContains(response, sibling.full_name)
         self.assertNotContains(response, "Setmana del")
 
+    def test_web_app_manifest_and_service_worker_are_available(self):
+        response = self.client.get(reverse("web_app_manifest"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/manifest+json")
+        manifest = response.json()
+        self.assertEqual(manifest["display"], "standalone")
+        self.assertEqual(manifest["start_url"], reverse("cafeteria:dashboard"))
+        self.assertTrue(any(icon["src"].endswith("pwa-logo-escola.svg") for icon in manifest["icons"]))
+        response = self.client.get(reverse("web_app_service_worker"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("/static/", response.content.decode())
+
     def test_monthly_booking_api_reserves_cancels_and_changes_one_diet(self):
         alternative_diet = Diet.objects.create(name="Vegetariana")
         self.client.force_login(self.user)
