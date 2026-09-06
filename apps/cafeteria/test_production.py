@@ -237,6 +237,14 @@ class ProductionRegressionTests(TestCase):
         cache.clear()
         self.assertEqual(self.client.post(url, {"username": self.tutor.email.upper(), "password": "audit-correct-horse-battery-staple"}).status_code, 302)
 
+    def test_csrf_forms_keep_the_origin_without_leaking_private_paths(self):
+        login = self.client.get(reverse("cafeteria:login"))
+        self.assertEqual(login["Referrer-Policy"], "strict-origin")
+        self.client.force_login(self.tutor)
+        private_page = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        self.assertEqual(private_page["Referrer-Policy"], "strict-origin")
+        self.assertIn("no-store", private_page["Cache-Control"])
+
     def test_private_pages_are_not_cacheable_and_media_is_never_public(self):
         self.client.force_login(self.tutor)
         response = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))

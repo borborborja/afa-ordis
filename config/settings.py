@@ -137,7 +137,7 @@ SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "3600")) if not DEBUG
 # The portal owns one hostname, not every subdomain or browser preload policy.
 # HTTPS, HSTS, secret-key, cookie and all other deployment checks remain enabled.
 SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
-SECURE_REFERRER_POLICY = "same-origin"
+SECURE_REFERRER_POLICY = "strict-origin"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 FILE_UPLOAD_PERMISSIONS = 0o600

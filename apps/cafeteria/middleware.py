@@ -35,7 +35,10 @@ class PortalPrivacyMiddleware:
         response = self.get_response(request)
         if request.user.is_authenticated or "/comptes/" in request.path or "/invitacions/" in request.path:
             add_never_cache_headers(response)
-            response["Referrer-Policy"] = "no-referrer"
+            # Browsers serialize a form POST's Origin as "null" under no-referrer.
+            # Keep only the origin (never the private path) so Django can validate
+            # same-origin CSRF form submissions without accepting an opaque origin.
+            response["Referrer-Policy"] = "strict-origin"
         return response
 
 
