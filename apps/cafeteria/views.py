@@ -509,17 +509,8 @@ def navigation_preferences(request):
 
 @login_required
 def app_preferences(request):
-    """Personal preferences that should follow the account on every device."""
-    profile, _created = UserProfile.objects.get_or_create(user=request.user)
-    form = FamilyBookingPreferenceForm(request.POST or None, initial={
-        "family_booking_view": profile.family_booking_view,
-    })
-    if request.method == "POST" and form.is_valid():
-        profile.family_booking_view = form.cleaned_data["family_booking_view"]
-        profile.save(update_fields=["family_booking_view"])
-        messages.success(request, _("S'ha desat la configuració de l'app."))
-        return redirect("cafeteria:app_preferences")
-    return render(request, "cafeteria/app_preferences.html", {"form": form})
+    """Keep old account-preference links working after moving the control."""
+    return redirect("cafeteria:dashboard")
 
 
 def _month_starts_for_academic_year(academic_year):
@@ -832,6 +823,16 @@ def family_calendar(request, family_id):
     booking_view = profile.family_booking_view
     if booking_view not in FamilyBookingView.values:
         booking_view = FamilyBookingView.TABS
+    booking_view_form = FamilyBookingPreferenceForm(
+        request.POST or None,
+        initial={"family_booking_view": booking_view},
+    )
+    if request.method == "POST" and booking_view_form.is_valid():
+        profile.family_booking_view = booking_view_form.cleaned_data["family_booking_view"]
+        profile.save(update_fields=["family_booking_view"])
+        return redirect(
+            f"{reverse('cafeteria:family_calendar', args=[family.id])}?month={month_start:%Y-%m}"
+        )
     matrix_days = [
         {
             "date": service_date,
@@ -871,6 +872,7 @@ def family_calendar(request, family_id):
         "booking_rows": booking_rows,
         "matrix_days": matrix_days,
         "booking_view": booking_view,
+        "booking_view_form": booking_view_form,
         "month_days": month_days,
         "leading_days": range(month_start.weekday()),
         "diets": Diet.objects.filter(active=True),

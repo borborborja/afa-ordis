@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 21:58+0200\n"
+"POT-Creation-Date: 2026-09-06 22:15+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -903,9 +903,6 @@ msgstr "Comienza a personalizar."
 
 msgid "Aquesta secció no és vàlida."
 msgstr "Esta sección no es válida."
-
-msgid "S'ha desat la configuració de l'app."
-msgstr "Se ha guardado la configuración de la aplicación."
 
 msgid "No tens cap família activa vinculada al teu compte."
 msgstr "No tienes ninguna familia activa vinculada a tu cuenta."
@@ -1873,20 +1870,6 @@ msgstr "Documento"
 msgid "No hi ha declaracions en aquest estat."
 msgstr "No hay declaraciones en este estado."
 
-msgid "Configuració de l'app"
-msgstr "Configuración de la aplicación"
-
-msgid "El meu compte"
-msgstr "Mi cuenta"
-
-msgid ""
-"Personalitza com vols consultar les reserves des de qualsevol dispositiu."
-msgstr ""
-"Personaliza cómo quieres consultar las reservas desde cualquier dispositivo."
-
-msgid "Desa la configuració"
-msgstr "Guardar ajustes"
-
 msgid "Registre"
 msgstr "Inscripción"
 
@@ -2418,6 +2401,9 @@ msgstr ""
 "Puede abrir la presentación de gastos a todas las cuentas activas o "
 "autorizar a personas específicas en la pestaña correspondiente."
 
+msgid "Desa la configuració"
+msgstr "Guardar ajustes"
+
 msgid "Edita el compte"
 msgstr "Editar cuenta"
 
@@ -2704,8 +2690,14 @@ msgstr "Mes anterior"
 msgid "Mes següent"
 msgstr "El mes que viene"
 
+msgid "Aplica la vista"
+msgstr "Aplicar la vista"
+
 msgid "Reserva"
 msgstr "Reservar"
+
+msgid "Menú diferent de l'habitual"
+msgstr "Menú distinto del habitual"
 
 msgid "Disponible"
 msgstr "Disponible"

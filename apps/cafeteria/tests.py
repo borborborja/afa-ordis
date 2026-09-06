@@ -198,21 +198,40 @@ class CafeteriaFlowTests(TestCase):
         self.assertContains(response, 'data-state="empty"')
         self.assertContains(response, 'booking-day-diet')
 
-    def test_family_booking_matrix_can_be_saved_as_an_account_preference(self):
+    def test_family_booking_matrix_can_be_selected_from_the_calendar(self):
         sibling = Student.objects.create(
             family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
             default_diet=self.diet, meal_plan=MealPlan.FIXED,
         )
         self.client.force_login(self.user)
-        response = self.client.post(reverse("cafeteria:app_preferences"), {"family_booking_view": "matrix"})
-        self.assertRedirects(response, reverse("cafeteria:app_preferences"))
+        calendar_url = reverse("cafeteria:family_calendar", args=[self.family.id])
+        response = self.client.post(
+            f"{calendar_url}?month={self.today:%Y-%m}",
+            {"family_booking_view": "matrix"},
+        )
+        self.assertRedirects(response, f"{calendar_url}?month={self.today:%Y-%m}")
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.family_booking_view, "matrix")
-        response = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        response = self.client.get(calendar_url)
         self.assertContains(response, "family-matrix-calendar")
         self.assertContains(response, "matrix-student-control")
         self.assertContains(response, self.student.full_name)
         self.assertContains(response, sibling.full_name)
+
+    def test_family_calendar_highlights_a_non_default_menu(self):
+        alternative_diet = Diet.objects.create(name="Sense gluten")
+        MealBooking.objects.create(
+            student=self.student,
+            date=self.today,
+            diet=alternative_diet,
+            diet_name=alternative_diet.name,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(
+            f"{reverse('cafeteria:family_calendar', args=[self.family.id])}?month={self.today:%Y-%m}"
+        )
+        self.assertContains(response, "Menú diferent de l'habitual")
+        self.assertContains(response, 'data-diet-changed="true"')
 
     def test_family_can_declare_an_allergy_only_with_a_medical_document(self):
         self.client.force_login(self.user)

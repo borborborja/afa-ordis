@@ -173,6 +173,10 @@
   background: var(--forest);
 }
 
+.booking-guide-dot.changed {
+  background: #c87812;
+}
+
 .booking-guide-dot.empty {
   border: 2px solid #8d9b96;
 }
@@ -2565,6 +2569,7 @@ td small {
 }
 .matrix-student-control[data-state="empty"] { background: #f2faf7; }
 .matrix-student-control[data-state="reserved"] { background: #dff3ec; }
+.matrix-student-control[data-state="reserved"][data-diet-changed="true"] { background: #fff0d6; box-shadow: inset 3px 0 #c87812; }
 .matrix-student-control[data-state="unavailable"] { opacity: .55; }
 .matrix-student-control[data-saving="true"] { opacity: .58; pointer-events: none; }
 .matrix-student-label {
@@ -2635,12 +2640,23 @@ td small {
 .matrix-lock-marker { left: 11px; background: #e6ebe8; color: #718078; }
 .matrix-excursion-marker .icon,
 .matrix-lock-marker .icon { width: 8px; height: 8px; }
-.app-preferences-card { max-width: 650px; }
-.app-preferences-card .field > ul { display: grid; gap: 10px; margin: 12px 0; padding: 0; list-style: none; }
-.app-preferences-card .field > ul label { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; cursor: pointer; }
-.app-preferences-card .field > ul input { margin-top: 3px; accent-color: var(--forest); }
-.account-popover-link { display: flex; align-items: center; gap: 8px; padding: 9px 0; color: var(--forest-dark); font-weight: 700; }
-.account-popover-link .icon { width: 17px; height: 17px; }
+.booking-view-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 13px;
+  border: 1px solid #a9d4c7;
+  border-radius: 13px;
+  background: #f1faf6;
+}
+.booking-view-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.booking-view-form legend { margin-bottom: 3px; font-weight: 800; }
+.booking-view-form small { display: block; color: var(--muted); font-size: .78rem; }
+.booking-view-options > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.booking-view-options label { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-size: .86rem; }
+.booking-view-options input { margin: 0; accent-color: var(--forest); }
 
 @media (max-width: 640px) {
   .monthly-booking-workspace,
@@ -2801,6 +2817,7 @@ td small {
 }
 .booking-day[data-state="empty"] { border-color: #a4cfc2; background: #f5fbf8; }
 .booking-day[data-state="reserved"] { border-color: #4b9a89; background: #dff3ec; }
+.booking-day[data-state="reserved"][data-diet-changed="true"] { border-color: #c87812; background: #fff0d6; }
 .booking-day[data-state="unavailable"] { background: #eef0ed; color: #91a09a; }
 .booking-day[data-saving="true"] { opacity: .58; pointer-events: none; }
 .booking-day-number {
@@ -2835,6 +2852,7 @@ td small {
 }
 .booking-day-diet:not(:disabled):hover,
 .booking-day-diet:not(:disabled):focus-visible { background: var(--mint); outline: 2px solid var(--forest); outline-offset: -2px; }
+.booking-day[data-diet-changed="true"] .booking-day-diet { border-top-color: rgba(151, 86, 0, .24); background: #ffe0ad; color: #804400; }
 .booking-excursion-marker {
   position: absolute;
   top: 2px;

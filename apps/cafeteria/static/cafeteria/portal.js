@@ -172,6 +172,10 @@
       if (!cell || !booking) return;
       cell.dataset.state = booking.state;
       cell.dataset.dietName = booking.diet_name || '';
+      cell.dataset.dietChanged = String(
+        Boolean(booking.reserved)
+        && String(booking.diet_id || '') !== String(cell.dataset.defaultDietId || ''),
+      );
       const mainButton = cell.querySelector('[data-booking-main]');
       if (mainButton) {
         mainButton.disabled = cell.dataset.locked === 'true' || booking.state === 'unavailable';
@@ -221,7 +225,12 @@
     const setBusy = (cell, busy) => {
       cell.dataset.saving = busy ? 'true' : 'false';
       cell.querySelectorAll('button').forEach((button) => {
-        if (!button.closest('[data-diet-menu]')) button.disabled = busy || cell.dataset.locked === 'true' || cell.dataset.state === 'unavailable';
+        if (!button.closest('[data-diet-menu]')) {
+          button.disabled = busy
+            || cell.dataset.locked === 'true'
+            || cell.dataset.state === 'unavailable'
+            || (button.matches('[data-diet-trigger]') && cell.dataset.state !== 'reserved');
+        }
       });
     };
 
