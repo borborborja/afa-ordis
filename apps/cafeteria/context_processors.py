@@ -1,4 +1,10 @@
-from .models import EconomicSettings, Family, PortalSettings, Role, UserProfile, user_has_role
+from .interface_mode import (
+    can_switch_to_family_interface,
+    family_options_for_user,
+    has_selected_family_interface,
+    has_staff_portal_role,
+)
+from .models import EconomicSettings, PortalSettings, Role, UserProfile, user_has_role
 
 
 def role_flags(request):
@@ -6,8 +12,16 @@ def role_flags(request):
     portal = PortalSettings.objects.first()
     family_options = []
     active_family = None
-    if user.is_authenticated and not user_has_role(user, Role.ADMIN, Role.MANAGER, Role.TEACHER):
-        family_options = list(Family.objects.filter(memberships__user=user, active=True))
+    can_switch_interface = False
+    is_family_user = False
+    if user.is_authenticated:
+        family_options = family_options_for_user(user)
+        can_switch_interface = can_switch_to_family_interface(user, family_options)
+        is_family_user = bool(family_options) and (
+            not has_staff_portal_role(user)
+            or has_selected_family_interface(request, family_options)
+        )
+    if is_family_user:
         active_family_id = request.session.get("cafeteria_active_family_id")
         active_family = next((family for family in family_options if family.id == active_family_id), None)
         if active_family is None and family_options:
@@ -32,7 +46,8 @@ def role_flags(request):
         "can_administer": user_has_role(user, Role.ADMIN),
         "is_management_user": user_has_role(user, Role.ADMIN, Role.MANAGER),
         "is_teacher_user": user_has_role(user, Role.TEACHER),
-        "is_family_user": bool(family_options),
+        "is_family_user": is_family_user,
+        "can_switch_interface": can_switch_interface,
         "family_options": family_options,
         "active_family": active_family,
         "navigation_state": navigation_state,

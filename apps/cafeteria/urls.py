@@ -23,6 +23,7 @@ urlpatterns = [
     path("comptes/entrada/", PortalLoginView.as_view(), name="login"),
     path("comptes/sortida/", auth_views.LogoutView.as_view(), name="logout"),
     path("comptes/idioma/", views.set_language, name="set_language"),
+    path("comptes/vista/", views.interface_mode_select, name="interface_mode_select"),
     path("comptes/navegacio/", views.navigation_preferences, name="navigation_preferences"),
     path("comptes/inici/", views.dashboard_preferences, name="dashboard_preferences"),
     path("comptes/configuracio/", views.app_preferences, name="app_preferences"),

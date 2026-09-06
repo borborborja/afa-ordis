@@ -74,6 +74,14 @@ from .forms import (
     TeacherMealProfileForm,
 )
 from .identity import normalize_email
+from .interface_mode import (
+    FAMILY_INTERFACE_MODE,
+    FAMILY_INTERFACE_MODE_SESSION_KEY,
+    STAFF_INTERFACE_MODE,
+    can_switch_to_family_interface,
+    family_options_for_user,
+    has_selected_family_interface,
+)
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
@@ -434,6 +442,8 @@ def healthcheck(request):
 @login_required
 def dashboard(request):
     today = timezone.localdate()
+    if has_selected_family_interface(request):
+        return redirect("cafeteria:family_home")
     if not _is_staff(request.user):
         if explicit_role(request.user, Role.KITCHEN):
             return redirect("cafeteria:kitchen_report")
@@ -469,6 +479,20 @@ def dashboard(request):
         status=BookingStatus.ACTIVE,
     ).select_related("student", "diet").order_by("date")[:8]
     return render(request, "cafeteria/dashboard_tutor.html", {"families": families, "upcoming": upcoming, "today": today})
+
+
+@login_required
+@require_POST
+def interface_mode_select(request):
+    """Let a family-linked administrator choose the navigation they need."""
+    family_options = family_options_for_user(request.user)
+    if not can_switch_to_family_interface(request.user, family_options):
+        return HttpResponseForbidden(_("No tens permís per canviar aquesta vista."))
+    mode = request.POST.get("mode", STAFF_INTERFACE_MODE)
+    if mode not in {FAMILY_INTERFACE_MODE, STAFF_INTERFACE_MODE}:
+        return HttpResponseForbidden(_("Aquesta vista no és vàlida."))
+    request.session[FAMILY_INTERFACE_MODE_SESSION_KEY] = mode
+    return redirect("cafeteria:dashboard")
 
 
 @staff_required

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 22:21+0000\n"
+"POT-Creation-Date: 2026-09-06 22:40+0000\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -855,6 +855,12 @@ msgstr "Calendario escolar"
 
 msgid "dies lectius amb servei"
 msgstr "días escolares con servicio"
+
+msgid "No tens permís per canviar aquesta vista."
+msgstr "No tiene permiso para cambiar esta vista."
+
+msgid "Aquesta vista no és vàlida."
+msgstr "Esta vista no es válida."
 
 msgid "Selecciona com a mínim un giny per a l'inici."
 msgstr "Seleccione al menos un widget para el inicio."
@@ -2024,6 +2030,9 @@ msgstr "Instalar la aplicación"
 
 msgid "Idioma"
 msgstr "Idioma"
+
+msgid "Vista de família"
+msgstr "Vista de familia"
 
 msgid "Tanca la sessió"
 msgstr "Cerrar sesión"

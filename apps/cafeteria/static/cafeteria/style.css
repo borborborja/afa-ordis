@@ -660,6 +660,47 @@ small {
   font-size: 0.85rem;
   overflow-wrap: anywhere;
 }
+.account-interface-switch {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+.account-interface-switch label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--forest);
+  cursor: pointer;
+  font-size: .84rem;
+  font-weight: 750;
+}
+.account-interface-switch input { position: absolute; opacity: 0; }
+.account-interface-switch-control {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 31px;
+  height: 18px;
+  border-radius: 99px;
+  background: #c9d4cf;
+  transition: background .16s ease;
+}
+.account-interface-switch-control::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .22);
+  content: "";
+  transition: transform .16s ease;
+}
+.account-interface-switch input:checked + .account-interface-switch-control { background: var(--forest); }
+.account-interface-switch input:checked + .account-interface-switch-control::after { transform: translateX(13px); }
+.account-interface-switch input:focus-visible + .account-interface-switch-control { outline: 2px solid var(--forest); outline-offset: 2px; }
 .link-button {
   border: 0;
   background: none;

@@ -714,6 +714,40 @@ class CafeteriaFlowTests(TestCase):
             404,
         )
 
+    def test_family_linked_administrator_can_switch_to_family_interface(self):
+        administrator = User.objects.create_superuser(
+            "admin-family@example.com", "admin-family@example.com", "correct-horse-battery-staple"
+        )
+        FamilyMembership.objects.create(family=self.family, user=administrator)
+        self.client.force_login(administrator)
+
+        response = self.client.get(reverse("cafeteria:dashboard"))
+        self.assertContains(response, "Vista de família")
+        self.assertFalse(response.context["is_family_user"])
+
+        response = self.client.post(reverse("cafeteria:interface_mode_select"), {"mode": "family"})
+        self.assertRedirects(response, reverse("cafeteria:dashboard"), fetch_redirect_response=False)
+        self.assertEqual(self.client.session["cafeteria_interface_mode"], "family")
+        self.assertRedirects(
+            self.client.get(reverse("cafeteria:dashboard")),
+            reverse("cafeteria:family_home"),
+        )
+        response = self.client.get(reverse("cafeteria:family_home"))
+        self.assertTrue(response.context["is_family_user"])
+        self.assertContains(response, "Reserva de menjador")
+
+        response = self.client.post(reverse("cafeteria:interface_mode_select"), {})
+        self.assertRedirects(response, reverse("cafeteria:dashboard"))
+        self.assertEqual(self.client.session["cafeteria_interface_mode"], "staff")
+        response = self.client.get(reverse("cafeteria:dashboard"))
+        self.assertFalse(response.context["is_family_user"])
+        self.assertContains(response, "Vista de família")
+
+    def test_non_administrator_cannot_select_an_interface_mode(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:interface_mode_select"), {"mode": "family"})
+        self.assertEqual(response.status_code, 403)
+
     def test_afa_membership_is_optional_and_manually_recorded(self):
         admin = User.objects.create_superuser("afa@example.com", "afa@example.com", "correct-horse-battery-staple")
         self.client.force_login(admin)
