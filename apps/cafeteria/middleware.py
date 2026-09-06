@@ -44,7 +44,6 @@ class PortalPrivacyMiddleware:
 
 class PortalAccessMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
-        from django.shortcuts import redirect
         from .privacy import restore_marker
         name = request.resolver_match.url_name if request.resolver_match else ""
         if settings.DATA_ENCRYPTION_ENABLED and restore_marker().exists():
