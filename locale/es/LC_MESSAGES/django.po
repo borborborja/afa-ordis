@@ -3934,19 +3934,3 @@ msgstr "Solicitar enlace"
 
 msgid "Restableix la contrasenya del portal AFA Ordis"
 msgstr "Restablecer la contraseña del portal AFA Ordis"
-
-#~ msgid "Consento explícitament el tractament de salut descrit"
-#~ msgstr "Consiento explícitamente el tratamiento de salud descrito"
-
-#~ msgid ""
-#~ "Confirmo que tinc representació legal per autoritzar aquest tractament"
-#~ msgstr ""
-#~ "Confirmo que tengo representación legal para autorizar este tratamiento"
-
-#~ msgid "Cal el consentiment explícit d'una persona representant de l'infant."
-#~ msgstr ""
-#~ "Se requiere el consentimiento explícito de una persona representante del "
-#~ "menor."
-
-#~ msgid "Només una persona representant pot prestar el consentiment."
-#~ msgstr "Solo una persona representante puede prestar el consentimiento."
