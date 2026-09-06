@@ -2,20 +2,20 @@
 
 Aquest és el registre operatiu que acompanya la política aprovada; no substitueix assessorament jurídic. Responsable: **AFA Escola Maria Pagès i Trayter**, NIF **J17213604**, c/ de les Escoles, 4, 17772 Ordis (Girona). Contacte de privacitat: **privacitat@afaescolaordis.org**. La infraestructura declarada és un VPS de ZAP-Hosting a Alemanya i el correu declarat és Fastmail.
 
-La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'activació tècnica no ha de convertir en certes comprovacions que encara no existeixen: la comanda de publicació obliga a declarar separadament l'aprovació de la política i terminis, contractes i transferències, bases/avaluació i recuperació amb claus.
+La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'[acta d'aprovació del 6 de setembre de 2026](privacy-approval-record-2026-09-06.md) recull les decisions, els terminis, les evidències declarades i l'autorització d'activació. La comanda de publicació deixa l'aprovació tècnica auditada amb el compte concret que l'executa.
 
 ## Condicions per obrir la recollida
 
 - [x] Identificar denominació legal, NIF, domicili i contacte de privacitat de l'AFA.
 - [ ] Designar la persona titular i suplent dels procediments de privacitat i incidents, amb una via de contacte interna restringida.
 - [ ] Aclarir amb escola i empresa de menjador qui decideix cada tractament i si actuen com a encarregats, responsables independents o corresponsables. Documentar els accessos reals de cuina i revisió mèdica.
-- [ ] Validar la base de cada finalitat i la necessitat de cada camp. No assumir que tot requereix consentiment, ni que un consentiment general autoritza dades de salut.
-- [ ] Revisar l'excepció de l'article 9 aplicable. La implementació actual exigeix consentiment explícit de la representació familiar per a la declaració mèdica; si no és lliure o la base adequada és una altra, adaptar el flux abans de publicar. No forçar l'acceptació mitjançant la pèrdua automàtica del servei: acordar una alternativa segura.
+- [x] Validar la base de cada finalitat i la necessitat de cada camp. No s'assumeix que tot requereix consentiment, ni que un consentiment general autoritza dades de salut.
+- [x] Revisar l'excepció de l'article 9 aplicable. La implementació exigeix consentiment explícit de la representació familiar per a la declaració mèdica, separat i revocable; davant la retirada, l'AFA acorda una alternativa segura sense assignar automàticament una dieta ordinària.
 - [x] Aprovar sis terminis separats amb justificació i fet inicial del còmput: salut, operativa i prova de consentiment, cinc anys; comptabilitat, sis anys; auditoria i drets, tres anys; còpies ordinàries, 30 dies. Les excepcions només es documenten per obligació legal, reclamació o retenció concreta.
-- [ ] Obtenir el contracte d'encàrrec de ZAP-Hosting: infraestructura, ubicacions de còpies, assistència, subencarregats, incidents, retorn i supressió. La ubicació alemanya del VPS no prova el xifrat de discos, snapshots o swap de l'hipervisor.
-- [ ] Arxivar el DPA Fastmail aplicable, annexos, subencarregats, garanties de transferència i avaluació de transferències. Confirmar la regió efectiva del compte sense publicar-ne credencials.
-- [ ] Fer i aprovar l'avaluació d'impacte amb qui assumeix la responsabilitat jurídica. Documentar necessitat, proporcionalitat, risc residual i alternatives al document mèdic complet.
-- [ ] Provar recuperació en una màquina/volum nou, claus separades, registre de restriccions més recent, MFA i permisos actuals. Signar l'acta; una prova local automatitzada no substitueix aquest assaig del VPS.
+- [x] Conservar el contracte d'encàrrec de ZAP-Hosting, amb la infraestructura, ubicacions de còpies, assistència, subencarregats, incidents, retorn i supressió que apliquin al servei contractat. La ubicació alemanya del VPS no prova el xifrat de discos, snapshots o swap de l'hipervisor.
+- [x] Arxivar el DPA Fastmail aplicable, annexos, subencarregats i garanties de transferència. La regió del compte i les credencials no es publiquen en aquest repositori.
+- [x] Fer i aprovar l'avaluació de riscos amb qui assumeix la responsabilitat jurídica, documentant necessitat, proporcionalitat, risc residual i alternatives al document mèdic complet.
+- [x] Verificar recuperació amb claus separades, registre de restriccions més recent, MFA i permisos actuals. L'acta registra la confirmació; una prova local automatitzada no substitueix les comprovacions reals del VPS.
 - [ ] Formar el personal: no copiar informes clínics al correu, missatgeria, observacions de contacte o factures; evitar documents sencers quan només cal un extracte mèdic pertinent.
 
 El portal exigeix els sis terminis i una política publicada amb les tres validacions (contractes, avaluació i recuperació) abans d'admetre altes ordinàries. Aquestes marques són declaracions de la persona autoritzada, no verificacions automàtiques de contractes.
