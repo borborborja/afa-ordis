@@ -28,6 +28,35 @@ SMTP requereix STARTTLS o TLS implícit, però no tots dos. Amb Fastmail/587: `S
 
 Compose pressuposa Traefik i xarxa externa `proxy` (configurable). No publica el port de Django. El servei no ha de compartir una xarxa accessible a contenidors no fiables que puguin falsificar les capçaleres del proxy.
 
+## Instal·lació nova
+
+S'aplica únicament si no hi ha una base, documents o comptes que calgui conservar. No confondre una base de dades buida amb un volum que pot contenir adjunts o còpies antigues.
+
+1. Descarregar la imatge publicada i crear un directori de secrets només al host:
+
+```bash
+IMAGE=ghcr.io/borborborja/afa-ordis:latest
+sudo docker pull "$IMAGE"
+sudo install -d -m 700 /opt/afa-secrets
+```
+
+2. Generar les claus amb la imatge, sense xarxa, i aplicar els permisos. Aquesta ordre no imprimeix les claus i rebutja sobreescriure un fitxer existent:
+
+```bash
+sudo docker run --rm --user 0:0 --network none \
+  --mount type=bind,src=/opt/afa-secrets,dst=/keys \
+  -e DJANGO_DEBUG=true -e DATA_ENCRYPTION_ENABLED=false \
+  --entrypoint python "$IMAGE" \
+  manage.py generate_encryption_keys --output /keys/keys.json
+sudo chown 10001:10001 /opt/afa-secrets/keys.json
+sudo chmod 400 /opt/afa-secrets/keys.json
+sudo stat -c '%a %u:%g %n' /opt/afa-secrets/keys.json
+```
+
+L'última ordre ha de mostrar `400 10001:10001`. Fer una còpia recuperable del fitxer fora del VPS i lluny de les còpies de dades. No incloure la clau a `/data`, al repositori, en un gestor de fitxers compartit ni en variables d'entorn.
+
+3. Comprovar que `.env` conserva domini/Fastmail i inclou `DJANGO_DEBUG`, `DATABASE_ENGINE`, `DATABASE_NAME`, `DATA_ENCRYPTION_ENABLED`, `ENCRYPTION_KEY_HOST_FILE`, `ENCRYPTION_KEY_FILE` i `PRIVATE_TEMP_DIR` amb els valors de la secció anterior. Només llavors iniciar el servei.
+
 ## Arrencada
 
 Quan claus, volum i conversió estiguin preparats:
@@ -48,9 +77,26 @@ La imatge genera estàtics versionats, utilitza usuari no root, elimina capabili
 
 El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i publica la política real validada amb els sis terminis. Fins llavors, el portal bloqueja les altes ordinàries. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
 
-## Actualitzacions i recuperació
+## Actualització d'una instal·lació existent
 
-Abans d'actualitzar: còpia completa `.afaenc`, registre de restriccions més recent i claus de recuperació sota custòdia separada. Provar les migracions sobre una còpia en un entorn aïllat; utilitzar una versió d'imatge identificable. `git pull --ff-only` només amb el treball local revisat i preservat. No eliminar còpies, volums o imatges necessàries per recuperar.
+Una actualització ordinària d'imatge només és segura si la base actual ja és SQLCipher i el fitxer de claus necessari encara és accessible. Verificar-ho abans de parar res amb la persona responsable del servidor.
+
+Si la instal·lació actual usa SQLite pla, l'arrencada de la nova imatge la rebutjarà expressament. El procediment és: conservar el volum original, preparar claus, convertir una còpia llegat fora de línia, restaurar-la en un volum/base nous, fer una prova de recuperació i canviar el trànsit només després d'aprovar-la. No posar `DATABASE_ENGINE=config.sqlcipher` sobre el mateix fitxer pla ni esborrar el volum original per evitar l'error.
+
+Si s'ha confirmat que no hi ha dades que calgui conservar, la persona administradora pot inicialitzar una base i un volum nous; conservar igualment l'antic fins que l'operació nova hagi passat les verificacions. Com que identificar i substituir volums és destructiu i depèn de la configuració real del VPS, no s'ofereix una ordre genèrica per fer-ho.
+
+Abans d'actualitzar una instal·lació ja xifrada: còpia completa `.afaenc`, registre de restriccions més recent i claus de recuperació sota custòdia separada. Provar les migracions sobre una còpia en un entorn aïllat; utilitzar una versió d'imatge identificable. `git pull --ff-only` només amb el treball local revisat i preservat. No eliminar còpies, volums o imatges necessàries per recuperar.
+
+Per immobilitzar l'actualització a la imatge comprovada, assignar temporalment a `.env`:
+
+```dotenv
+APP_IMAGE=ghcr.io/borborborja/afa-ordis
+APP_IMAGE_TAG=a700990f41862dea1af2d78616978de448a16d49
+```
+
+Després de verificar l'arrencada i la recuperació, l'operador pot decidir si torna a `latest`; el tag amb SHA evita que un canvi posterior de `latest` alteri una recuperació planejada.
+
+## Recuperació
 
 La [guia operativa](privacy-operations.md) és el procediment únic de còpia, restauració, rotació, MFA i conservació. La restauració web/CLI exigeix el registre més recent i deixa el portal tancat fins a revisar fora de línia els accessos recuperats i executar `complete_privacy_restore --confirm-access-review`.
 

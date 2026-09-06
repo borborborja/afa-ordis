@@ -6,11 +6,20 @@ Portal autogestionat de l'AFA d'Ordis per a la gestió de reserves de menjador, 
 
 Abans de desplegar aquesta versió, segueix [operació segura i claus](docs/privacy-operations.md) i completa l'[expedient de privacitat](docs/privacy-governance.md). Producció exigeix SQLCipher, adjunts/còpies xifrats, MFA del personal i validació prèvia de la recollida. No sobreescriguis el `.env` ja configurat al servidor. Les còpies ZIP/SQLite antigues necessiten conversió fora de línia; no canviïs únicament el motor sobre una base existent.
 
+Requisits nous obligatoris en producció:
+
+- Un fitxer de claus de xifrat fora del volum Docker, amb permisos `0400` i propietari UID/GID `10001`; la ruta del host es configura amb `ENCRYPTION_KEY_HOST_FILE`.
+- `DATA_ENCRYPTION_ENABLED=true` i `DATABASE_ENGINE=config.sqlcipher`. No hi ha cap alternativa a SQLite sense xifrar quan `DJANGO_DEBUG=false`.
+- Una còpia de recuperació del fitxer de claus, guardada separadament de les còpies de dades. Perdre totes les claus fa irrecuperables base de dades, documents i còpies xifrades.
+- Per a instal·lacions que ja tenien dades, una conversió/restauració fora de línia: les claus no converteixen una base SQLite antiga automàticament.
+
 - Docker Engine amb Docker Compose.
 - Traefik ja operatiu, amb una xarxa Docker externa `proxy`, entrada `websecure` i un resolutor TLS.
 - Un compte SMTP amb TLS per a invitacions, recuperacions i avisos individuals d'informes disponibles al portal.
 
 ## Posada en marxa
+
+### Instal·lació nova, sense dades prèvies
 
 ```bash
 cd /opt/projects/afa-ordis
@@ -19,7 +28,25 @@ cp .env.example .env
 
 Edita `.env` abans d’arrencar. Com a mínim, canvia `DJANGO_SECRET_KEY` i el valor de `SUPERUSER_EMAIL` i `SUPERUSER_PASSWORD`. El superusuari només es crea durant la primera arrencada d’una base de dades SQLite buida; la seva contrasenya no s’imprimeix mai als registres.
 
-Configura també `APP_DOMAIN`, `APP_BASE_URL` i tots els paràmetres `SMTP_*`. Per a un domini públic, `APP_DOMAIN` ha de coincidir amb el DNS i `APP_BASE_URL` ha de començar per `https://`.
+Configura també `APP_DOMAIN`, `APP_BASE_URL` i tots els paràmetres `SMTP_*`. Per a un domini públic, `APP_DOMAIN` ha de coincidir amb el DNS i `APP_BASE_URL` ha de començar per `https://`. Mantén a `.env` els valors de `DATABASE_ENGINE`, `DATA_ENCRYPTION_ENABLED`, `ENCRYPTION_KEY_HOST_FILE` i `ENCRYPTION_KEY_FILE` que ja inclou `.env.example`.
+
+Abans d'iniciar Compose, genera les claus una sola vegada. Amb la imatge publicada a GitHub:
+
+```bash
+sudo docker pull ghcr.io/borborborja/afa-ordis:latest
+sudo install -d -m 700 /opt/afa-secrets
+sudo docker run --rm --user 0:0 --network none \
+  --mount type=bind,src=/opt/afa-secrets,dst=/keys \
+  -e DJANGO_DEBUG=true -e DATA_ENCRYPTION_ENABLED=false \
+  --entrypoint python ghcr.io/borborborja/afa-ordis:latest \
+  manage.py generate_encryption_keys --output /keys/keys.json
+sudo chown 10001:10001 /opt/afa-secrets/keys.json
+sudo chmod 400 /opt/afa-secrets/keys.json
+```
+
+No executis el generador si `/opt/afa-secrets/keys.json` ja existeix: la seva negativa a sobreescriure'l és una protecció intencionada. Guarda'n una còpia de recuperació xifrada en una ubicació externa diferent de les dades. No la copiïs a Git, `.env`, el volum Docker ni a una carpeta de còpies ordinàries.
+
+Si el VPS ja té una instal·lació o una base de dades, **no segueixis aquesta secció com si fos nova**: conserva el volum original i segueix [l'actualització d'una instal·lació existent](docs/deployment.md#actualització-duna-instal·lació-existent). No eliminis cap volum per iniciar de zero sense haver-ne confirmat el contingut i la recuperació.
 
 ```bash
 sudo docker compose pull
@@ -37,7 +64,7 @@ Per a un servidor públic, consulta la [guia de desplegament](docs/deployment.md
 3. A **Contactes i AFA → Famílies, alumnat i docents**, afegeix les fitxes manualment o baixa la plantilla i valida una importació a **Importa CSV**. La importació no envia invitacions ni aplica canvis fins que es confirma la previsualització.
    - A cada fitxa d'alumnat indica si hi ha al·lèrgies. Si n'hi ha, la família ha d'explicar-les i adjuntar el document mèdic; gestió de menjador o administració les valida des de **Menjador → Alertes d’al·lèrgies**.
 4. A **Contactes i AFA → Quotes AFA**, fixa una única quota anual per curs i registra manualment cada família sòcia (pendent, pagada o exempta). Una família pot utilitzar el menjador sense ser sòcia; el personal docent no té quotes AFA.
-5. Des d'**Administració del portal** l'administració pot convidar persones tutores, gestió de menjador, personal docent o administració. Cada invitació crea un enllaç d’un sol ús; si no hi ha SMTP, es pot copiar i compartir de forma segura. A **Comptes** es poden consultar les persones registrades i generar enllaços personals de restauració de contrasenya. A **Configuració** es pot activar que les famílies afegeixin el seu alumnat; abans cal tenir un curs actiu amb els seus grups creats.
+5. Des d'**Administració del portal** l'administració pot convidar persones tutores, gestió de menjador, personal docent o administració. Cada invitació crea un enllaç d’un sol ús; en producció cal SMTP amb TLS per lliurar-lo. A **Comptes** es poden consultar les persones registrades; els enllaços de restauració només s'envien al correu del compte i no es mostren a l'administració. A **Configuració** es pot activar que les famílies afegeixin el seu alumnat; abans cal tenir un curs actiu amb els seus grups creats.
 6. A **Gestió econòmica → Configuració**, revisa els comptes i categories inicials, fixa el saldo inicial real i decideix si qualsevol persona registrada, o només persones concretes, pot presentar despeses amb tiquet.
 7. Revisa els **Llistats diaris**, la **Planificació mensual** i els **Informes mensuals** dins de Menjador abans de tancar-los o enviar-los per correu.
 
@@ -48,7 +75,7 @@ Gestió de menjador pot operar les reserves, preus, llistats, planificació mens
 - El portal es pot instal·lar com una aplicació al mòbil. En Android/Chrome, inicia sessió, toca **Instal·la l'app** a la capçalera i confirma; en iPhone/iPad, obre el portal amb Safari, toca **Comparteix** i escull **Afegeix a la pantalla d’inici**. La icona i el favicon són el logotip de l'Escola Maria Pagès i Texer.
 - Les persones tutores disposen d’un menú propi amb reserva de menjador, resums, menú escolar, calendari escolar i dades de contacte. Veuen una matriu mensual conjunta amb tots els infants de la família: tocar un dia disponible reserva l’àpat amb la dieta habitual, tocar una reserva l’anul·la i la icona de dieta permet canviar-la només per a aquell dia. Cada canvi es desa automàticament; una reserva nova es pot aplicar ràpidament a la resta d’infants, mantenint la dieta predeterminada de cadascun.
 - Si s'activa l'autogestió d'alumnat, la primera persona tutora d'una família sense fitxes n'ha d'afegir almenys una durant l'alta. Les persones tutores següents només poden editar les dades existents i no repeteixen l'assistent. Les fitxes antigues mostren un avís de dades pendents, però no bloquegen les reserves.
-- Una al·lèrgia declarada amb document mèdic queda pendent de validar i es destaca, amb el títol i el detall, al llistat web i al correu diari de cuina. Es mostra també mentre està pendent per prudència; una declaració rebutjada deixa d'aparèixer fins que la família la corregeixi. Els documents només els poden descarregar la família vinculada, gestió de menjador i administració.
+- Una al·lèrgia declarada amb document mèdic queda pendent de validació. Cuina veu només el llistat operatiu del dia, amb instruccions imprescindibles; no veu diagnòstics, documents, contactes ni beques. Si manca validació, consentiment o instruccions segures, el sistema mostra que cal aturar la preparació individual. Els documents només els poden descarregar la família vinculada o la persona amb permís mèdic exprés.
 - El calendari familiar mostra tot el curs d'un cop d’ull, amb dies lectius, festius, jornada intensiva, excursions i incidències. Les excursions es filtren per grup i, per defecte, es mostren les dels grups de l'alumnat de la família.
 - En arribar a l’hora límit es bloquegen els canvis de les famílies. L'enviament del llistat diari es programa amb una hora pròpia, posterior o no segons convingui. Abans del tancament, la reserva familiar mostra el temps que queda; canvis posteriors només els poden fer gestió de menjador o administració, amb motiu i auditoria.
 - Les excursions es marquen al calendari i permeten reservar l'àpat amb la dieta configurada. En canvi, un festiu general, local o de centre tanca el servei per a tothom, anul·la les reserves actives i no genera cap import.

@@ -8,20 +8,23 @@ Producció requereix `DJANGO_DEBUG=false`, `DATA_ENCRYPTION_ENABLED=true`, `DATA
 
 El fitxer té claus aleatòries independents per a base de dades, documents i còpies, amb identificadors versionats. Django `SECRET_KEY` i contrasenyes són secrets diferents. Conservar una còpia recuperable del fitxer de claus, separada físicament i en permisos de les còpies de dades. La pèrdua de totes les claus implica pèrdua de les dades xifrades.
 
-Exemple per a una instal·lació nova, amb una imatge ja construïda/verificada. `afa-ordis:validated` representa la imatge que l'operador ha validat; no és una etiqueta publicada per aquesta auditoria:
+Exemple per a una instal·lació nova, amb una imatge publicada/verificada. Defineix `IMAGE` amb el tag SHA que s'hagi validat; `latest` és adequat només per a una primera instal·lació quan s'ha comprovat la publicació:
 
 ```bash
+IMAGE=ghcr.io/borborborja/afa-ordis:latest
+sudo docker pull "$IMAGE"
 sudo install -d -m 700 /opt/afa-secrets
 sudo docker run --rm --user 0:0 --network none \
   --mount type=bind,src=/opt/afa-secrets,dst=/keys \
   -e DJANGO_DEBUG=true -e DATA_ENCRYPTION_ENABLED=false \
-  --entrypoint python afa-ordis:validated \
+  --entrypoint python "$IMAGE" \
   manage.py generate_encryption_keys --output /keys/keys.json
 sudo chown 10001:10001 /opt/afa-secrets/keys.json
 sudo chmod 400 /opt/afa-secrets/keys.json
+sudo stat -c '%a %u:%g %n' /opt/afa-secrets/keys.json
 ```
 
-El generador rebutja sobreescriure un fitxer existent. El mode de desenvolupament d'aquesta ordre serveix exclusivament per generar el secret abans d'arrencar Django; no publicar un servidor amb aquests valors. El fitxer es munta directament i de només lectura; no donar accés del contenidor al directori sencer de secrets.
+La comprovació final ha de mostrar `400 10001:10001`. El generador rebutja sobreescriure un fitxer existent. El mode de desenvolupament d'aquesta ordre serveix exclusivament per generar el secret abans d'arrencar Django; no publicar un servidor amb aquests valors. El fitxer es munta directament i de només lectura; no donar accés del contenidor al directori sencer de secrets.
 
 Una base SQLite anterior **no es torna xifrada només canviant una variable**. Producció en rebutja l'obertura. Conservar la instal·lació antiga i convertir-ne una còpia fora de línia, o inicialitzar un volum nou si s'ha confirmat que no hi ha dades a migrar. No esborrar volums antics de manera automàtica.
 
