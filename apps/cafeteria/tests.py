@@ -3,16 +3,16 @@ from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 import tempfile
-from unittest.mock import patch
 import zipfile
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.template.loader import get_template
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django.utils import translation
@@ -48,7 +48,6 @@ from .models import (
     PortalSettings,
     PriceRule,
     ServiceDay,
-    StatementStatus,
     Student,
     TeacherMealBooking,
     TeacherMealProfile,
@@ -258,6 +257,7 @@ class CafeteriaFlowTests(TestCase):
         self.student.has_allergy = True
         self.student.allergy_title = "Al·lèrgia a l’ou"
         self.student.allergy_details = "No servir ou ni derivats."
+        self.student.kitchen_instructions = "Evitar ou i derivats."
         self.student.allergy_review_status = AllergyReviewStatus.PENDING
         self.student.save()
         MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
@@ -265,11 +265,13 @@ class CafeteriaFlowTests(TestCase):
         self.client.force_login(admin)
         response = self.client.get(f"{reverse('cafeteria:daily_reports')}?date={self.today.isoformat()}")
         self.assertContains(response, "Atenció: al·lèrgies")
-        self.assertContains(response, self.student.allergy_title)
-        self.assertContains(response, self.student.allergy_details)
+        self.assertNotContains(response, self.student.allergy_title)
+        self.assertNotContains(response, self.student.allergy_details)
+        self.assertContains(response, self.student.kitchen_instructions)
         text = build_daily_report_text(self.today)
         self.assertIn("ATENCIÓ — AL·LÈRGIES", text)
-        self.assertIn(self.student.allergy_title, text)
+        self.assertNotIn(self.student.allergy_title, text)
+        self.assertIn(self.student.kitchen_instructions, text)
         self.assertIn("PENDENT DE VALIDAR", text)
 
     def test_staff_can_review_allergy_and_family_document_stays_private(self):
@@ -283,6 +285,7 @@ class CafeteriaFlowTests(TestCase):
             self.student.save(update_fields=["allergy_document_name", "updated_at"])
 
             admin = User.objects.create_superuser("reviewer@example.com", "reviewer@example.com", "correct-horse-battery-staple")
+            admin.groups.add(Group.objects.get_or_create(name="health_reviewer")[0])
             self.client.force_login(admin)
             response = self.client.post(reverse("cafeteria:allergy_review", args=[self.student.id]), {
                 "decision": "reject", "rejection_reason": "Cal un informe vigent signat.",
@@ -407,13 +410,13 @@ class CafeteriaFlowTests(TestCase):
             manifest["icons"],
             [
                 {
-                    "src": "/static/cafeteria/images/pwa-logo-escola-192.png",
+                    "src": static("cafeteria/images/pwa-logo-escola-192.png"),
                     "sizes": "192x192",
                     "type": "image/png",
                     "purpose": "any",
                 },
                 {
-                    "src": "/static/cafeteria/images/pwa-logo-escola-512.png",
+                    "src": static("cafeteria/images/pwa-logo-escola-512.png"),
                     "sizes": "512x512",
                     "type": "image/png",
                     "purpose": "any maskable",
@@ -424,7 +427,7 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         script = response.content.decode()
         self.assertIn("/static/", script)
-        self.assertIn("afa-ordis-static-v2", script)
+        self.assertRegex(script, r"afa-ordis-static-[0-9a-f]{16}")
 
     def test_monthly_booking_api_reserves_cancels_and_changes_one_diet(self):
         alternative_diet = Diet.objects.create(name="Vegetariana")
@@ -667,7 +670,9 @@ class CafeteriaFlowTests(TestCase):
     def test_daily_report_is_emailed_to_configured_recipients(self):
         MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
         meal_settings = MealSettings.objects.create(academic_year=self.year, daily_cutoff="09:00", daily_reports_enabled=True)
-        DailyReportRecipient.objects.create(settings=meal_settings, email="cuina@example.com")
+        kitchen = User.objects.create_user("cuina@example.com", "cuina@example.com", "correct-horse-battery-staple")
+        kitchen.groups.add(Group.objects.get_or_create(name="kitchen")[0])
+        DailyReportRecipient.objects.create(settings=meal_settings, email=kitchen.email, user=kitchen)
         self.assertTrue(send_daily_report(self.today.isoformat()))
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["cuina@example.com"])
@@ -705,7 +710,7 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("/ca/comptes/contrasenya/", mail.outbox[0].body)
 
-    @override_settings(EMAIL_HOST="")
+    @override_settings(EMAIL_HOST="", DEBUG=True)
     def test_administration_can_copy_a_reset_link_without_smtp(self):
         admin = User.objects.create_superuser("reset@example.com", "reset@example.com", "correct-horse-battery-staple")
         self.client.force_login(admin)
@@ -1034,15 +1039,27 @@ class CafeteriaFlowTests(TestCase):
 
 
 class PortalBackupTests(TransactionTestCase):
+    def unpack(self, payload):
+        from django.conf import settings
+        if settings.DATA_ENCRYPTION_ENABLED:
+            from .crypto import decrypt_stream
+            clear = BytesIO()
+            decrypt_stream(BytesIO(payload), clear, purpose="backup")
+            return clear.getvalue()
+        return payload
+
     def test_administrator_can_download_a_complete_zip_backup_from_the_portal(self):
         admin = User.objects.create_superuser("backup@example.com", "backup@example.com", "correct-horse-battery-staple")
         self.client.force_login(admin)
         response = self.client.post(reverse("cafeteria:portal_backup_download"))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "application/zip")
+        from django.conf import settings
+        self.assertEqual(response["Content-Type"], "application/octet-stream" if settings.DATA_ENCRYPTION_ENABLED else "application/zip")
         self.assertIn("attachment; filename=", response["Content-Disposition"])
-        self.assertGreater(len(response.content), 0)
-        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        payload = b"".join(response.streaming_content)
+        response.close()
+        self.assertGreater(len(payload), 0)
+        with zipfile.ZipFile(BytesIO(self.unpack(payload))) as archive:
             self.assertIn("backup.json", archive.namelist())
             self.assertIn("database.sqlite3", archive.namelist())
 
@@ -1059,7 +1076,9 @@ class PortalBackupTests(TransactionTestCase):
             attachment = EconomicAttachment.objects.create(entry=entry, file=SimpleUploadedFile("ticket.jpg", b"receipt"), original_name="ticket.jpg", uploaded_by=admin)
             self.client.force_login(admin)
             response = self.client.post(reverse("cafeteria:portal_backup_download"))
-            with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            payload = b"".join(response.streaming_content)
+            response.close()
+            with zipfile.ZipFile(BytesIO(self.unpack(payload))) as archive:
                 self.assertIn(f"media/{attachment.file.name}", archive.namelist())
 
 

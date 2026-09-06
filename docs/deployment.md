@@ -1,108 +1,67 @@
 # Desplegament en producció
 
-## 1. Preparar el servidor
+Aquesta versió requereix una migració explícita al xifrat. No sobreescriure el `.env` existent del VPS: el domini i SMTP Fastmail ja estan configurats. No hi ha hagut desplegament de producció durant l'auditoria.
 
-Necessites un servidor Linux amb Docker Engine i Docker Compose, un domini públic i Traefik ja operatiu. Apunta el registre DNS del domini a la IP del servidor i assegura’t que la xarxa externa de Traefik existeix (per defecte, `proxy`).
+## Abans d'arrencar
 
-```bash
-sudo mkdir -p /opt/projects
-cd /opt/projects
-sudo git clone https://github.com/borborborja/afa-ordis.git
-sudo chown -R "$USER":"$USER" afa-ordis
-cd afa-ordis
-cp .env.example .env
-chmod 600 .env
-```
+1. Revisar [l'expedient de privacitat](privacy-governance.md), completar les [plantilles català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md), obtenir contractes i aprovar les bases i terminis.
+2. Seguir [claus, conversió i recuperació](privacy-operations.md). Crear claus independents fora del volum. Si hi ha una base SQLite anterior, convertir-ne una còpia amb `convert_legacy_backup`; no canviar el motor directament sobre la base plana.
+3. Validar imatge, volums i còpia de recuperació. El nou procés usa UID/GID 10001; un volum antic creat com a root requereix ajustar-ne els permisos fora de línia, només després d'identificar-lo. No canviar permisos recursivament sobre el host o un directori ampli.
 
-## 2. Configurar `.env`
+## Configuració
 
-No incorporis mai aquest fitxer al repositori. Genera valors nous per a `DJANGO_SECRET_KEY` i `SUPERUSER_PASSWORD`; per exemple:
-
-```bash
-python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
-```
-
-Configura com a mínim:
+Mantenir domini, correu i secrets de producció ja vàlids. Incorporar les variables noves a `.env` (permís 600):
 
 ```dotenv
-DJANGO_SECRET_KEY=<valor-aleatori-llarg>
 DJANGO_DEBUG=false
-DJANGO_ALLOWED_HOSTS=portal.exemple.cat
-APP_DOMAIN=portal.exemple.cat
-APP_BASE_URL=https://portal.exemple.cat
-
-SUPERUSER_EMAIL=administracio@exemple.cat
-SUPERUSER_PASSWORD=<contrasenya-unica-i-robusta>
-SUPERUSER_NAME=Administració AFA Ordis
-
-DATABASE_ENGINE=django.db.backends.sqlite3
+DATABASE_ENGINE=config.sqlcipher
 DATABASE_NAME=/data/afa-ordis.sqlite3
-APP_IMAGE=ghcr.io/borborborja/afa-ordis
-APP_IMAGE_TAG=latest
-TRAEFIK_NETWORK=proxy
-TRAEFIK_ENTRYPOINT=websecure
-TRAEFIK_CERT_RESOLVER=letsencrypt
-
-SMTP_HOST=smtp.exemple.cat
-SMTP_PORT=587
-SMTP_USERNAME=<usuari-smtp>
-SMTP_PASSWORD=<contrasenya-smtp>
-SMTP_USE_TLS=true
-DEFAULT_FROM_EMAIL=Menjador AFA Ordis <menjador@exemple.cat>
+DATA_ENCRYPTION_ENABLED=true
+ENCRYPTION_KEY_HOST_FILE=/opt/afa-secrets/keys.json
+ENCRYPTION_KEY_FILE=/run/secrets/afa_keys
+PRIVATE_TEMP_DIR=/tmp
 ```
 
-SMTP és opcional per poder començar: sense `SMTP_HOST`, les invitacions i els enllaços de restauració es generen igualment i l'administració els pot copiar des del portal. Configura'l abans d'activar enviaments automàtics d'informes o resums.
+`DJANGO_SECRET_KEY` necessita almenys 50 caràcters aleatoris. `APP_BASE_URL` ha de ser un origen HTTPS sense camí/consulta/credencials; `APP_DOMAIN` i `DJANGO_ALLOWED_HOSTS` han de correspondre al domini. No imprimir valors secrets amb `docker compose config` o diagnòstics d'entorn compartits.
 
-El superusuari només es crea si la base de dades no conté usuaris. Després de la primera arrencada, es pot treure `SUPERUSER_PASSWORD` del fitxer; no es tornarà a aplicar ni a imprimir als logs.
+SMTP requereix STARTTLS o TLS implícit, però no tots dos. Amb Fastmail/587: `SMTP_USE_TLS=true`, `SMTP_USE_SSL=false`; amb 465, a l'inrevés. Comprovar SPF, DKIM i DMARC al domini real. Els correus són avisos individuals; la consulta dels informes requereix autenticació al portal.
 
-## 3. Arrencar i comprovar
+Compose pressuposa Traefik i xarxa externa `proxy` (configurable). No publica el port de Django. El servei no ha de compartir una xarxa accessible a contenidors no fiables que puguin falsificar les capçaleres del proxy.
+
+## Arrencada
+
+Quan claus, volum i conversió estiguin preparats:
 
 ```bash
+cd /opt/projects/afa-ordis
 sudo docker compose pull
 sudo docker compose up -d
 sudo docker compose ps
 sudo docker compose logs --tail=100 app
 ```
 
-La primera arrencada fa les migracions, publica els arxius estàtics i crea el superusuari. Només hi ha el contenidor `app`, que inclou Django, SQLite i el planificador de correus. Traefik el detecta a través de les etiquetes Docker i publica HTTPS amb el seu resolutor configurat.
+L'entrada valida `check --deploy --fail-level WARNING`, executa migracions i crea el superusuari només en una base sense usuaris. La contrasenya inicial no es torna a aplicar ni es registra; després de l'alta es pot retirar `SUPERUSER_PASSWORD` de l'entorn. No executar el bootstrap en una còpia restaurada amb comptes existents.
 
-Entra a `https://portal.exemple.cat`, inicia sessió i configura el curs, grups, dies de servei, festius, dietes, tarifes, configuració de menjador i destinataris dels informes diaris tal com s’indica al [README](../README.md). El portal no publica Django Admin: el superusuari disposa dels espais visuals **Menjador**, **Gestió econòmica**, **Contactes i AFA**, **Calendari escolar** i **Administració del portal**. HTTPS és també necessari perquè les famílies puguin instal·lar el portal com a aplicació web al mòbil.
+Hi ha una única app amb un procés Gunicorn/quatre fils i un planificador. No escalar rèpliques ni workers sense substituir SQLite i el límit d'intents en memòria per components compartits. Una fallada d'un procés atura el contenidor perquè la política de reinici el recuperi.
 
-## 4. Actualitzar
+La imatge genera estàtics versionats, utilitza usuari no root, elimina capabilities, prohibeix core dumps i configura tmpfs per als temporals. El host encara ha de protegir swap, snapshots, còpies, ports SSH i accés Docker. La comprovació `/health/` consulta la base; durant una recuperació pendent respon 503 intencionadament. No es publica Django Admin.
 
-Fes una còpia de seguretat abans d’actualitzar.
+El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i publica la política real validada amb els sis terminis. Fins llavors, el portal bloqueja les altes ordinàries. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
 
-```bash
-sudo docker compose exec app python manage.py backup_database
-sudo docker compose cp app:/data/backups ./backups
-git pull --ff-only
-sudo docker compose pull
-sudo docker compose up -d
-sudo docker image prune -f
-```
+## Actualitzacions i recuperació
 
-L’aplicació executa automàticament les migracions noves abans d’iniciar el servidor web.
+Abans d'actualitzar: còpia completa `.afaenc`, registre de restriccions més recent i claus de recuperació sota custòdia separada. Provar les migracions sobre una còpia en un entorn aïllat; utilitzar una versió d'imatge identificable. `git pull --ff-only` només amb el treball local revisat i preservat. No eliminar còpies, volums o imatges necessàries per recuperar.
 
-## 5. Còpies de seguretat i restauració
+La [guia operativa](privacy-operations.md) és el procediment únic de còpia, restauració, rotació, MFA i conservació. La restauració web/CLI exigeix el registre més recent i deixa el portal tancat fins a revisar fora de línia els accessos recuperats i executar `complete_privacy_restore --confirm-access-review`.
 
-La via recomanada és **Administració del portal → Còpies de seguretat**: crea un ZIP amb la base SQLite i tots els documents pujats, inclosos tiquets i factures, i el descarrega directament al navegador; el servidor no en conserva cap còpia. Per restaurar, primer cal descarregar una còpia actual des d'aquesta mateixa pantalla, pujar el ZIP compatible, introduir la contrasenya d'administració i escriure `RESTAURA`. Es comprova la integritat, el manifest i les migracions abans de restaurar les dades; s'eliminen els fitxers temporals i es tanquen totes les sessions. Les còpies SQLite antigues són compatibles, però no incorporen documents.
+Una descàrrega no acredita custòdia externa. Fer i confirmar còpia diària fora del VPS, retirar les còpies ordinàries als 30 dies i mantenir el registre de restriccions actualitzat després de cada canvi corresponent. No substituir la base amb una còpia plana ni servir directament fitxers de `MEDIA_ROOT`.
 
-L’ordre `backup_database` continua utilitzant l’API de còpia de SQLite, de manera que no cal aturar el portal. Si s'utilitza aquesta via, copia també tot el volum `app_data` per incloure els documents. Guarda les còpies obtingudes a `./backups` en una ubicació xifrada i diferent del servidor.
+## Verificacions de l'operador
 
-Per restaurar, atura el portal, substitueix el fitxer `/data/afa-ordis.sqlite3` del volum `app_data` per una còpia vàlida i torna a iniciar-lo. Fes-ho només durant una finestra de manteniment i conserva sempre una còpia del fitxer que reemplaces.
-
-```bash
-sudo docker compose stop app
-# Copia la base restaurada al volum app_data segons la política del teu servidor.
-sudo docker compose start app
-```
-
-El volum `app_data` conté la base de dades i possibles fitxers pujats en el futur; inclou-lo completament en la política de còpia de seguretat.
-
-## 6. Operació segura
-
-- Mantén `.env` amb permisos `600` i fes servir un compte SMTP exclusiu del portal.
-- No exposis cap port del servei: Traefik arriba a `app` mitjançant la xarxa externa configurada.
-- Revisa regularment `docker compose logs`, les còpies de seguretat i el registre d’auditoria del portal.
-- Mantén Docker i la imatge base actualitzats; cada canvi a `main` construeix, prova i publica la imatge a GitHub Container Registry.
-- SQLite està pensat per a una única rèplica de `app`; no facis servir `docker compose up --scale app=...`.
+- HTTPS/certificat, redirecció, cookies Secure/HttpOnly/SameSite, no-cache de dades privades i descàrregues autoritzades.
+- TOTP i codis d'un sol ús; baixa d'accessos; cuina sense clínica/contactes/beques; administrador sense permís mèdic amb resposta 403.
+- Correu sintètic individual sense informació d'infants; lliurament real i cap destinatari aliè.
+- Còpia i recuperació en volum nou amb claus i registre extern; prova d'un infant restringit després d'una còpia antiga.
+- Rellotge sincronitzat per TOTP i venciments; espai de disc/tmpfs, límits de còpia, salut del planificador i custòdia diària.
+- Rotació/retenció de logs del host i proxy. Els logs de l'app minimitzen el contingut, però això no configura els del VPS.
+- Dependències i imatge base actualitzades. CI comprova tests plans de desenvolupament i xifrats, llengües, migracions, noms Python i vulnerabilitats Python conegudes. No és una auditoria completa del sistema operatiu ni de la cadena de subministrament.

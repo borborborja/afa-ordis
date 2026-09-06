@@ -4,9 +4,11 @@ Portal autogestionat de l'AFA d'Ordis per a la gestió de reserves de menjador, 
 
 ## Requisits
 
+Abans de desplegar aquesta versió, segueix [operació segura i claus](docs/privacy-operations.md) i completa l'[expedient de privacitat](docs/privacy-governance.md). Producció exigeix SQLCipher, adjunts/còpies xifrats, MFA del personal i validació prèvia de la recollida. No sobreescriguis el `.env` ja configurat al servidor. Les còpies ZIP/SQLite antigues necessiten conversió fora de línia; no canviïs únicament el motor sobre una base existent.
+
 - Docker Engine amb Docker Compose.
 - Traefik ja operatiu, amb una xarxa Docker externa `proxy`, entrada `websecure` i un resolutor TLS.
-- Un compte SMTP (opcional al principi) per enviar invitacions, recuperacions de contrasenya, informes i resums.
+- Un compte SMTP amb TLS per a invitacions, recuperacions i avisos individuals d'informes disponibles al portal.
 
 ## Posada en marxa
 
@@ -65,7 +67,7 @@ sudo docker compose ps
 sudo docker compose logs -f app
 ```
 
-Còpia de seguretat des de la web: a **Administració del portal → Còpies de seguretat**, descarrega el ZIP complet al teu dispositiu. Inclou SQLite i tots els documents adjuntats, com els tiquets. El portal no reté còpies al servidor. Per restaurar, descarrega primer una còpia actual des de la mateixa pantalla, puja el ZIP compatible, introdueix la contrasenya d'administració i escriu `RESTAURA`; totes les sessions es tancaran. Les còpies SQLite antigues encara es poden restaurar, però no inclouen documents.
+Còpia de seguretat des de la web: descarrega el fitxer xifrat `.afaenc`, confirma'n la custòdia externa i conserva l'últim registre de restriccions per separat. La restauració requereix claus, registre actual i revisió d'accessos fora de línia abans de reobrir. Consulta el [procediment complet](docs/privacy-operations.md). Les còpies planes antigues s'han de convertir abans; no es poden restaurar directament en producció.
 
 Alternativament, còpia de seguretat per terminal (desa després la carpeta `backups` fora del servidor):
 
@@ -82,10 +84,14 @@ Les proves es poden executar dins de la imatge Docker amb SQLite temporal:
 
 ```bash
 sudo docker build -t afa-ordis:check .
-sudo docker run --rm -e DATABASE_ENGINE=django.db.backends.sqlite3 -e DATABASE_NAME=/tmp/test.sqlite3 --entrypoint python afa-ordis:check manage.py test apps.cafeteria
+sudo docker run --rm -e DJANGO_DEBUG=true -e DATABASE_ENGINE=django.db.backends.sqlite3 -e DATABASE_NAME=/tmp/test.sqlite3 -e DATABASE_TEST_NAME=/tmp/test-suite.sqlite3 --entrypoint python afa-ordis:check manage.py test apps.cafeteria
 ```
 
-Inclou proves de reserves familiars, restricció de beques, excursions, facturació i correu de llistat diari.
+Inclou proves de reserves familiars, restricció de beques, excursions, facturació, correu, permisos, documents mèdics, restauració completa i peticions simultànies sobre SQLite. `DATABASE_TEST_NAME` activa les proves d'integració amb una base de dades de fitxer temporal; no hi indiquis mai una base de dades real.
+
+Per treballar fora de Docker, crea un entorn virtual, instal·la `requirements.txt`, exporta `DJANGO_DEBUG=true` i configura `DATABASE_NAME` i `MEDIA_ROOT` en carpetes de desenvolupament. Executa `python manage.py compilemessages` i `python manage.py collectstatic --noinput` abans de les proves.
+
+L'[auditoria de producció del 6 de setembre de 2026](docs/production-audit-2026-09-06.md) recull les correccions i la verificació. Si actualitzes una instal·lació anterior, revisa abans el canvi de permisos del volum a la [guia de desplegament](docs/deployment.md).
 
 ### Qualitat dels idiomes
 

@@ -38,6 +38,12 @@
           {% if can_submit_economic_expenses %}<a href="{% url 'cafeteria:economic_my_expenses' %}"><span class="nav-icon">{% include 'cafeteria/components/icon.html' with name='euro' %}</span>{% translate "Les meves despeses" %}</a>{% endif %}
         {% else %}
           <a href="{% url 'cafeteria:dashboard' %}"><span class="nav-icon">{% include 'cafeteria/components/icon.html' with name='home' %}</span>{% translate "Inici" %}</a>
+          {% if is_kitchen %}<a href="{% url 'cafeteria:kitchen_report' %}">{% translate "Cuina: avui" %}</a>{% endif %}
+          {% if can_review_health %}<a href="{% url 'cafeteria:allergy_review_queue' %}">{% translate "Revisió documental de salut" %}</a>{% endif %}
+          {% if is_privacy_officer %}<a href="{% url 'cafeteria:privacy_administration' %}">{% translate "Administració de privacitat" %}</a>{% endif %}
+          {% if can_administer %}<a href="{% url 'cafeteria:privacy_roles' %}">{% translate "Autoritzacions específiques" %}</a><a href="{% url 'cafeteria:backup_custody' %}">{% translate "Custòdia de còpies" %}</a>{% endif %}
+          <a href="{% url 'cafeteria:privacy_center' %}">{% translate "Els teus drets" %}</a>
+          <a href="{% url 'cafeteria:mfa_verify' %}">{% translate "Segon factor" %}</a>
           {% if can_manage_meals %}
           <details class="nav-section nav-collapsible" data-nav-section="menjador" {% if not navigation_state.menjador.collapsed %}open{% endif %}>
             <summary><span class="nav-icon">{% include 'cafeteria/components/icon.html' with name='chart' %}</span><span>{% translate "Menjador" %}</span>{% include 'cafeteria/components/icon.html' with name='chevron-right' icon_class='nav-chevron' %}</summary>
@@ -89,5 +95,6 @@
   </main>
   {% if user.is_authenticated %}<footer class="site-footer">AFA Ordis · {% translate "Portal autogestionat" %}</footer></div></div>{% else %}</div>{% endif %}
   <dialog id="calendar-info-dialog" class="calendar-dialog"><article><div class="dialog-heading"><h2 data-calendar-dialog-title></h2><button type="button" class="icon-button close-dialog" data-close-dialog aria-label="{% translate 'Tanca' %}">{% include 'cafeteria/components/icon.html' with name='plus' %}</button></div><p data-calendar-dialog-summary></p></article></dialog>
+<footer class="site-footer"><a href="{% url 'cafeteria:privacy_notice' %}">{% translate "Política de privacitat" %}</a></footer>
 </body>
 </html>

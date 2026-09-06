@@ -1,6 +1,9 @@
 import os
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.cafeteria.models import ensure_role_groups
@@ -23,6 +26,14 @@ class Command(BaseCommand):
             raise CommandError("Configura SUPERUSER_EMAIL i SUPERUSER_PASSWORD reals al fitxer .env.")
 
         first_name, _, last_name = name.partition(" ")
+        candidate = user_model(username=email, email=email, first_name=first_name, last_name=last_name)
+        try:
+            validate_email(email)
+            validate_password(password, candidate)
+            if len(email) > user_model._meta.get_field("username").max_length:
+                raise ValidationError("SUPERUSER_EMAIL exceeds the maximum username length.")
+        except ValidationError as error:
+            raise CommandError(" ".join(error.messages)) from error
         user_model.objects.create_superuser(
             username=email,
             email=email,

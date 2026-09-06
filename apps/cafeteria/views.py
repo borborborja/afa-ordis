@@ -4,15 +4,16 @@ import calendar
 import csv
 import hashlib
 import json
+import logging
 import os
 import shutil
-import sqlite3
 import tempfile
 import threading
 import zipfile
 from datetime import date, datetime, timedelta
-from io import BytesIO, StringIO
+from io import StringIO
 from pathlib import Path
+from functools import wraps
 from urllib.parse import urlsplit, urlunsplit
 
 from django.conf import settings
@@ -24,8 +25,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
-from django.db import IntegrityError, connection, transaction
-from django.db.models import Count, Q, Sum
+from django.core.exceptions import ValidationError
+from django.db import DatabaseError, IntegrityError, connection, transaction
+from django.db.models import Count, F, Q, Sum
 from django.forms import formset_factory
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -85,7 +87,6 @@ from .models import (
     CourseClosure,
     CourseGroup,
     DailyReport,
-    DailyReportRecipient,
     Diet,
     EconomicAttachment,
     EconomicCategory,
@@ -122,11 +123,17 @@ from .services import (
     bookings_for_day, is_service_day, is_tutor_locked,
     prepare_statements_for_month, reprice_open_bookings,
     teacher_bookings_for_day,
+    prepare_monthly_statement, prepare_teacher_monthly_statement, service_calendar,
 )
+from .http import atomic_write, csv_cell, local_redirect, positive_pk
+from .auth import consume_attempt
+from .database import dbapi as sqlite3, connect as database_connect
+from .privacy import medical_access, explicit_role, has_health_consent
 from .tasks import send_daily_report, send_monthly_statement, send_teacher_monthly_statement
 
 
 DATABASE_RESTORE_LOCK = threading.Lock()
+logger = logging.getLogger(__name__)
 RESTORE_CONFIRMATION = "RESTAURA"
 RESTORE_SAFETY_WINDOW_SECONDS = 15 * 60
 MAX_BACKUP_UPLOAD_BYTES = 100 * 1024 * 1024
@@ -175,14 +182,15 @@ def web_app_service_worker(request):
         static("cafeteria/images/pwa-logo-escola-192.png"),
         static("cafeteria/images/pwa-logo-escola-512.png"),
     ]
-    script = """const CACHE = 'afa-ordis-static-v2';
+    version = hashlib.sha256(json.dumps(assets).encode()).hexdigest()[:16]
+    script = """const CACHE = 'afa-ordis-static-%s';
 const ASSETS = %s;
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('afa-ordis-static-') && key !== CACHE).map((key) => caches.delete(key)))));
   self.clients.claim();
 });
 self.addEventListener('fetch', (event) => {
@@ -195,7 +203,7 @@ self.addEventListener('fetch', (event) => {
     return response;
   })));
 });
-""" % json.dumps(assets)
+""" % (version, json.dumps(assets))
     response = HttpResponse(script, content_type="application/javascript; charset=utf-8")
     response["Cache-Control"] = "no-cache"
     response["Service-Worker-Allowed"] = "/"
@@ -233,10 +241,17 @@ def _return_to_calendar(family_id, selected_dates, week_start=None):
     return redirect(f"{reverse('cafeteria:family_calendar', args=[family_id])}?month={month}")
 
 
+@transaction.atomic
 def _update_student_booking(*, actor, student, service_date, action, diet, reason=""):
     """Apply one requested meal without silently changing dates outside the service."""
     if _pending_family_onboarding(actor, student.family_id):
         return False, "profile_required"
+    if action not in {"add", "cancel"}:
+        return False, "invalid"
+    if action == "add" and student.meal_safety_hold:
+        return False, "profile_required"
+    if MonthlyStatement.objects.filter(family_id=student.family_id, year=service_date.year, month=service_date.month).exclude(status=StatementStatus.PREPARED).exists():
+        return False, "locked"
     locked = is_tutor_locked(service_date)
     if locked and not _is_staff(actor):
         return False, "locked"
@@ -278,6 +293,7 @@ def _update_student_booking(*, actor, student, service_date, action, diet, reaso
 
 def staff_required(view):
     @login_required
+    @wraps(view)
     def wrapped(request, *args, **kwargs):
         if not _is_staff(request.user):
             return HttpResponseForbidden(_("No tens permís per accedir a aquesta pàgina."))
@@ -287,6 +303,7 @@ def staff_required(view):
 
 def admin_required(view):
     @login_required
+    @wraps(view)
     def wrapped(request, *args, **kwargs):
         if not _is_admin(request.user):
             return HttpResponseForbidden(_("No tens permís per accedir a aquesta pàgina."))
@@ -297,7 +314,7 @@ def admin_required(view):
 def _family_for_user_or_404(user, family_id):
     if user.is_superuser or _is_admin(user):
         return get_object_or_404(Family, pk=family_id)
-    return get_object_or_404(Family, pk=family_id, memberships__user=user)
+    return get_object_or_404(Family, pk=family_id, memberships__user=user, active=True)
 
 
 def _pending_family_onboarding(user, family_id=None):
@@ -404,12 +421,24 @@ def _staff_dashboard_widgets(user):
 
 @require_GET
 def healthcheck(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM django_migrations LIMIT 1")
+    except DatabaseError:
+        return HttpResponse("unavailable", status=503, content_type="text/plain")
     return HttpResponse("ok", content_type="text/plain")
 
 
 @login_required
 def dashboard(request):
     today = timezone.localdate()
+    if not _is_staff(request.user):
+        if explicit_role(request.user, Role.PRIVACY):
+            return redirect("cafeteria:privacy_administration")
+        if explicit_role(request.user, Role.HEALTH_REVIEWER):
+            return redirect("cafeteria:allergy_review_queue")
+        if explicit_role(request.user, Role.KITCHEN):
+            return redirect("cafeteria:kitchen_report")
     if _is_staff(request.user):
         widgets, available_widgets = _staff_dashboard_widgets(request.user)
         context = {
@@ -577,7 +606,7 @@ def family_home(request):
 @require_POST
 def family_context_select(request):
     family = get_object_or_404(
-        Family, pk=request.POST.get("family_id"), active=True, memberships__user=request.user
+        Family, pk=positive_pk(request.POST.get("family_id")), active=True, memberships__user=request.user
     )
     request.session["cafeteria_active_family_id"] = family.id
     return redirect("cafeteria:family_home")
@@ -616,6 +645,7 @@ def family_onboarding(request, family_id):
             instance=student,
             prefix=f"student-{student.id}",
             require_profile_completion=True,
+            actor=request.user,
         )
         for student in students
     ]
@@ -630,7 +660,7 @@ def family_onboarding(request, family_id):
         request.POST or None,
         request.FILES or None,
         prefix="new-students",
-        form_kwargs={"academic_year": active_year, "require_profile_completion": True},
+        form_kwargs={"academic_year": active_year, "require_profile_completion": True, "actor": request.user, "family": family},
     )
     if (
         request.method == "POST"
@@ -650,6 +680,7 @@ def family_onboarding(request, family_id):
                 saved_student = form.save(commit=False)
                 saved_student.family = family
                 saved_student.save()
+                form.record_consent(saved_student)
                 log_event(request.user, "student.created_by_family", saved_student)
             completed_at = timezone.now()
             FamilyMembership.objects.filter(family=family).update(
@@ -704,11 +735,13 @@ def family_student_create(request, family_id):
         request.FILES or None,
         academic_year=active_year,
         require_profile_completion=True,
+        actor=request.user, family=family,
     )
     if request.method == "POST" and form.is_valid():
         saved = form.save(commit=False)
         saved.family = family
         saved.save()
+        form.record_consent(saved)
         log_event(request.user, "student.created_by_family", saved)
         messages.success(request, _("S'ha afegit la fitxa de l'infant."))
         return redirect("cafeteria:family_profile", family_id=family.id)
@@ -730,7 +763,7 @@ def family_school_calendar(request, family_id):
         Q(is_active=True) | Q(course_groups__students__family=family)
     ).distinct()
     selected_id = request.GET.get("year")
-    academic_year = family_years.filter(pk=selected_id).first() if selected_id else None
+    academic_year = family_years.filter(pk=positive_pk(selected_id)).first() if selected_id else None
     if academic_year is None:
         academic_year = family_years.filter(is_active=True).first() or family_years.first()
     course_groups = CourseGroup.objects.filter(
@@ -768,9 +801,11 @@ def family_calendar(request, family_id):
         month_start = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date().replace(day=1)
     except ValueError:
         month_start = timezone.localdate().replace(day=1)
+    if not 2 <= month_start.year <= 9998:
+        month_start = timezone.localdate().replace(day=1)
     month_end = month_start.replace(day=calendar.monthrange(month_start.year, month_start.month)[1])
 
-    students = list(family.students.filter(active=True).select_related("default_diet", "course_group"))
+    students = list(family.students.filter(active=True).select_related("default_diet", "course_group__academic_year"))
     existing = MealBooking.objects.filter(student__in=students, date__range=(month_start, month_end)).select_related("diet")
     booking_map = {(booking.student_id, booking.date): booking for booking in existing}
     closures = {
@@ -778,14 +813,17 @@ def family_calendar(request, family_id):
         for closure in CourseClosure.objects.filter(date__range=(month_start, month_end))
     }
     month_days = [month_start + timedelta(days=offset) for offset in range(month_end.day)]
+    available_dates, today, today_locked = service_calendar(month_start, month_end)
+    staff = _is_staff(request.user)
+    closed_month = family.statements.filter(year=month_start.year, month=month_start.month).exclude(status=StatementStatus.PREPARED).exists()
     booking_rows = []
     for student in students:
         days = []
         for service_date in month_days:
             booking = booking_map.get((student.id, service_date))
             days.append({
-                "date": service_date, "available": is_service_day(service_date, student), "booking": booking,
-                "locked": is_tutor_locked(service_date) and not _is_staff(request.user),
+                "date": service_date, "available": service_date in available_dates, "booking": booking,
+                "locked": closed_month or (not staff and (service_date < today or (service_date == today and today_locked))),
                 "excursion": closures.get((student.course_group_id, service_date)),
             })
         booking_rows.append({"student": student, "days": days})
@@ -870,10 +908,11 @@ def _booking_json_error(result):
 
 @require_POST
 @login_required
+@atomic_write
 def family_booking_update(request, family_id):
     """Persist one family booking immediately from the monthly calendar."""
     family = _family_for_user_or_404(request.user, family_id)
-    student = get_object_or_404(Student, pk=request.POST.get("student_id"), family=family, active=True)
+    student = get_object_or_404(Student, pk=positive_pk(request.POST.get("student_id")), family=family, active=True)
     try:
         service_date = date.fromisoformat(request.POST.get("service_date", ""))
     except ValueError:
@@ -892,7 +931,7 @@ def family_booking_update(request, family_id):
             return JsonResponse({"ok": True, "booking": _booking_cell_payload(student, service_date)})
         action, diet = "cancel", None
     elif operation == "diet":
-        diet = Diet.objects.filter(pk=request.POST.get("diet_id"), active=True).first()
+        diet = Diet.objects.filter(pk=positive_pk(request.POST.get("diet_id")), active=True).first()
         if not active_booking or not diet:
             return JsonResponse({"ok": False, "message": _("Selecciona una dieta disponible per a una reserva activa.")}, status=400)
         action = "add"
@@ -914,6 +953,7 @@ def family_booking_update(request, family_id):
 
 @require_POST
 @login_required
+@atomic_write
 def family_booking_apply(request, family_id):
     """Toggle an editable service day for every active student in one family."""
     family = _family_for_user_or_404(request.user, family_id)
@@ -951,9 +991,10 @@ def family_booking_apply(request, family_id):
 
 @require_POST
 @login_required
+@atomic_write
 def bulk_booking(request, family_id):
     family = _family_for_user_or_404(request.user, family_id)
-    student = get_object_or_404(Student, pk=request.POST.get("student_id"), family=family, active=True)
+    student = get_object_or_404(Student, pk=positive_pk(request.POST.get("student_id")), family=family, active=True)
     selected_dates = []
     for raw_date in request.POST.getlist("dates"):
         try:
@@ -961,7 +1002,7 @@ def bulk_booking(request, family_id):
         except ValueError:
             continue
     action = request.POST.get("action")
-    diet = Diet.objects.filter(pk=request.POST.get("diet_id"), active=True).first()
+    diet = Diet.objects.filter(pk=positive_pk(request.POST.get("diet_id")), active=True).first()
     reason = request.POST.get("override_reason", "").strip()
     success, skipped = 0, 0
     for service_date in selected_dates:
@@ -986,6 +1027,7 @@ def bulk_booking(request, family_id):
 
 @require_POST
 @login_required
+@atomic_write
 def family_bulk_booking(request, family_id):
     """Joint weekly form: each child has independent days, with an optional copy action."""
     family = _family_for_user_or_404(request.user, family_id)
@@ -1002,7 +1044,7 @@ def family_bulk_booking(request, family_id):
             except ValueError:
                 pass
         date_sets[student.id] = parsed
-        diets[student.id] = Diet.objects.filter(pk=request.POST.get(f"diet_{student.id}"), active=True).first()
+        diets[student.id] = Diet.objects.filter(pk=positive_pk(request.POST.get(f"diet_{student.id}")), active=True).first()
     source_id = request.POST.get("copy_from")
     if request.POST.get("copy_to_all") == "1" and source_id and source_id.isdigit() and int(source_id) in date_sets:
         source_dates, source_diet = date_sets[int(source_id)], diets[int(source_id)]
@@ -1049,16 +1091,20 @@ def teacher_calendar(request):
             month_start = date.fromisoformat(request.GET.get("week", "")).replace(day=1)
         except ValueError:
             month_start = timezone.localdate().replace(day=1)
+    if not 2 <= month_start.year <= 9998:
+        month_start = timezone.localdate().replace(day=1)
     month_end = month_start.replace(day=calendar.monthrange(month_start.year, month_start.month)[1])
     bookings = {booking.date: booking for booking in TeacherMealBooking.objects.filter(
         teacher=profile, date__range=(month_start, month_end)
     ).select_related("diet")}
+    available_dates, today, today_locked = service_calendar(month_start, month_end)
+    closed_month = TeacherMonthlyStatement.objects.filter(teacher=profile, year=month_start.year, month=month_start.month).exclude(status=StatementStatus.PREPARED).exists()
     month_days = [
         {
             "date": month_start + timedelta(days=offset),
-            "available": is_service_day(month_start + timedelta(days=offset)),
+            "available": month_start + timedelta(days=offset) in available_dates,
             "booking": bookings.get(month_start + timedelta(days=offset)),
-            "locked": is_tutor_locked(month_start + timedelta(days=offset)),
+            "locked": closed_month or not profile.active or month_start + timedelta(days=offset) < today or (month_start + timedelta(days=offset) == today and today_locked),
         }
         for offset in range(month_end.day)
     ]
@@ -1084,6 +1130,7 @@ def _teacher_booking_cell_payload(profile, service_date):
 
 @require_POST
 @login_required
+@atomic_write
 def teacher_booking_update(request):
     if not _is_teacher(request.user):
         return JsonResponse({"ok": False, "message": _("No tens permís per modificar aquestes reserves.")}, status=403)
@@ -1094,7 +1141,7 @@ def teacher_booking_update(request):
         service_date = date.fromisoformat(request.POST.get("service_date", ""))
     except ValueError:
         return JsonResponse({"ok": False, "message": _("La data no és vàlida.")}, status=400)
-    if is_tutor_locked(service_date):
+    if not profile.active or is_tutor_locked(service_date) or TeacherMonthlyStatement.objects.filter(teacher=profile, year=service_date.year, month=service_date.month).exclude(status=StatementStatus.PREPARED).exists():
         return _booking_json_error("locked")
     if not is_service_day(service_date):
         return _booking_json_error("unavailable")
@@ -1112,7 +1159,7 @@ def teacher_booking_update(request):
     elif operation == "diet":
         if not active:
             return JsonResponse({"ok": False, "message": _("Selecciona una dieta disponible per a una reserva activa.")}, status=400)
-        diet = Diet.objects.filter(pk=request.POST.get("diet_id"), active=True).first()
+        diet = Diet.objects.filter(pk=positive_pk(request.POST.get("diet_id")), active=True).first()
         if not diet:
             return JsonResponse({"ok": False, "message": _("Selecciona una dieta disponible.")}, status=400)
     else:
@@ -1140,6 +1187,7 @@ def teacher_booking_update(request):
 
 @require_POST
 @login_required
+@atomic_write
 def teacher_bulk_booking(request):
     if not _is_teacher(request.user):
         return HttpResponseForbidden(_("No tens permís per modificar aquestes reserves."))
@@ -1153,10 +1201,12 @@ def teacher_bulk_booking(request):
         except ValueError:
             pass
     action = request.POST.get("action")
-    diet = Diet.objects.filter(pk=request.POST.get("diet_id"), active=True).first() or profile.default_diet
+    if action not in {"add", "cancel"}:
+        return JsonResponse({"ok": False, "message": _("L'acció de reserva no és vàlida.")}, status=400)
+    diet = Diet.objects.filter(pk=positive_pk(request.POST.get("diet_id")), active=True).first() or profile.default_diet
     updated = skipped = 0
     for service_date in selected_dates:
-        if is_tutor_locked(service_date) or not is_service_day(service_date):
+        if not profile.active or is_tutor_locked(service_date) or not is_service_day(service_date) or TeacherMonthlyStatement.objects.filter(teacher=profile, year=service_date.year, month=service_date.month).exclude(status=StatementStatus.PREPARED).exists():
             skipped += 1
             continue
         booking = TeacherMealBooking.objects.filter(teacher=profile, date=service_date).first()
@@ -1198,7 +1248,7 @@ def student_edit(request, student_id):
     pending_onboarding = _pending_family_onboarding(request.user, student.family_id)
     if pending_onboarding:
         return redirect("cafeteria:family_onboarding", family_id=student.family_id)
-    form = TutorStudentForm(request.POST or None, request.FILES or None, instance=student)
+    form = TutorStudentForm(request.POST or None, request.FILES or None, instance=student, actor=request.user)
     if request.method == "POST" and form.is_valid():
         updated = form.save()
         reprice_open_bookings(student=updated)
@@ -1208,7 +1258,8 @@ def student_edit(request, student_id):
     return render(request, "cafeteria/student_form.html", {
         "form": form,
         "student": student,
-        "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student.allergy_document else None,
+        "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student.allergy_document and medical_access(request.user, student) else None,
+        "can_view_clinical": medical_access(request.user, student),
     })
 
 
@@ -1275,6 +1326,7 @@ def _finish_invitation(invitation, user):
     return membership
 
 
+@atomic_write
 def invitation_accept(request, token):
     invitation = get_object_or_404(Invitation, token=token)
     if not invitation.is_valid:
@@ -1286,6 +1338,8 @@ def invitation_accept(request, token):
             return redirect(f"{reverse('cafeteria:login')}?next={request.path}")
         if request.user.pk != existing.pk:
             return HttpResponseForbidden(_("Aquesta invitació correspon a un altre compte."))
+        if request.method != "POST":
+            return render(request, "cafeteria/invitation_accept.html", {"invitation": invitation, "existing_account": True})
         membership = _finish_invitation(invitation, existing)
         messages.success(request, _("La invitació s'ha acceptat correctament."))
         if membership and _pending_family_onboarding(existing, membership.family_id):
@@ -1319,6 +1373,10 @@ def daily_reports(request):
     student_bookings = bookings_for_day(selected_date)
     teacher_bookings = teacher_bookings_for_day(selected_date)
     allergy_alerts = [booking for booking in student_bookings if booking.student.has_operational_allergy_alert]
+    for booking in student_bookings:
+        if booking.student.meal_safety_hold:
+            booking.diet_name = _("ATURA LA PREPARACIÓ")
+            booking.student.kitchen_instructions = _("ATURA LA PREPARACIÓ INDIVIDUAL: contacta amb la persona responsable abans de servir. No pressuposis una dieta ordinària.")
     diet_totals = {}
     for booking in list(student_bookings) + list(teacher_bookings):
         name = booking.diet_name or _("Ordinària")
@@ -1349,15 +1407,16 @@ def daily_report_send(request, service_date):
     return redirect(f"{reverse('cafeteria:daily_reports')}?date={report_date.isoformat()}")
 
 
-@staff_required
+@login_required
 def allergy_review_queue(request):
+    if not explicit_role(request.user, Role.HEALTH_REVIEWER):
+        return HttpResponseForbidden(_("Cal autorització expressa per revisar dades de salut."))
     selected_status = request.GET.get("status", AllergyReviewStatus.PENDING)
     valid_statuses = set(AllergyReviewStatus.values)
     if selected_status not in valid_statuses:
         selected_status = AllergyReviewStatus.PENDING
     declarations = Student.objects.filter(
-        has_allergy=True,
-        allergy_review_status=selected_status,
+        Q(has_allergy=True, allergy_review_status=selected_status) | Q(safety_hold=True),
     ).select_related("family", "course_group", "allergy_reviewed_by").order_by(
         "allergy_review_status", "family__name", "first_name", "last_name"
     )
@@ -1373,18 +1432,26 @@ def allergy_review_queue(request):
     })
 
 
-@staff_required
+@login_required
 def allergy_review(request, student_id):
+    if not explicit_role(request.user, Role.HEALTH_REVIEWER):
+        return HttpResponseForbidden(_("Cal autorització expressa per revisar dades de salut."))
     student = get_object_or_404(
-        Student.objects.select_related("family", "course_group", "allergy_reviewed_by"),
+        Student.objects.select_related("family", "course_group", "allergy_reviewed_by").filter(
+            Q(has_allergy=True, allergy_review_status=AllergyReviewStatus.PENDING) | Q(safety_hold=True)),
         pk=student_id,
-        has_allergy=True,
-        allergy_review_status=AllergyReviewStatus.PENDING,
     )
     form = AllergyReviewForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
+        if student.has_allergy and not has_health_consent(student):
+            return HttpResponseForbidden(_("Cal un consentiment de salut vigent abans de validar la declaració."))
+        if form.cleaned_data["decision"] == "approve" and settings.PRIVACY_ENFORCED and (
+            student.has_allergy is None or not student.default_diet_id or (student.has_allergy and not student.kitchen_instructions.strip())
+        ):
+            return HttpResponseForbidden(_("Cal una declaració actual i instruccions segures abans de reprendre el servei."))
         if form.cleaned_data["decision"] == "approve":
             student.allergy_review_status = AllergyReviewStatus.APPROVED
+            student.safety_hold = False
             student.allergy_rejection_reason = ""
             action = "student_allergy.approved"
             message = _("S'ha validat la declaració d'al·lèrgia.")
@@ -1397,7 +1464,7 @@ def allergy_review(request, student_id):
         student.allergy_reviewed_by = request.user
         student.save(update_fields=[
             "allergy_review_status", "allergy_rejection_reason", "allergy_reviewed_at",
-            "allergy_reviewed_by", "updated_at",
+            "allergy_reviewed_by", "updated_at", "safety_hold",
         ])
         log_event(request.user, action, student, {
             "status": student.allergy_review_status,
@@ -1415,8 +1482,7 @@ def allergy_review(request, student_id):
 @login_required
 def allergy_document_download(request, student_id):
     student = get_object_or_404(Student.objects.select_related("family"), pk=student_id)
-    is_family_member = FamilyMembership.objects.filter(family=student.family, user=request.user).exists()
-    if not _is_staff(request.user) and not is_family_member:
+    if not medical_access(request.user, student):
         return HttpResponseForbidden(_("No tens permís per consultar aquest document mèdic."))
     if not student.allergy_document or not student.allergy_document.storage.exists(student.allergy_document.name):
         raise Http404(_("No s'ha trobat el document mèdic."))
@@ -1432,6 +1498,8 @@ def monthly_planning(request):
     try:
         month_start = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date().replace(day=1)
     except ValueError:
+        month_start = timezone.localdate().replace(day=1)
+    if not 2 <= month_start.year <= 9998:
         month_start = timezone.localdate().replace(day=1)
     month_end = month_start.replace(day=calendar.monthrange(month_start.year, month_start.month)[1])
     student_bookings = MealBooking.objects.filter(
@@ -1451,11 +1519,12 @@ def monthly_planning(request):
         day["teachers"].append(booking)
         label = booking.diet_name or _("Ordinària")
         day["diets"][label] = day["diets"].get(label, 0) + 1
+    available_dates, _today, _today_locked = service_calendar(month_start, month_end)
     days = []
     for offset in range((month_end - month_start).days + 1):
         current = month_start + timedelta(days=offset)
         data = grouped.get(current, {"students": [], "teachers": [], "diets": {}})
-        if is_service_day(current) or data["students"] or data["teachers"]:
+        if current in available_dates or data["students"] or data["teachers"]:
             days.append({"date": current, **data, "total": len(data["students"]) + len(data["teachers"])})
     return render(request, "cafeteria/monthly_planning.html", {
         "month_start": month_start,
@@ -1490,12 +1559,16 @@ def statement_prepare(request):
     try:
         year = int(request.POST["year"])
         month = int(request.POST["month"])
-        if not 1 <= month <= 12:
+        if not 1 <= month <= 12 or not 1 <= year <= 9998:
             raise ValueError
     except (KeyError, ValueError):
         messages.error(request, _("Mes no vàlid."))
         return redirect("cafeteria:monthly_statements")
-    count = prepare_statements_for_month(year, month)
+    try:
+        count = prepare_statements_for_month(year, month)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+        return redirect("cafeteria:monthly_statements")
     messages.success(request, _("S'han preparat %(count)s resums mensuals.") % {"count": count})
     return redirect("cafeteria:monthly_statements")
 
@@ -1510,9 +1583,15 @@ def statement_detail(request, statement_id):
 
 @staff_required
 @require_POST
+@atomic_write
 def statement_close(request, statement_id):
     statement = get_object_or_404(MonthlyStatement, pk=statement_id)
     if statement.status == StatementStatus.PREPARED:
+        try:
+            statement = prepare_monthly_statement(statement.family, statement.year, statement.month)
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
+            return redirect("cafeteria:statement_detail", statement_id=statement.id)
         statement.status = StatementStatus.CLOSED
         statement.closed_at = timezone.now()
         statement.closed_by = request.user
@@ -1549,10 +1628,10 @@ def statement_csv(request, statement_id):
     writer = csv.writer(response)
     writer.writerow([_("Data"), _("Alumne"), _("Dieta"), _("Modalitat"), _("Becat"), _("Import")])
     for line in statement.lines.select_related("student"):
-        writer.writerow([
+        writer.writerow([csv_cell(value) for value in [
             line.service_date.isoformat(), line.student.full_name, line.diet_name,
             line.get_meal_plan_display(), _("Sí") if line.scholarship else _("No"), line.unit_price,
-        ])
+        ]])
     writer.writerow([])
     writer.writerow([_("Total"), "", "", "", "", statement.total])
     return response
@@ -1572,9 +1651,15 @@ def teacher_statement_detail(request, statement_id):
 
 @staff_required
 @require_POST
+@atomic_write
 def teacher_statement_close(request, statement_id):
     statement = get_object_or_404(TeacherMonthlyStatement, pk=statement_id)
     if statement.status == StatementStatus.PREPARED:
+        try:
+            statement = prepare_teacher_monthly_statement(statement.teacher, statement.year, statement.month)
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
+            return redirect("cafeteria:teacher_statement_detail", statement_id=statement.id)
         statement.status = StatementStatus.CLOSED
         statement.closed_at = timezone.now()
         statement.closed_by = request.user
@@ -1657,6 +1742,9 @@ def password_reset_request(request):
     """Password reset that remains safe and usable before SMTP is configured."""
     form = PasswordResetForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
+        _key, allowed = consume_attempt("password-reset", form.cleaned_data["email"], limit=3)
+        if not allowed:
+            return redirect("cafeteria:password_reset_done")
         if settings.EMAIL_HOST:
             try:
                 form.save(
@@ -1700,7 +1788,7 @@ def portal_administration(request):
         tab = "comptes"
     context = {"tab": tab}
     if tab == "configuracio":
-        portal, _created = PortalSettings.objects.get_or_create()
+        portal = PortalSettings.objects.first() or PortalSettings.objects.get_or_create(pk=1)[0]
         form = PortalFamilyRegistrationSettingsForm(
             request.POST or None,
             instance=portal,
@@ -1762,12 +1850,16 @@ def account_reset_link(request, user_id):
             )
             messages.success(request, _("S'ha enviat l'enllaç de restauració a %(email)s.") % {"email": account.email})
         except Exception:
-            messages.warning(request, _("No s'ha pogut enviar el correu. Copia l'enllaç manualment."))
+            messages.warning(request, _("No s'ha pogut enviar el correu. Revisa la configuració SMTP."))
     else:
-        messages.info(request, _("Copia l'enllaç i comparteix-lo de manera segura amb la persona registrada."))
+        messages.info(request, _("Copia l'enllaç i comparteix-lo de manera segura amb la persona registrada.") if settings.DEBUG else _("No s'ha pogut enviar el correu. Revisa la configuració SMTP."))
     log_event(request.user, "account.reset_link_created", account, {"email": account.email})
-    request.session["portal_reset_url"] = reset_url
-    request.session["portal_reset_account"] = account.get_full_name() or account.email
+    if settings.DEBUG:
+        request.session["portal_reset_url"] = reset_url
+        request.session["portal_reset_account"] = account.get_full_name() or account.email
+    else:
+        request.session.pop("portal_reset_url", None)
+        request.session.pop("portal_reset_account", None)
     return portal_administration(request)
 
 
@@ -1789,37 +1881,45 @@ def teacher_profile_edit(request, profile_id):
 
 
 def _portal_backup_response(request, filename):
+    if settings.DATA_ENCRYPTION_ENABLED:
+        from .backups import build_encrypted_backup
+        return FileResponse(build_encrypted_backup(), as_attachment=True, filename=filename, content_type="application/octet-stream")
     if connection.vendor != "sqlite":
         messages.error(request, _("Les còpies des del portal només estan disponibles amb SQLite."))
         return None
-    with tempfile.NamedTemporaryFile(suffix=".sqlite3") as snapshot:
-        connection.ensure_connection()
-        destination = sqlite3.connect(snapshot.name)
-        try:
-            connection.connection.backup(destination)
-        finally:
-            destination.close()
-        payload = Path(snapshot.name).read_bytes()
-    archive = BytesIO()
-    media_root = Path(settings.MEDIA_ROOT)
-    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
-        bundle.writestr("backup.json", json.dumps({"format": "afa-ordis-backup", "version": 1}))
-        bundle.writestr("database.sqlite3", payload)
-        if media_root.exists():
-            for media_file in media_root.rglob("*"):
-                if media_file.is_file():
-                    bundle.write(media_file, f"media/{media_file.relative_to(media_root).as_posix()}")
-    response = HttpResponse(archive.getvalue(), content_type="application/zip")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+    archive = tempfile.TemporaryFile()
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".sqlite3") as snapshot:
+            connection.ensure_connection()
+            destination = sqlite3.connect(snapshot.name)
+            try:
+                connection.connection.backup(destination)
+            finally:
+                destination.close()
+            media_root = Path(settings.MEDIA_ROOT).resolve()
+            with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+                bundle.writestr("backup.json", json.dumps({"format": "afa-ordis-backup", "version": 1}))
+                bundle.write(snapshot.name, "database.sqlite3")
+                if media_root.exists():
+                    for media_file in media_root.rglob("*"):
+                        if media_file.is_file() and not media_file.is_symlink() and media_file.resolve().is_relative_to(media_root):
+                            bundle.write(media_file, f"media/{media_file.relative_to(media_root).as_posix()}")
+        archive.seek(0)
+        return FileResponse(archive, as_attachment=True, filename=filename, content_type="application/zip")
+    except Exception:
+        archive.close()
+        raise
 
 
 @admin_required
 @require_POST
 def portal_backup_download(request):
-    filename = f"afa-ordis-{timezone.localtime():%Y%m%d-%H%M%S}.zip"
+    suffix = "afaenc" if settings.DATA_ENCRYPTION_ENABLED else "zip"
+    filename = f"afa-ordis-{timezone.localtime():%Y%m%d-%H%M%S}.{suffix}"
     response = _portal_backup_response(request, filename)
     if response is not None:
+        from .models import BackupCustody
+        BackupCustody.objects.create(expires_at=timezone.now() + timedelta(days=settings.BACKUP_RETENTION_DAYS))
         request.session["restore_safety_backup_at"] = timezone.now().timestamp()
         log_event(request.user, "portal.backup_downloaded", None, {"filename": filename})
         return response
@@ -1832,8 +1932,8 @@ def _current_migrations():
         return set(cursor.fetchall())
 
 
-def _validate_restore_database(path):
-    source = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+def _validate_restore_database(path, key_id=None):
+    source = database_connect(f"file:{path}?mode=ro", uri=True, key_id=key_id)
     try:
         integrity = source.execute("PRAGMA integrity_check").fetchone()
         if not integrity or integrity[0].lower() != "ok":
@@ -1848,19 +1948,40 @@ def _validate_restore_database(path):
         required_tables = {"auth_user", "cafeteria_academicyear", "cafeteria_userprofile"}
         if not required_tables.issubset(tables):
             raise ValueError(_("El fitxer no conté l'estructura necessària del portal."))
+        for table in connection.introspection.table_names():
+            quoted_table = connection.ops.quote_name(table)
+            with connection.cursor() as cursor:
+                cursor.execute(f"PRAGMA table_info({quoted_table})")
+                current_columns = cursor.fetchall()
+            if source.execute(f"PRAGMA table_info({quoted_table})").fetchall() != current_columns:
+                raise ValueError(_("La còpia no és compatible amb la versió actual del portal."))
+        if source.execute("PRAGMA foreign_key_check").fetchone():
+            raise ValueError(_("La còpia no supera la comprovació d'integritat SQLite."))
     finally:
         source.close()
 
 
-def _restore_sqlite_database(path):
+def _restore_sqlite_database(path, key_id=None):
     database_name = settings.DATABASES["default"]["NAME"]
-    if database_name == ":memory:":
+    if database_name == ":memory:" or "mode=memory" in str(database_name):
         raise ValueError(_("No es pot restaurar una base de dades en memòria."))
     connection.close()
-    source = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-    destination = sqlite3.connect(database_name)
+    source = database_connect(f"file:{path}?mode=ro", uri=True, key_id=key_id)
+    destination = database_connect(database_name)
     try:
-        source.backup(destination)
+        from .crypto import active_key
+        if settings.DATA_ENCRYPTION_ENABLED and key_id and key_id != active_key("database")[0]:
+            from .database import export_to_active_key
+            with tempfile.TemporaryDirectory(dir=settings.PRIVATE_TEMP_DIR) as work:
+                converted_path = Path(work) / "converted.sqlite3"
+                export_to_active_key(source, converted_path)
+                converted = database_connect(converted_path)
+                try:
+                    converted.backup(destination)
+                finally:
+                    converted.close()
+        else:
+            source.backup(destination)
     finally:
         destination.close()
         source.close()
@@ -1868,20 +1989,23 @@ def _restore_sqlite_database(path):
 
 
 def _extract_portal_backup(path):
-    staging = Path(tempfile.mkdtemp(prefix="afa-ordis-restore-"))
+    staging = Path(tempfile.mkdtemp(prefix="afa-ordis-restore-", dir=settings.PRIVATE_TEMP_DIR))
     try:
         with zipfile.ZipFile(path) as archive:
+            items = archive.infolist()
             names = set(archive.namelist())
+            if len(items) > 5000 or len(names) != len(items) or sum(item.file_size for item in items) > MAX_BACKUP_UPLOAD_BYTES * 3:
+                raise ValueError(_("La còpia ZIP és massa gran o conté massa fitxers."))
             if "backup.json" not in names or "database.sqlite3" not in names:
                 raise ValueError(_("El fitxer ZIP no és una còpia completa del portal."))
             try:
+                if archive.getinfo("backup.json").file_size > 4096:
+                    raise ValueError(_("La còpia ZIP no conté un manifest vàlid."))
                 manifest = json.loads(archive.read("backup.json"))
             except (json.JSONDecodeError, KeyError) as error:
                 raise ValueError(_("La còpia ZIP no conté un manifest vàlid.")) from error
-            if manifest.get("format") != "afa-ordis-backup" or manifest.get("version") != 1:
+            if not isinstance(manifest, dict) or manifest.get("format") != "afa-ordis-backup" or manifest.get("version") != 1:
                 raise ValueError(_("La còpia ZIP no és compatible amb aquesta versió del portal."))
-            if len(names) > 5000 or sum(item.file_size for item in archive.infolist()) > MAX_BACKUP_UPLOAD_BYTES * 3:
-                raise ValueError(_("La còpia ZIP és massa gran o conté massa fitxers."))
             for item in archive.infolist():
                 member = Path(item.filename)
                 if member.is_absolute() or ".." in member.parts or item.is_dir():
@@ -1894,23 +2018,62 @@ def _extract_portal_backup(path):
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(item) as source, destination.open("wb") as target:
                     shutil.copyfileobj(source, target)
+                destination.chmod(0o600)
         return staging, staging / "database.sqlite3"
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
 
 
-def _restore_media_from_staging(staging):
-    source = staging / "media"
-    if not source.exists():
-        return
+def _restore_portal_state(database_path, staging, key_id=None):
+    """Restore under the exclusive portal lock, rolling back both stores on failure."""
     destination = Path(settings.MEDIA_ROOT)
-    destination.mkdir(parents=True, exist_ok=True)
-    for media_file in source.rglob("*"):
-        if media_file.is_file():
-            target = destination / media_file.relative_to(source)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(media_file, target)
+    if destination.is_symlink() or destination.resolve() in {Path("/"), settings.BASE_DIR.resolve()}:
+        raise ValueError(_("La còpia ZIP conté una ruta no segura."))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="afa-restore-", dir=destination.parent))
+    cleanup_safe = True
+    try:
+        snapshot_path = work / "before.sqlite3"
+        snapshot = database_connect(snapshot_path)
+        try:
+            connection.ensure_connection()
+            connection.connection.backup(snapshot)
+        finally:
+            snapshot.close()
+        if staging:
+            if (staging / "media").exists():
+                shutil.copytree(staging / "media", work / "new-media")
+            else:
+                (work / "new-media").mkdir()
+        media_swapped = False
+        old_media_moved = False
+        try:
+            if staging:
+                if destination.exists():
+                    destination.rename(work / "old-media")
+                    old_media_moved = True
+                (work / "new-media").rename(destination)
+                media_swapped = True
+            if key_id:
+                _restore_sqlite_database(database_path, key_id=key_id)
+            else:
+                _restore_sqlite_database(database_path)
+        except Exception:
+            try:
+                if media_swapped:
+                    destination.rename(work / "failed-media")
+                if old_media_moved:
+                    (work / "old-media").rename(destination)
+                _restore_sqlite_database(snapshot_path)
+            except Exception:
+                cleanup_safe = False
+                logger.critical("Restore rollback failed; recovery files preserved in %s", work, exc_info=True)
+                raise
+            raise
+    finally:
+        if cleanup_safe:
+            shutil.rmtree(work)
 
 
 @admin_required
@@ -1942,19 +2105,37 @@ def portal_restore(request):
             for chunk in upload.chunks():
                 temporary_file.write(chunk)
         database_path = temporary_path
-        if zipfile.is_zipfile(temporary_path):
+        key_id = None
+        ledger = None
+        if settings.DATA_ENCRYPTION_ENABLED:
+            from .backups import extract_encrypted_backup
+            from .privacy import load_restriction_ledger, read_external_ledger, merge_ledgers
+            ledger_upload = request.FILES.get("restriction_ledger")
+            if not ledger_upload or request.POST.get("latest_ledger_confirmed") != "on":
+                raise ValueError(_("Adjunta el registre de restriccions més recent i confirma que és l'última versió custodiada."))
+            ledger = merge_ledgers(load_restriction_ledger(), read_external_ledger(ledger_upload))
+            with open(temporary_path, "rb") as encrypted:
+                staging_path, database_path, manifest = extract_encrypted_backup(encrypted)
+            key_id = manifest["database_key"]
+            ledger = merge_ledgers(ledger, json.loads((staging_path / "restrictions.json").read_text()))
+        elif zipfile.is_zipfile(temporary_path):
             staging_path, database_path = _extract_portal_backup(temporary_path)
-        _validate_restore_database(database_path)
-        _restore_sqlite_database(database_path)
-        if staging_path:
-            _restore_media_from_staging(staging_path)
+        _validate_restore_database(database_path, key_id=key_id)
+        if ledger is not None:
+            from .privacy import mark_restore_pending, save_restriction_ledger
+            mark_restore_pending()
+            save_restriction_ledger(ledger)
+        _restore_portal_state(database_path, staging_path, key_id=key_id)
+        if ledger is not None:
+            from .privacy import finish_restore
+            finish_restore()
         Session.objects.all().delete()
         log_event(None, "portal.database_restored", None, {"restored_by": request.user.email})
         request.session.pop("restore_safety_backup_at", None)
         logout(request)
         messages.success(request, _("S'ha restaurat la base de dades. Per seguretat, cal tornar a iniciar sessió."))
         return redirect("cafeteria:login")
-    except (OSError, sqlite3.DatabaseError, ValueError) as error:
+    except (OSError, sqlite3.DatabaseError, ValueError, zipfile.BadZipFile, RuntimeError) as error:
         messages.error(request, str(error) or _("No s'ha pogut restaurar la còpia."))
         return redirect(f"{reverse('cafeteria:portal_administration')}?tab=copies")
     finally:
@@ -2023,11 +2204,13 @@ def _economic_queryset(request):
     mode = request.GET.get("period", "academic")
     selected_year = request.GET.get("year", "")
     selected_academic_year = request.GET.get("academic_year", "")
-    academic_year = AcademicYear.objects.filter(pk=selected_academic_year).first() if selected_academic_year else _active_year_or_none()
+    academic_year = AcademicYear.objects.filter(pk=positive_pk(selected_academic_year)).first() if selected_academic_year else _active_year_or_none()
     calendar_year = None
     if mode == "calendar":
         try:
             calendar_year = int(selected_year)
+            if not 1 <= calendar_year <= 9998:
+                raise ValueError
         except (TypeError, ValueError):
             calendar_year = timezone.localdate().year
         entries = entries.filter(date__year=calendar_year)
@@ -2037,10 +2220,10 @@ def _economic_queryset(request):
         entries = entries.filter(entry_type=selected_type)
     if selected_status in EconomicReviewStatus.values:
         entries = entries.filter(review_status=selected_status)
-    if selected_account.isdigit():
-        entries = entries.filter(account_id=int(selected_account))
-    if selected_category.isdigit():
-        entries = entries.filter(category_id=int(selected_category))
+    if positive_pk(selected_account):
+        entries = entries.filter(account_id=positive_pk(selected_account))
+    if positive_pk(selected_category):
+        entries = entries.filter(category_id=positive_pk(selected_category))
     return entries, {
         "selected_type": selected_type, "selected_status": selected_status,
         "selected_account": selected_account, "selected_category": selected_category,
@@ -2065,14 +2248,16 @@ def economic_dashboard(request):
     entries, filters = _economic_queryset(request)
     summary = _economic_summary(entries)
     account_rows = []
-    for account in FinancialAccount.objects.filter(active=True):
-        account_entries = EconomicEntry.objects.filter(
-            account=account, review_status=EconomicReviewStatus.APPROVED,
-            payment_status=EconomicPaymentStatus.PAID,
-        )
-        income = account_entries.filter(entry_type=EconomicEntryType.INCOME).aggregate(total=Sum("amount"))["total"] or 0
-        expense = account_entries.filter(entry_type=EconomicEntryType.EXPENSE).aggregate(total=Sum("amount"))["total"] or 0
-        account_rows.append({"account": account, "balance": account.opening_balance + income - expense})
+    posted = Q(entries__review_status=EconomicReviewStatus.APPROVED, entries__payment_status=EconomicPaymentStatus.PAID) & (
+        Q(entries__paid_on__gte=F("opening_balance_date")) |
+        Q(entries__paid_on__isnull=True, entries__date__gte=F("opening_balance_date"))
+    )
+    accounts = FinancialAccount.objects.filter(active=True).annotate(
+        paid_income=Sum("entries__amount", filter=posted & Q(entries__entry_type=EconomicEntryType.INCOME), default=0),
+        paid_expense=Sum("entries__amount", filter=posted & Q(entries__entry_type=EconomicEntryType.EXPENSE), default=0),
+    )
+    for account in accounts:
+        account_rows.append({"account": account, "balance": account.opening_balance + account.paid_income - account.paid_expense})
     return render(request, "cafeteria/economic_dashboard.html", {
         "summary": summary, "entries": entries[:8], "account_rows": account_rows,
         "pending_review_count": EconomicEntry.objects.filter(review_status=EconomicReviewStatus.SUBMITTED).count(),
@@ -2095,17 +2280,17 @@ def economic_export_csv(request):
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Data", "Tipus", "Concepte", "Categoria", "Compte", "Import", "Revisió", "Pagament", "Data de pagament", "Presentada per", "Justificants",
+        _("Data"), _("Tipus"), _("Concepte"), _("Categoria"), _("Compte"), _("Import"), _("Revisió"), _("Pagament"), _("Data de pagament"), _("Presentada per"), _("Justificants"),
     ])
     for entry in entries:
-        writer.writerow([
+        writer.writerow([csv_cell(value) for value in [
             entry.date.isoformat(), entry.get_entry_type_display(), entry.concept, entry.category.name,
             entry.account.name if entry.account else "", f"{entry.amount:.2f}", entry.get_review_status_display(),
             entry.get_payment_status_display(), entry.paid_on.isoformat() if entry.paid_on else "",
             entry.submitted_by.get_full_name() or entry.submitted_by.email if entry.submitted_by else "",
             entry.attachments.count(),
-        ])
-    response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
+        ]])
+    response = HttpResponse("\ufeff" + output.getvalue(), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="gestio-economica-afa.csv"'
     return response
 
@@ -2126,6 +2311,7 @@ def economic_reports(request):
 
 
 @admin_required
+@atomic_write
 def economic_entry_form(request, entry_id=None):
     entry = get_object_or_404(EconomicEntry.objects.prefetch_related("attachments"), pk=entry_id) if entry_id else None
     if entry and entry.review_status != EconomicReviewStatus.APPROVED:
@@ -2166,13 +2352,16 @@ def economic_entry_form(request, entry_id=None):
 
 
 @admin_required
+@atomic_write
 def economic_review(request, entry_id):
     entry = get_object_or_404(EconomicEntry.objects.prefetch_related("attachments"), pk=entry_id, review_status=EconomicReviewStatus.SUBMITTED)
+    before = _economic_entry_snapshot(entry)
     form = EconomicEntryForm(request.POST or None, instance=entry)
     uploads = request.FILES.getlist("attachments") + request.FILES.getlist("camera_attachments")
     if request.method == "POST" and form.is_valid():
         action = request.POST.get("action")
-        before = _economic_entry_snapshot(entry)
+        if action not in {"approve", "reject"}:
+            return HttpResponse(status=400)
         saved = form.save(commit=False)
         saved.entry_type = EconomicEntryType.EXPENSE
         saved.reviewed_by = request.user
@@ -2193,7 +2382,7 @@ def economic_review(request, entry_id):
             try:
                 saved.full_clean()
             except ValidationError as error:
-                form.add_error(None, error)
+                form.add_error(None, " ".join(error.messages))
             else:
                 saved.save()
                 _store_receipts(saved, uploads, request.user)
@@ -2207,6 +2396,7 @@ def economic_review(request, entry_id):
 
 @admin_required
 @require_POST
+@atomic_write
 def economic_mark_paid(request, entry_id):
     entry = get_object_or_404(EconomicEntry, pk=entry_id, review_status=EconomicReviewStatus.APPROVED)
     if entry.payment_status != EconomicPaymentStatus.PAID:
@@ -2219,15 +2409,15 @@ def economic_mark_paid(request, entry_id):
         entry.save(update_fields=["payment_status", "paid_on", "updated_at"])
         log_event(request.user, "economic_entry.marked_paid", entry, {"paid_on": entry.paid_on.isoformat()})
         messages.success(request, _("S'ha marcat com a pagada."))
-    return redirect(request.POST.get("next") or reverse("cafeteria:economic_entries"))
+    return local_redirect(request, "cafeteria:economic_entries")
 
 
 @admin_required
 def economic_configuration(request):
     settings_object = _economic_settings()
     tab = request.GET.get("tab") or request.POST.get("tab") or "general"
-    account = FinancialAccount.objects.filter(pk=request.GET.get("account") or request.POST.get("account_id")).first()
-    category = EconomicCategory.objects.filter(pk=request.GET.get("category") or request.POST.get("category_id")).first()
+    account = FinancialAccount.objects.filter(pk=positive_pk(request.GET.get("account") or request.POST.get("account_id"))).first()
+    category = EconomicCategory.objects.filter(pk=positive_pk(request.GET.get("category") or request.POST.get("category_id"))).first()
     settings_form = EconomicSettingsForm(instance=settings_object)
     account_form = FinancialAccountForm(instance=account)
     category_form = EconomicCategoryForm(instance=category)
@@ -2283,6 +2473,7 @@ def economic_my_expenses(request):
 
 
 @login_required
+@atomic_write
 def economic_submission_form(request, entry_id=None):
     if not _can_submit_expenses(request.user):
         return HttpResponseForbidden(_("No tens permís per presentar despeses."))
@@ -2324,6 +2515,7 @@ def economic_submission_form(request, entry_id=None):
 
 @login_required
 @require_POST
+@atomic_write
 def economic_submission_withdraw(request, entry_id):
     if not _can_submit_expenses(request.user):
         return HttpResponseForbidden(_("No tens permís per presentar despeses."))
@@ -2342,6 +2534,8 @@ def economic_attachment_download(request, attachment_id):
     attachment = get_object_or_404(EconomicAttachment.objects.select_related("entry"), pk=attachment_id)
     if not _is_admin(request.user) and attachment.entry.submitted_by_id != request.user.id:
         return HttpResponseForbidden(_("No tens permís per consultar aquest justificant."))
+    if not attachment.file or not attachment.file.storage.exists(attachment.file.name):
+        raise Http404
     log_event(request.user, "economic_attachment.downloaded", attachment.entry, {"attachment": attachment.original_name})
     return FileResponse(attachment.file.open("rb"), as_attachment=True, filename=attachment.original_name)
 
@@ -2421,7 +2615,7 @@ def people(request):
 @admin_required
 def afa_memberships(request):
     selected_id = request.GET.get("year")
-    academic_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    academic_year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     if not academic_year:
         messages.info(request, _("Primer crea un curs acadèmic per gestionar les quotes AFA."))
         return redirect("cafeteria:academic_dashboard")
@@ -2456,7 +2650,7 @@ def afa_memberships(request):
 def afa_membership_edit(request, family_id):
     family = get_object_or_404(Family, pk=family_id)
     selected_id = request.GET.get("year") or request.POST.get("year")
-    academic_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    academic_year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     if not academic_year:
         messages.error(request, _("Cal crear un curs acadèmic abans de registrar una quota AFA."))
         return redirect("cafeteria:academic_dashboard")
@@ -2519,6 +2713,7 @@ def management_student_form(request, student_id=None):
         request.FILES or None,
         instance=student,
         require_profile_completion=student is None,
+        actor=request.user,
     )
     if request.method == "POST" and form.is_valid():
         saved = form.save()
@@ -2530,7 +2725,7 @@ def management_student_form(request, student_id=None):
         "form": form,
         "title": _("Nou alumne") if student is None else _("Edita la fitxa de l'alumne"),
         "back_url": reverse("cafeteria:people"),
-        "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student and student.allergy_document else None,
+        "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student and student.allergy_document and medical_access(request.user, student) else None,
     })
 
 
@@ -2548,7 +2743,7 @@ def _weekday_service_days(academic_year):
 @admin_required
 def school_calendar(request):
     selected_id = request.GET.get("year")
-    year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     return render(request, "cafeteria/school_calendar.html", {
         "year": year,
         "years": AcademicYear.objects.all(),
@@ -2563,7 +2758,7 @@ def school_calendar(request):
 @admin_required
 def course_management(request):
     selected_id = request.GET.get("year")
-    year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     course_groups = CourseGroup.objects.filter(academic_year=year).annotate(
         student_total=Count("students", distinct=True),
         closure_total=Count("closures", distinct=True),
@@ -2576,6 +2771,7 @@ def course_management(request):
 
 
 @admin_required
+@atomic_write
 def academic_year_save(request, year_id=None):
     academic_year = get_object_or_404(AcademicYear, pk=year_id) if year_id else None
     form = AcademicYearForm(request.POST or None, instance=academic_year)
@@ -2684,17 +2880,23 @@ def generate_service_days(request, year_id):
 
 @admin_required
 @require_POST
+@atomic_write
 def service_day_toggle(request, service_date):
-    day = get_object_or_404(ServiceDay, pk=request.POST.get("service_day"), date=service_date)
+    try:
+        service_date = date.fromisoformat(service_date)
+    except ValueError:
+        raise Http404
+    day = get_object_or_404(ServiceDay, pk=positive_pk(request.POST.get("service_day")), date=service_date)
     day.is_service_day = request.POST.get("is_service_day") == "1"
     day.note = request.POST.get("note", "").strip()
     day.save(update_fields=["is_service_day", "note"])
     log_event(request.user, "service_day.updated", day, {"open": day.is_service_day})
-    return redirect(request.POST.get("next") or "cafeteria:school_calendar")
+    return local_redirect(request, "cafeteria:school_calendar")
 
 
 @admin_required
 @require_POST
+@atomic_write
 def service_day_by_date_toggle(request, year_id, service_date):
     """Change the state of one day directly from the annual calendar."""
     academic_year = get_object_or_404(AcademicYear, pk=year_id)
@@ -2720,7 +2922,7 @@ def service_day_by_date_toggle(request, year_id, service_date):
 @admin_required
 def course_group_save(request, group_id=None):
     group = get_object_or_404(CourseGroup, pk=group_id) if group_id else None
-    selected_year = AcademicYear.objects.filter(pk=request.GET.get("year")).first()
+    selected_year = AcademicYear.objects.filter(pk=positive_pk(request.GET.get("year"))).first()
     form = CourseGroupForm(
         request.POST or None,
         instance=group,
@@ -2785,7 +2987,7 @@ def course_group_delete(request, group_id):
 @admin_required
 def course_closure_save(request, closure_id=None):
     closure = get_object_or_404(CourseClosure, pk=closure_id) if closure_id else None
-    selected_year = AcademicYear.objects.filter(pk=request.GET.get("year")).first() or _active_year_or_none()
+    selected_year = AcademicYear.objects.filter(pk=positive_pk(request.GET.get("year"))).first() or _active_year_or_none()
     try:
         selected_date = date.fromisoformat(request.GET.get("date", ""))
     except ValueError:
@@ -2828,7 +3030,7 @@ def course_closure_delete(request, closure_id):
 def academic_holiday_form(request, holiday_id=None):
     holiday = get_object_or_404(AcademicHoliday, pk=holiday_id) if holiday_id else None
     selected_id = request.GET.get("year")
-    selected_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    selected_year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     form = AcademicHolidayForm(
         request.POST or None,
         instance=holiday,
@@ -2862,7 +3064,7 @@ def academic_holiday_delete(request, holiday_id):
 def intensive_period_form(request, period_id=None):
     period = get_object_or_404(AcademicIntensivePeriod, pk=period_id) if period_id else None
     selected_id = request.GET.get("year")
-    selected_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    selected_year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     form = AcademicIntensivePeriodForm(
         request.POST or None,
         instance=period,
@@ -2899,7 +3101,7 @@ def intensive_period_delete(request, period_id):
 def academic_notice_form(request, notice_id=None):
     notice = get_object_or_404(AcademicNotice, pk=notice_id) if notice_id else None
     selected_id = request.GET.get("year")
-    selected_year = AcademicYear.objects.filter(pk=selected_id).first() if selected_id else _active_year_or_none()
+    selected_year = AcademicYear.objects.filter(pk=positive_pk(selected_id)).first() if selected_id else _active_year_or_none()
     try:
         selected_date = date.fromisoformat(request.GET.get("date", ""))
     except ValueError:
@@ -2938,6 +3140,7 @@ def academic_notice_delete(request, notice_id):
 
 
 @staff_required
+@atomic_write
 def meal_configuration(request):
     active_year = _active_year_or_none()
     settings_object = MealSettings.objects.filter(academic_year=active_year).first() if active_year else None
@@ -2949,9 +3152,9 @@ def meal_configuration(request):
         tab = "avisos"
     settings_form = MealSettingsForm(request.POST or None, instance=settings_object, prefix="settings") if settings_object else None
     diet_form = DietForm(request.POST or None, prefix="diet")
-    recipient_form = DailyReportRecipientForm(request.POST or None, prefix="recipient") if settings_object else None
+    recipient_form = DailyReportRecipientForm(request.POST or None, prefix="recipient", settings_object=settings_object) if settings_object else None
     price_form = PriceRuleForm(request.POST or None, prefix="price")
-    portal, _created = PortalSettings.objects.get_or_create()
+    portal = PortalSettings.objects.first() or PortalSettings.objects.get_or_create(pk=1)[0]
     menu_form = PortalSettingsForm(request.POST or None, instance=portal, prefix="menu")
     if request.method == "POST":
         intent = request.POST.get("intent")
@@ -3101,10 +3304,15 @@ def _parse_family_csv(uploaded_file, academic_year):
     diets = {diet.name.casefold(): diet for diet in Diet.objects.filter(active=True)}
     rows, errors, seen_students = [], [], set()
     for number, source in enumerate(reader, start=2):
+        if None in source:
+            errors.append({"row": number, "message": _("Les columnes no coincideixen amb la plantilla descarregable.")})
+            continue
         cleaned = {key: (value or "").strip() for key, value in source.items()}
         if not any(cleaned.values()):
             continue
         row_errors = []
+        if settings.PRIVACY_ENFORCED and (cleaned["dietary_notes"] or cleaned["default_diet"]):
+            row_errors.append(_("Les dades alimentàries s'han de declarar al portal amb les garanties de salut; no es poden importar per CSV."))
         required = ("family_name", "student_first_name", "student_last_name")
         for column in required:
             if not cleaned[column]:
@@ -3152,7 +3360,7 @@ def family_import(request):
     if request.method == "POST" and form.is_valid():
         try:
             digest, rows, errors = _parse_family_csv(form.cleaned_data["csv_file"], form.cleaned_data["academic_year"])
-        except ValueError as error:
+        except (ValueError, csv.Error) as error:
             form.add_error("csv_file", str(error))
         else:
             batch = FamilyImportBatch.objects.create(
@@ -3173,6 +3381,7 @@ def family_import_preview(request, batch_id):
 
 @admin_required
 @require_POST
+@atomic_write
 def family_import_confirm(request, batch_id):
     batch = get_object_or_404(FamilyImportBatch, pk=batch_id)
     if not batch.is_confirmable:
@@ -3195,7 +3404,8 @@ def family_import_confirm(request, batch_id):
                     family=family, course_group_id=row["course_group_id"], first_name=row["student_first_name"],
                     last_name=row["student_last_name"], birth_date=row["birth_date"] or None,
                     contact_email=row["student_email"], contact_phone=row["student_phone"], contact_notes=row["contact_notes"],
-                    default_diet_id=row["diet_id"], dietary_notes=row["dietary_notes"], is_scholarship=row["scholarship_value"],
+                    default_diet_id=None if settings.PRIVACY_ENFORCED else row["diet_id"],
+                    dietary_notes="" if settings.PRIVACY_ENFORCED else row["dietary_notes"], is_scholarship=row["scholarship_value"],
                     meal_plan=row["meal_plan_value"],
                 )
                 created_students += 1

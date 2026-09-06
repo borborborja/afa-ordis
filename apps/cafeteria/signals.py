@@ -9,6 +9,7 @@ from .models import (
     DailyReport,
     MealBooking,
     Student,
+    ServiceDay,
     TeacherMealBooking,
     UserProfile,
     log_event,
@@ -55,3 +56,16 @@ def cancel_bookings_for_academic_holiday(sender, instance, created, **kwargs):
             "student_bookings": student_count,
             "teacher_bookings": teacher_count,
         })
+
+
+@receiver(post_save, sender=ServiceDay)
+def cancel_bookings_for_closed_service_day(sender, instance, **kwargs):
+    if instance.is_service_day:
+        return
+    for model in (MealBooking, TeacherMealBooking):
+        count = model.objects.filter(date=instance.date, status=BookingStatus.ACTIVE).update(
+            status=BookingStatus.CANCELLED, override_reason=instance.note,
+        )
+        if count:
+            log_event(None, "booking.cancelled_for_service_day", instance, {"model": model._meta.label, "count": count})
+    DailyReport.objects.filter(date=instance.date).update(is_outdated=True)

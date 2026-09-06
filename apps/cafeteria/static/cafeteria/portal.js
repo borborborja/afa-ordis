@@ -9,8 +9,10 @@
   const sidebar = document.querySelector('[data-sidebar]');
   if (sidebar) {
     const key = 'afa-ordis:sidebar-scroll';
-    sidebar.scrollTop = Number(sessionStorage.getItem(key) || 0);
-    sidebar.addEventListener('scroll', () => sessionStorage.setItem(key, String(sidebar.scrollTop)), { passive: true });
+    try { sidebar.scrollTop = Number(sessionStorage.getItem(key) || 0); } catch (_error) { /* Storage may be disabled. */ }
+    sidebar.addEventListener('scroll', () => {
+      try { sessionStorage.setItem(key, String(sidebar.scrollTop)); } catch (_error) { /* Storage may be disabled. */ }
+    }, { passive: true });
     document.querySelectorAll('[data-nav-section]').forEach((section) => {
       section.addEventListener('toggle', () => {
         fetch(sidebar.dataset.navigationUrl, {

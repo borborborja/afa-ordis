@@ -1,0 +1,3 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block content %}<section class="card"><h1>{% translate "Posada en servei pendent" %}</h1><p>{% translate "L'AFA ha de validar la política, les bases jurídiques, els terminis, els contractes i la recuperació abans de registrar dades personals." %}</p><a href="{% url 'cafeteria:privacy_notice' %}">{% translate "Informació de privacitat" %}</a></section>{% endblock %}

@@ -9,8 +9,8 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission, User
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Q
 from django.utils import formats, timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -20,6 +20,9 @@ class Role(models.TextChoices):
     MANAGER = "manager", _("Gestió de menjador")
     TUTOR = "tutor", _("Persona tutora")
     TEACHER = "teacher", _("Personal docent")
+    KITCHEN = "kitchen", _("Cuina")
+    HEALTH_REVIEWER = "health_reviewer", _("Revisió documental de salut")
+    PRIVACY = "privacy", _("Responsable de privacitat")
 
 
 class FamilyBookingView(models.TextChoices):
@@ -41,7 +44,7 @@ def ensure_role_groups() -> None:
 
 
 def user_has_role(user: User, *roles: Role) -> bool:
-    return bool(user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=roles).exists()))
+    return bool(user.is_authenticated and user.is_active and (user.is_superuser or any(group.name in roles for group in user.groups.all())))
 
 
 class UserProfile(models.Model):
@@ -93,8 +96,12 @@ class AcademicYear(models.Model):
         ordering = ["-starts_on"]
 
     def clean(self):
+        if self.ends_on is None or self.starts_on is None:
+            return
         if self.ends_on <= self.starts_on:
             raise ValidationError(_("La data final ha de ser posterior a la inicial."))
+        if type(self).objects.exclude(pk=self.pk).filter(starts_on__lte=self.ends_on, ends_on__gte=self.starts_on).exists():
+            raise ValidationError(_("Les dates del curs se superposen amb un altre curs acadèmic."))
 
     def save(self, *args, **kwargs):
         if self.is_active:
@@ -185,7 +192,7 @@ class AfaFeeSettings(models.Model):
     """The single annual AFA fee; dining prices stay entirely separate."""
 
     academic_year = models.OneToOneField(AcademicYear, on_delete=models.CASCADE, related_name="afa_fee_settings")
-    amount = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"))
+    amount = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0.00"))])
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
@@ -202,7 +209,7 @@ class AfaMembership(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="afa_memberships")
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name="afa_memberships")
     status = models.CharField(max_length=12, choices=AfaMembershipStatus.choices, default=AfaMembershipStatus.PENDING)
-    amount = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"))
+    amount = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0.00"))])
     paid_on = models.DateField(null=True, blank=True)
     payment_method = models.CharField(max_length=16, choices=AfaPaymentMethod.choices, blank=True)
     payment_reference = models.CharField(max_length=100, blank=True)
@@ -387,11 +394,15 @@ class Student(models.Model):
     contact_email = models.EmailField(blank=True)
     contact_phone = models.CharField(max_length=32, blank=True)
     contact_notes = models.TextField(blank=True)
-    default_diet = models.ForeignKey(Diet, on_delete=models.PROTECT, related_name="students")
+    default_diet = models.ForeignKey(Diet, null=True, blank=True, on_delete=models.PROTECT, related_name="students")
     dietary_notes = models.TextField(blank=True)
     has_allergy = models.BooleanField(null=True, default=None)
     allergy_title = models.CharField(max_length=160, blank=True)
     allergy_details = models.TextField(blank=True)
+    kitchen_instructions = models.TextField(blank=True, verbose_name=_("Instruccions alimentàries per a cuina"))
+    safety_hold = models.BooleanField(default=False)
+    privacy_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    inactive_since = models.DateTimeField(null=True, blank=True)
     allergy_document = models.FileField(upload_to=allergy_document_path, blank=True)
     allergy_document_name = models.CharField(max_length=255, blank=True)
     allergy_review_status = models.CharField(max_length=12, choices=AllergyReviewStatus.choices, blank=True)
@@ -418,15 +429,30 @@ class Student(models.Model):
     def rate_category(self) -> str:
         return f"{'scholarship' if self.is_scholarship else 'standard'}_{self.meal_plan}"
 
+    def save(self, *args, **kwargs):
+        if not self.active and self.inactive_since is None:
+            self.inactive_since = timezone.now()
+            if kwargs.get("update_fields"):
+                kwargs["update_fields"] = set(kwargs["update_fields"]) | {"inactive_since"}
+        elif self.active and self.inactive_since is not None:
+            self.inactive_since = None
+            if kwargs.get("update_fields"):
+                kwargs["update_fields"] = set(kwargs["update_fields"]) | {"inactive_since"}
+        return super().save(*args, **kwargs)
+
+    @property
+    def meal_safety_hold(self):
+        from .privacy import has_health_consent
+        return bool(self.safety_hold or (settings.PRIVACY_ENFORCED and (self.has_allergy is None or not self.default_diet_id)) or (self.has_allergy and (
+            not has_health_consent(self) or self.allergy_review_status == "rejected"
+            or (settings.PRIVACY_ENFORCED and not self.kitchen_instructions.strip())
+        )))
+
     @property
     def has_operational_allergy_alert(self) -> bool:
         """Pending declarations are shown too, so no real allergy is missed."""
         return bool(
-            self.has_allergy
-            and self.allergy_review_status in {
-                AllergyReviewStatus.PENDING,
-                AllergyReviewStatus.APPROVED,
-            }
+            self.safety_hold or self.has_allergy
         )
 
     def __str__(self) -> str:
@@ -466,6 +492,8 @@ class ServiceDay(models.Model):
         constraints = [models.UniqueConstraint(fields=["academic_year", "date"], name="unique_service_day")]
 
     def clean(self):
+        if not self.academic_year_id or self.date is None:
+            return
         if not self.academic_year.starts_on <= self.date <= self.academic_year.ends_on:
             raise ValidationError(_("El dia ha de ser dins del curs acadèmic."))
 
@@ -484,6 +512,8 @@ class CourseClosure(models.Model):
         constraints = [models.UniqueConstraint(fields=["course_group", "date"], name="unique_course_closure")]
 
     def clean(self):
+        if not self.course_group_id or self.date is None:
+            return
         if not self.course_group.academic_year.starts_on <= self.date <= self.course_group.academic_year.ends_on:
             raise ValidationError(_("L'excursió ha de ser dins del curs acadèmic."))
 
@@ -510,6 +540,8 @@ class AcademicHoliday(models.Model):
         ordering = ["starts_on", "ends_on", "title"]
 
     def clean(self):
+        if not self.academic_year_id or self.starts_on is None or self.ends_on is None:
+            return
         if self.ends_on < self.starts_on:
             raise ValidationError(_("La data final no pot ser anterior a la inicial."))
         if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
@@ -537,6 +569,8 @@ class AcademicIntensivePeriod(models.Model):
         ordering = ["starts_on", "ends_on", "title"]
 
     def clean(self):
+        if not self.academic_year_id or self.starts_on is None or self.ends_on is None:
+            return
         if self.ends_on < self.starts_on:
             raise ValidationError(_("La data final no pot ser anterior a la inicial."))
         if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
@@ -574,6 +608,8 @@ class AcademicNotice(models.Model):
         ordering = ["starts_on", "ends_on", "title"]
 
     def clean(self):
+        if not self.academic_year_id or self.starts_on is None or self.ends_on is None:
+            return
         if self.ends_on < self.starts_on:
             raise ValidationError(_("La data final no pot ser anterior a la inicial."))
         if not self.academic_year.starts_on <= self.starts_on <= self.academic_year.ends_on:
@@ -595,7 +631,7 @@ class MealSettings(models.Model):
     monthly_statements_enabled = models.BooleanField(default=True)
 
     def clean(self):
-        if not 1 <= self.monthly_preparation_day <= 28:
+        if self.monthly_preparation_day is not None and not 1 <= self.monthly_preparation_day <= 28:
             raise ValidationError(_("El dia de preparació mensual ha d'estar entre 1 i 28."))
 
     def __str__(self) -> str:
@@ -607,6 +643,7 @@ class DailyReportRecipient(models.Model):
     name = models.CharField(max_length=100, blank=True)
     email = models.EmailField()
     active = models.BooleanField(default=True)
+    user = models.ForeignKey("auth.User", null=True, blank=True, on_delete=models.CASCADE)
 
     class Meta:
         ordering = ["email"]
@@ -620,7 +657,7 @@ class PriceRule(models.Model):
     scholarship = models.BooleanField(default=False)
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices)
     effective_from = models.DateField()
-    amount = models.DecimalField(max_digits=7, decimal_places=2, validators=[])
+    amount = models.DecimalField(max_digits=7, decimal_places=2, validators=[MinValueValidator(Decimal("0.00"))])
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_price_rules")
 
@@ -729,6 +766,15 @@ class StatementStatus(models.TextChoices):
     PREPARED = "prepared", _("Preparat")
     CLOSED = "closed", _("Tancat")
     SENT = "sent", _("Enviat")
+
+
+class MonthlyPreparation(models.Model):
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["year", "month"], name="unique_monthly_preparation")]
 
 
 class MonthlyStatement(models.Model):
@@ -885,10 +931,20 @@ class FamilyImportBatch(models.Model):
 
 
 def log_event(actor, action: str, target, details: dict | None = None) -> AuditEvent:
+    # Audit actions/IDs, not clinical content, addresses, tokens or financial notes.
+    safe = {key: value for key, value in (details or {}).items() if key in {
+        "status", "enabled", "count", "after_cutoff", "field_names", "category", "version",
+    } and isinstance(value, (bool, int, float, list, str))}
     return AuditEvent.objects.create(
         actor=actor if getattr(actor, "is_authenticated", False) else None,
         action=action,
         target_type=target._meta.label if hasattr(target, "_meta") else type(target).__name__,
         target_id=str(getattr(target, "pk", "")),
-        details=details or {},
+        details=safe,
     )
+
+
+from .privacy_models import (  # noqa: E402, F401 -- register split model definitions
+    BackupCustody, BlockedData, ConsentRecord, DataRequest, PrivacyNotice,
+    RecoveryCode, RetentionRule, RestrictionEvent,
+)

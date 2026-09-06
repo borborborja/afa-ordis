@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 15:38+0200\n"
+"POT-Creation-Date: 2026-09-06 18:38+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -12,6 +12,9 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Massa intents. Espera uns minuts abans de tornar-ho a provar."
+msgstr "Demasiados intentos. Espera unos minutos antes de volver a intentarlo."
 
 msgid "Vista de les reserves familiars"
 msgstr "Vista de las reservas familiares"
@@ -74,6 +77,13 @@ msgstr ""
 msgid "Obligatori si hi ha al·lèrgia. PDF o imatge, màxim 10 MB."
 msgstr "Obligatorio si hay alergia. PDF o imagen, máximo 10 MB."
 
+msgid "Consento explícitament el tractament de salut descrit"
+msgstr "Consiento explícitamente el tratamiento de salud descrito"
+
+msgid "Confirmo que tinc representació legal per autoritzar aquest tractament"
+msgstr ""
+"Confirmo que tengo representación legal para autorizar este tratamiento"
+
 msgid "El document mèdic ha de ser un PDF o una imatge compatible."
 msgstr "El documento médico debe ser un PDF o una imagen compatible."
 
@@ -83,6 +93,15 @@ msgstr "El documento médico supera los 10 MB."
 msgid "Indica si l’alumne/a té alguna al·lèrgia."
 msgstr "Indica si el alumno o la alumna tiene alguna alergia."
 
+msgid "Cal el consentiment explícit d'una persona representant de l'infant."
+msgstr ""
+"Se requiere el consentimiento explícito de una persona representante del "
+"menor."
+
+msgid "Indica únicament les instruccions alimentàries necessàries per a cuina."
+msgstr ""
+"Indica únicamente las instrucciones alimentarias necesarias para cocina."
+
 msgid "Indica un títol de l’al·lèrgia."
 msgstr "Indica un título de la alergia."
 
@@ -91,6 +110,9 @@ msgstr "Explica el detalle de la alergia."
 
 msgid "Adjunta el document mèdic que acredita l’al·lèrgia."
 msgstr "Adjunta el documento médico que acredita la alergia."
+
+msgid "Només una persona representant pot prestar el consentiment."
+msgstr "Solo una persona representante puede prestar el consentimiento."
 
 msgid "Grup del curs"
 msgstr "Grupo del curso"
@@ -166,6 +188,21 @@ msgstr "Tipo"
 msgid "Quota anual AFA (€)"
 msgstr "Tarifa anual de la AFA (€)"
 
+msgid "Estat de la quota"
+msgstr "Estado de la cuota"
+
+msgid "Import de la quota (€)"
+msgstr "Importe de la tasa (€)"
+
+msgid "Data de cobrament"
+msgstr "Fecha de cobro"
+
+msgid "Mètode de cobrament"
+msgstr "Método de cobro"
+
+msgid "Referència"
+msgstr "Referencia"
+
 msgid "Nom del compte"
 msgstr "Nombre de la cuenta"
 
@@ -220,21 +257,6 @@ msgstr "Seleccione una categoría del mismo tipo que el movimiento."
 msgid "Data de la despesa"
 msgstr "Fecha del gasto"
 
-msgid "Estat de la quota"
-msgstr "Estado de la cuota"
-
-msgid "Import de la quota (€)"
-msgstr "Importe de la tasa (€)"
-
-msgid "Data de cobrament"
-msgstr "Fecha de cobro"
-
-msgid "Mètode de cobrament"
-msgstr "Método de cobro"
-
-msgid "Referència"
-msgstr "Referencia"
-
 msgid "Hora límit per a canvis de les famílies"
 msgstr "Fecha límite para cambios familiares"
 
@@ -266,6 +288,15 @@ msgstr ""
 "Las personas tutoras podrán crear fichas para su familia y deberán hacerlo "
 "en el primer alta si no hay alumnado vinculado."
 
+msgid "El compte ha de tenir un correu electrònic verificat."
+msgstr "La cuenta debe tener un correo electrónico verificado."
+
+msgid "Aquest correu ja és destinatari dels informes."
+msgstr "Este correo ya es destinatario de los informes."
+
+msgid "Persona autoritzada"
+msgstr "Persona autorizada"
+
 msgid "Fitxer CSV"
 msgstr "Archivo CSV"
 
@@ -290,6 +321,16 @@ msgstr "Reservar comida"
 msgid "Anul·lar"
 msgstr "Cancelar"
 
+msgid "El portal està ocupat. Torna-ho a provar en uns instants."
+msgstr "El portal está ocupado. Vuelve a intentarlo en unos instantes."
+
+msgid ""
+"Restauració pendent de completar amb el registre de restriccions actual. "
+"Contacta amb l'administració."
+msgstr ""
+"Restauración pendiente de completar con el registro de restricciones actual. "
+"Contacta con la administración."
+
 msgid "Administració"
 msgstr "Administración"
 
@@ -301,6 +342,15 @@ msgstr "Persona tutora"
 
 msgid "Personal docent"
 msgstr "Personal docente"
+
+msgid "Cuina"
+msgstr "Cocina"
+
+msgid "Revisió documental de salut"
+msgstr "Revisión documental de salud"
+
+msgid "Responsable de privacitat"
+msgstr "Responsable de privacidad"
 
 msgid "Una pestanya per infant"
 msgstr "Una pestaña por alumno/a"
@@ -322,6 +372,9 @@ msgstr "Ejemplo: 2026-2027"
 
 msgid "La data final ha de ser posterior a la inicial."
 msgstr "La fecha de finalización debe ser posterior a la inicial."
+
+msgid "Les dates del curs se superposen amb un altre curs acadèmic."
+msgstr "Las fechas del curso se superponen con otro curso académico."
 
 msgid "Nom identificatiu de la família"
 msgstr "Nombre identificativo de la familia"
@@ -403,6 +456,9 @@ msgstr "Pendiente de validar"
 
 msgid "Validada"
 msgstr "Validada"
+
+msgid "Instruccions alimentàries per a cuina"
+msgstr "Instrucciones alimentarias para cocina"
 
 msgid "Ajut de menjador"
 msgstr "Ayuda de comedor"
@@ -494,12 +550,241 @@ msgstr "Importado"
 msgid "Caducat"
 msgstr "Vencido"
 
+msgid ""
+"Cal un termini de conservació validat abans de bloquejar o destruir dades."
+msgstr ""
+"Se requiere un plazo de conservación validado antes de bloquear o destruir "
+"datos."
+
+msgid ""
+"Cal validar contractes, bases jurídiques, avaluació d'impacte i recuperació "
+"abans de publicar."
+msgstr ""
+"Se deben validar los contratos, las bases jurídicas, la evaluación de "
+"impacto y la recuperación antes de publicar."
+
+msgid "Completa el text i elimina els marcadors pendents abans de publicar."
+msgstr ""
+"Completa el texto y elimina los marcadores pendientes antes de publicar."
+
+msgid ""
+"No hi incloguis contrasenyes ni documents d'identitat. Verificarem la "
+"representació si cal."
+msgstr ""
+"No incluyas contraseñas ni documentos de identidad. Verificaremos la "
+"representación si es necesario."
+
+msgid "Resposta a la persona sol·licitant"
+msgstr "Respuesta a la persona solicitante"
+
+msgid "Exportació revisada en format JSON"
+msgstr "Exportación revisada en formato JSON"
+
+msgid ""
+"He verificat la identitat, la representació i que no es revelen dades "
+"indegudes de tercers"
+msgstr ""
+"He verificado la identidad, la representación y que no se revelan datos "
+"indebidos de terceros"
+
+msgid "Acció"
+msgstr "Acción"
+
+msgid "Publica la resposta"
+msgstr "Publica la respuesta"
+
+msgid "Bloqueja les dades de salut de l'infant"
+msgstr "Bloquea los datos de salud del menor"
+
+msgid "Dona de baixa i bloqueja les dades de l'infant"
+msgstr "Da de baja y bloquea los datos del menor"
+
+msgid "Permís específic"
+msgstr "Permiso específico"
+
+msgid "Concedeix el permís (desmarca per revocar)"
+msgstr "Concede el permiso (desmarca para revocar)"
+
+msgid "Contrasenya actual"
+msgstr "Contraseña actual"
+
+msgid "Codi de l'autenticador o codi de recuperació"
+msgstr "Código del autenticador o código de recuperación"
+
+msgid "Versió"
+msgstr "Versión"
+
+msgid "Nom legal de l'AFA"
+msgstr "Nombre legal de la AFA"
+
+msgid "NIF"
+msgstr "NIF"
+
+msgid "Adreça legal"
+msgstr "Dirección legal"
+
+msgid "Contacte de privacitat"
+msgstr "Contacto de privacidad"
+
+msgid "Política en català"
+msgstr "Política en catalán"
+
+msgid "Política en castellà"
+msgstr "Política en castellano"
+
+msgid "Consentiment explícit de salut en català"
+msgstr "Consentimiento explícito de salud en catalán"
+
+msgid "Consentiment explícit de salut en castellà"
+msgstr "Consentimiento explícito de salud en castellano"
+
+msgid "Contractes i transferències verificats"
+msgstr "Contratos y transferencias verificados"
+
+msgid "Avaluació d'impacte i bases jurídiques validades"
+msgstr "Evaluación de impacto y bases jurídicas validadas"
+
+msgid "Restauració i custòdia de claus verificades"
+msgstr "Restauración y custodia de claves verificadas"
+
+msgid "Una política publicada és immutable. Crea una versió nova."
+msgstr "Una política publicada es inmutable. Crea una versión nueva."
+
+msgid "Salut, després de la baixa o rectificació"
+msgstr "Salud, después de la baja o rectificación"
+
+msgid "Dades operatives, després de la baixa"
+msgstr "Datos operativos, después de la baja"
+
+msgid "Comptabilitat, després del tancament"
+msgstr "Contabilidad, después del cierre"
+
+msgid "Registres de seguretat, des de la creació"
+msgstr "Registros de seguridad, desde su creación"
+
+msgid "Sol·licituds de drets, després de resoldre-les"
+msgstr "Solicitudes de derechos, después de resolverlas"
+
+msgid "Consentiments, després de la retirada o baixa"
+msgstr "Consentimientos, después de la retirada o baja"
+
+msgid "Dies de conservació"
+msgstr "Días de conservación"
+
+msgid "Justificació i norma aplicable"
+msgstr "Justificación y norma aplicable"
+
+msgid "Accés / portabilitat"
+msgstr "Acceso / portabilidad"
+
+msgid "Rectificació"
+msgstr "Rectificación"
+
+msgid "Supressió"
+msgstr "Supresión"
+
+msgid "Limitació / oposició"
+msgstr "Limitación / oposición"
+
+msgid "Dret que vols exercir"
+msgstr "Derecho que quieres ejercer"
+
+msgid "Infant, si escau"
+msgstr "Menor, si procede"
+
+msgid "Detall de la sol·licitud"
+msgstr "Detalle de la solicitud"
+
+msgid "Cal autorització expressa de privacitat."
+msgstr "Se requiere autorización expresa de privacidad."
+
+msgid "Massa sol·licituds. Torna-ho a provar més tard."
+msgstr "Demasiadas solicitudes. Vuelve a intentarlo más tarde."
+
+msgid "Sol·licitud registrada. Pots seguir-ne la resposta aquí."
+msgstr "Solicitud registrada. Puedes seguir la respuesta aquí."
+
+msgid "Confirma la contrasenya actual."
+msgstr "Confirma la contraseña actual."
+
+msgid ""
+"Consentiment retirat. Les dades de salut han quedat bloquejades. Contacta "
+"amb l'AFA per acordar una prestació segura del servei; no s'ha assignat una "
+"dieta ordinària."
+msgstr ""
+"Consentimiento retirado. Los datos de salud han quedado bloqueados. Contacta "
+"con la AFA para acordar una prestación segura del servicio; no se ha "
+"asignado una dieta ordinaria."
+
+msgid "L'exportació ha caducat o encara no està disponible."
+msgstr "La exportación ha caducado o todavía no está disponible."
+
+msgid ""
+"Defineix i justifica tots els terminis de conservació abans de publicar."
+msgstr "Define y justifica todos los plazos de conservación antes de publicar."
+
+msgid "La sol·licitud ja està resolta."
+msgstr "La solicitud ya está resuelta."
+
+msgid ""
+"Aquesta acció requereix seleccionar un infant. Per a baixes de comptes o "
+"famílies, documenta la tramitació al procediment de drets."
+msgstr ""
+"Esta acción requiere seleccionar un menor. Para bajas de cuentas o familias, "
+"documenta la tramitación en el procedimiento de derechos."
+
+msgid "L'exportació ha de ser JSON vàlid de menys de 10 MB."
+msgstr "La exportación debe ser JSON válido de menos de 10 MB."
+
+msgid ""
+"Indica una referència d'expedient i confirma la finalitat legal del "
+"desbloqueig."
+msgstr ""
+"Indica una referencia de expediente y confirma la finalidad legal del "
+"desbloqueo."
+
+msgid "Només l'administració pot gestionar autoritzacions."
+msgstr "Solo la administración puede gestionar autorizaciones."
+
+msgid "Contrasenya incorrecta."
+msgstr "Contraseña incorrecta."
+
+msgid "Autoritzacions específiques"
+msgstr "Autorizaciones específicas"
+
+msgid "Només l'administració pot custodiar còpies."
+msgstr "Solo la administración puede custodiar copias."
+
+msgid "Confirma la còpia fora del VPS i la custòdia separada de les claus."
+msgstr "Confirma la copia fuera del VPS y la custodia separada de las claves."
+
+msgid "No tens permís per custodiar el registre de restriccions."
+msgstr "No tienes permiso para custodiar el registro de restricciones."
+
+msgid "Massa intents. Torna-ho a provar més tard."
+msgstr "Demasiados intentos. Vuelve a intentarlo más tarde."
+
+msgid "Codi incorrecte o ja utilitzat."
+msgstr "Código incorrecto o ya utilizado."
+
+msgid "Configura el segon factor"
+msgstr "Configura el segundo factor"
+
+msgid "Verifica el segon factor"
+msgstr "Verifica el segundo factor"
+
+msgid "Cal autorització de cuina."
+msgstr "Se requiere autorización de cocina."
+
 #, python-format
 msgid "Llistat de menjador — %(date)s"
 msgstr "Lista del comedor — %(date)s"
 
 msgid "Sense curs"
 msgstr "Sin curso"
+
+msgid "ATURA LA PREPARACIÓ"
+msgstr "DETÉN LA PREPARACIÓN"
 
 msgid "Dieta ordinària"
 msgstr "Dieta ordinaria"
@@ -520,29 +805,22 @@ msgstr "No hay alergias declaradas entre las comidas programadas."
 msgid "Total: %(total)s"
 msgstr "Total: %(total)s"
 
-#, python-format
-msgid "Resum de menjador — %(period)s"
-msgstr "Resumen del comedor — %(period)s"
+msgid ""
+"Hi ha reserves sense tarifa. Configura els preus abans de preparar o tancar "
+"el resum."
+msgstr ""
+"Hay reservas sin tarifa. Configura los precios antes de preparar o cerrar el "
+"resumen."
 
-#, python-format
-msgid "Família: %(family)s"
-msgstr "Familia: %(family)s"
+msgid ""
+"Tens una actualització disponible al portal de l'AFA. Inicia sessió per "
+"consultar-la."
+msgstr ""
+"Tienes una actualización disponible en el portal de la AFA. Inicia sesión "
+"para consultarla."
 
-#, python-format
-msgid "Total: %(total)s €"
-msgstr "Total: %(total)s €"
-
-#, python-format
-msgid "Llistat de menjador · %(date)s"
-msgstr "Lista del comedor · %(date)s"
-
-#, python-format
-msgid "Resum de menjador · %(period)s"
-msgstr "Resumen del comedor · %(period)s"
-
-#, python-format
-msgid "Persona: %(person)s"
-msgstr "Persona: %(person)s"
+msgid "Actualització al portal de l'AFA"
+msgstr "Actualización en el portal de la AFA"
 
 msgid "Portal AFA Ordis"
 msgstr "Portal AFA Ordis"
@@ -769,6 +1047,13 @@ msgstr "Invitación aceptada con éxito."
 msgid "El teu compte ja està actiu."
 msgstr "Tu cuenta ya está activa."
 
+msgid ""
+"ATURA LA PREPARACIÓ INDIVIDUAL: contacta amb la persona responsable abans de "
+"servir. No pressuposis una dieta ordinària."
+msgstr ""
+"DETÉN LA PREPARACIÓN INDIVIDUAL: contacta con la persona responsable antes "
+"de servir. No presupongas una dieta ordinaria."
+
 msgid "Data no vàlida."
 msgstr "Fecha no válida."
 
@@ -781,6 +1066,21 @@ msgstr "Se ha enviado el informe."
 
 msgid "No hi ha configuració de destinataris per a aquest dia."
 msgstr "No hay configuraciones de destinatarios para este día."
+
+msgid "Cal autorització expressa per revisar dades de salut."
+msgstr "Se requiere autorización expresa para revisar datos de salud."
+
+msgid "Cal un consentiment de salut vigent abans de validar la declaració."
+msgstr ""
+"Se requiere un consentimiento de salud vigente antes de validar la "
+"declaración."
+
+msgid ""
+"Cal una declaració actual i instruccions segures abans de reprendre el "
+"servei."
+msgstr ""
+"Se requieren una declaración actual e instrucciones seguras antes de "
+"reanudar el servicio."
 
 msgid "S'ha validat la declaració d'al·lèrgia."
 msgstr "Se ha validado la declaración de alergia."
@@ -881,9 +1181,8 @@ msgstr "Se ha actualizado la configuración de las familias."
 msgid "S'ha enviat l'enllaç de restauració a %(email)s."
 msgstr "Enlace de restauración enviado a %(email)s."
 
-msgid "No s'ha pogut enviar el correu. Copia l'enllaç manualment."
-msgstr ""
-"No se ha podido enviar el correo electrónico. Copia el enlace manualmente."
+msgid "No s'ha pogut enviar el correu. Revisa la configuració SMTP."
+msgstr "No se ha podido enviar el correo. Revisa la configuración SMTP."
 
 msgid ""
 "Copia l'enllaç i comparteix-lo de manera segura amb la persona registrada."
@@ -915,6 +1214,9 @@ msgstr "El archivo no contiene la estructura de portal necesaria."
 msgid "No es pot restaurar una base de dades en memòria."
 msgstr "No se puede restaurar una base de datos en memoria."
 
+msgid "La còpia ZIP és massa gran o conté massa fitxers."
+msgstr "La copia ZIP es demasiado grande o contiene demasiados archivos."
+
 msgid "El fitxer ZIP no és una còpia completa del portal."
 msgstr "El archivo ZIP no es una copia completa del portal."
 
@@ -923,9 +1225,6 @@ msgstr "La copia ZIP no contiene un manifiesto válido."
 
 msgid "La còpia ZIP no és compatible amb aquesta versió del portal."
 msgstr "La copia ZIP no es compatible con esta versión del portal."
-
-msgid "La còpia ZIP és massa gran o conté massa fitxers."
-msgstr "La copia ZIP es demasiado grande o contiene demasiados archivos."
 
 msgid "La còpia ZIP conté una ruta no segura."
 msgstr "La copia ZIP contiene una ruta insegura."
@@ -955,6 +1254,13 @@ msgstr ""
 "Una restauración ya está en curso. Inténtalo de nuevo en unos momentos."
 
 msgid ""
+"Adjunta el registre de restriccions més recent i confirma que és l'última "
+"versió custodiada."
+msgstr ""
+"Adjunta el registro de restricciones más reciente y confirma que es la "
+"última versión custodiada."
+
+msgid ""
 "S'ha restaurat la base de dades. Per seguretat, cal tornar a iniciar sessió."
 msgstr "Base de datos restaurada. Vuelve a iniciar sesión por seguridad."
 
@@ -968,6 +1274,24 @@ msgstr "El archivo %(name)s no es un PDF ni una imagen admitida."
 #, python-format
 msgid "El fitxer %(name)s supera els 10 MB."
 msgstr "El archivo %(name)s supera los 10 MB."
+
+msgid "Concepte"
+msgstr "Concepto"
+
+msgid "Compte"
+msgstr "Cuenta"
+
+msgid "Revisió"
+msgstr "Revisión"
+
+msgid "Pagament"
+msgstr "Pago"
+
+msgid "Presentada per"
+msgstr "Enviado por"
+
+msgid "Justificants"
+msgstr "Justificantes"
 
 msgid "Només es poden editar moviments aprovats."
 msgstr "Solo se pueden editar los movimientos aprobados."
@@ -1274,6 +1598,13 @@ msgstr "El CSV debe estar codificado en UTF-8."
 msgid "Les columnes no coincideixen amb la plantilla descarregable."
 msgstr "Las columnas no coinciden con la plantilla descargable."
 
+msgid ""
+"Les dades alimentàries s'han de declarar al portal amb les garanties de "
+"salut; no es poden importar per CSV."
+msgstr ""
+"Los datos alimentarios deben declararse en el portal con las garantías de "
+"salud; no se pueden importar por CSV."
+
 #, python-format
 msgid "falta %(column)s"
 msgstr "Falta %(column)s"
@@ -1527,9 +1858,6 @@ msgstr "Alumni"
 msgid "Al·lèrgia declarada"
 msgstr "Alergia declarada"
 
-msgid "Revisió"
-msgstr "Revisión"
-
 msgid "Pendent"
 msgstr "Pendiente"
 
@@ -1571,14 +1899,54 @@ msgstr "Cuando"
 msgid "Usuari"
 msgstr "Usuario"
 
-msgid "Acció"
-msgstr "Acción"
-
 msgid "Element"
 msgstr "Artículo"
 
 msgid "No hi ha canvis registrats."
 msgstr "No se han registrado cambios."
+
+msgid "Custòdia de còpies i restriccions"
+msgstr "Custodia de copias y restricciones"
+
+msgid "No hi ha cap custòdia externa confirmada en les últimes 24 hores."
+msgstr "No hay ninguna custodia externa confirmada en las últimas 24 horas."
+
+msgid ""
+"Descarrega una còpia diària, conserva-la 30 dies fora del VPS i protegeix "
+"les claus per separat. Després de cada retirada o restricció, actualitza "
+"també el registre extern. Una descàrrega no acredita per si sola la custòdia."
+msgstr ""
+"Descarga una copia diaria, consérvala 30 días fuera del VPS y protege las "
+"claves por separado. Después de cada retirada o restricción, actualiza "
+"también el registro externo. Una descarga no acredita por sí sola la "
+"custodia."
+
+msgid "Descarrega el registre de restriccions actual"
+msgstr "Descarga el registro de restricciones actual"
+
+msgid "Caducitat"
+msgstr "Caducidad"
+
+msgid "Confirmada"
+msgstr "Confirmada"
+
+msgid "Eliminada"
+msgstr "Eliminada"
+
+msgid "He verificat la còpia fora del VPS"
+msgstr "He verificado la copia fuera del VPS"
+
+msgid ""
+"Les claus i el registre de restriccions actual estan custodiats separadament"
+msgstr ""
+"Las claves y el registro de restricciones actual están custodiados por "
+"separado"
+
+msgid "Confirma la custòdia"
+msgstr "Confirma la custodia"
+
+msgid "Confirma que has eliminat la còpia externa"
+msgstr "Confirma que has eliminado la copia externa"
 
 msgid "Navegació principal"
 msgstr "Navegación principal"
@@ -1612,6 +1980,21 @@ msgstr "Detalles y contactos"
 
 msgid "Les meves despeses"
 msgstr "Mis gastos"
+
+msgid "Cuina: avui"
+msgstr "Cocina: hoy"
+
+msgid "Administració de privacitat"
+msgstr "Administración de privacidad"
+
+msgid "Custòdia de còpies"
+msgstr "Custodia de copias"
+
+msgid "Els teus drets"
+msgstr "Tus derechos"
+
+msgid "Segon factor"
+msgstr "Segundo factor"
 
 msgid "Llistats diaris"
 msgstr "Listados diarios"
@@ -1688,8 +2071,8 @@ msgstr "Portal autogestionado"
 msgid "Tanca"
 msgstr "Cerrar"
 
-msgid "Justificants"
-msgstr "Justificantes"
+msgid "Política de privacitat"
+msgstr "Política de privacidad"
 
 msgid "Tiquet, factura o comprovant"
 msgstr "Tique, factura o justificante"
@@ -2098,9 +2481,6 @@ msgstr "Actividad reciente"
 msgid "Veure tots"
 msgstr "Ver todo"
 
-msgid "Concepte"
-msgstr "Concepto"
-
 msgid "Encara no hi ha moviments en aquest període."
 msgstr "Todavía no hay movimientos en este periodo."
 
@@ -2133,15 +2513,6 @@ msgstr "Aprobado"
 
 msgid "Filtra"
 msgstr "Filtro"
-
-msgid "Compte"
-msgstr "Cuenta"
-
-msgid "Pagament"
-msgstr "Pago"
-
-msgid "Presentada per"
-msgstr "Enviado por"
 
 msgid "Marca pagada"
 msgstr "Marca de pago"
@@ -2648,6 +3019,10 @@ msgid "Activa el teu compte"
 msgstr "Activa tu cuenta"
 
 #, python-format
+msgid "Acceptaràs la invitació com a %(role)s amb el teu compte actual."
+msgstr "Aceptarás la invitación como %(role)s con tu cuenta actual."
+
+#, python-format
 msgid "Crearàs un compte de %(role)s amb el correu <strong>%(email)s</strong>."
 msgstr ""
 "Crearás una cuenta %(role)s con el correo electrónico <strong>%(email)s.</"
@@ -2701,6 +3076,24 @@ msgstr ""
 
 msgid "Obre l'enllaç d'alta"
 msgstr "Abre el enlace de registro"
+
+msgid "Cuina: servei d'avui"
+msgstr "Cocina: servicio de hoy"
+
+msgid ""
+"Informació reservada exclusivament al servei de menjador. No la comparteixis "
+"ni la deixis visible a persones no autoritzades."
+msgstr ""
+"Información reservada exclusivamente al servicio de comedor. No la compartas "
+"ni la dejes visible a personas no autorizadas."
+
+msgid ""
+"Instruccions declarades per la família, pendents de validació documental."
+msgstr ""
+"Instrucciones declaradas por la familia, pendientes de validación documental."
+
+msgid "No hi ha àpats programats avui."
+msgstr "No hay comidas programadas hoy."
 
 msgid "Organitza el portal"
 msgstr "Organizar el portal"
@@ -3030,8 +3423,8 @@ msgstr ""
 "Incluye la base de datos y todos los documentos adjuntos, como tickets y "
 "facturas. No se guarda ningún archivo de copia en el servidor."
 
-msgid "Descarrega la còpia ZIP"
-msgstr "Descargue la copia ZIP"
+msgid "Descarrega la còpia xifrada"
+msgstr "Descarga la copia cifrada"
 
 msgid "Operació delicada"
 msgstr "Operación delicada"
@@ -3048,11 +3441,15 @@ msgstr ""
 "copia de seguridad actual, luego tendrá 15 minutos para restaurar un archivo "
 "compatible."
 
-msgid "Fitxer ZIP o SQLite"
-msgstr "ARCHIVO ZIP o SQLite"
+msgid "Còpia xifrada del portal"
+msgstr "Copia cifrada del portal"
 
-msgid "Contrasenya actual"
-msgstr "Contraseña actual"
+msgid "Registre de restriccions més recent"
+msgstr "Registro de restricciones más reciente"
+
+msgid "Confirmo que és l’última versió custodiada del registre de restriccions"
+msgstr ""
+"Confirmo que es la última versión custodiada del registro de restricciones"
 
 msgid "Escriu"
 msgstr "Tipo"
@@ -3080,8 +3477,12 @@ msgstr ""
 "El archivo cargado es temporal y se elimina cuando finaliza, ya sea que la "
 "restauración tenga éxito o falle."
 
-msgid "En restaurar es tanquen totes les sessions per protegir els comptes."
-msgstr "La restauración cierra todas las sesiones para proteger las cuentas."
+msgid ""
+"En restaurar es tanquen totes les sessions. El portal no es reobre fins que "
+"l'operador revisa els accessos recuperats i completa la restauració."
+msgstr ""
+"La restauración cierra todas las sesiones. El portal no se reabre hasta que "
+"el operador revisa los accesos recuperados y completa la restauración."
 
 msgid "Tarifes de menjador"
 msgstr "Tarifas de comedor"
@@ -3126,6 +3527,172 @@ msgstr "Sin beca"
 
 msgid "Encara no hi ha tarifes."
 msgstr "Sin tarifas todavía."
+
+msgid "La configuració de privacitat està validada."
+msgstr "La configuración de privacidad está validada."
+
+msgid "La recollida de dades està bloquejada fins a completar les validacions."
+msgstr "La recogida de datos está bloqueada hasta completar las validaciones."
+
+msgid ""
+"La validació ha de reflectir una revisió real. El programa no certifica "
+"automàticament el compliment jurídic."
+msgstr ""
+"La validación debe reflejar una revisión real. El programa no certifica "
+"automáticamente el cumplimiento jurídico."
+
+msgid "Sol·licituds de drets"
+msgstr "Solicitudes de derechos"
+
+msgid "Resolta"
+msgstr "Resuelta"
+
+msgid "No hi ha sol·licituds registrades."
+msgstr "No hay solicitudes registradas."
+
+msgid "Terminis de conservació"
+msgstr "Plazos de conservación"
+
+msgid ""
+"Justifica cada termini amb la finalitat, el fet que inicia el còmput i la "
+"normativa aplicable. No apliquis automàticament el termini comptable a "
+"documents mèdics."
+msgstr ""
+"Justifica cada plazo con la finalidad, el hecho que inicia el cómputo y la "
+"normativa aplicable. No apliques automáticamente el plazo contable a "
+"documentos médicos."
+
+msgid "Valida el termini"
+msgstr "Valida el plazo"
+
+msgid "Publica una nova versió de la política"
+msgstr "Publica una nueva versión de la política"
+
+msgid ""
+"Les versions publicades es conserven sense modificar. Completa les dades de "
+"l'AFA i els textos revisats en les dues llengües."
+msgstr ""
+"Las versiones publicadas se conservan sin modificar. Completa los datos de "
+"la AFA y los textos revisados en ambas lenguas."
+
+msgid "Publica la política validada"
+msgstr "Publica la política validada"
+
+msgid "Evidències bloquejades"
+msgstr "Evidencias bloqueadas"
+
+msgid ""
+"No es poden consultar per a la gestió ordinària. L'accés excepcional queda "
+"registrat i només és admissible per atendre responsabilitats davant "
+"autoritats competents."
+msgstr ""
+"No se pueden consultar para la gestión ordinaria. El acceso excepcional "
+"queda registrado y solo es admisible para atender responsabilidades ante "
+"autoridades competentes."
+
+msgid "Referència de l'expedient"
+msgstr "Referencia del expediente"
+
+msgid "Confirmo la finalitat legal davant una autoritat competent"
+msgstr "Confirmo la finalidad legal ante una autoridad competente"
+
+msgid "Consulta el document reservat"
+msgstr "Consulta el documento reservado"
+
+msgid "Accés excepcional registrat"
+msgstr "Acceso excepcional registrado"
+
+msgid "Els teus drets i consentiments"
+msgstr "Tus derechos y consentimientos"
+
+msgid "Llegeix la política de privacitat"
+msgstr "Lee la política de privacidad"
+
+msgid "Registra la sol·licitud"
+msgstr "Registra la solicitud"
+
+msgid "Seguiment de sol·licituds"
+msgstr "Seguimiento de solicitudes"
+
+msgid "Termini de resposta"
+msgstr "Plazo de respuesta"
+
+msgid "Descarrega les dades revisades"
+msgstr "Descarga los datos revisados"
+
+msgid "Pendent de resposta"
+msgstr "Pendiente de respuesta"
+
+msgid "Retirada del consentiment de salut"
+msgstr "Retirada del consentimiento de salud"
+
+msgid ""
+"La retirada bloqueja les dades de salut i requereix acordar amb l'AFA com "
+"continuar el servei amb seguretat. No transforma una al·lèrgia en absència "
+"d'al·lèrgies."
+msgstr ""
+"La retirada bloquea los datos de salud y requiere acordar con la AFA cómo "
+"continuar el servicio con seguridad. No transforma una alergia en ausencia "
+"de alergias."
+
+msgid "Retira el consentiment i contacta amb l'AFA"
+msgstr "Retira el consentimiento y contacta con la AFA"
+
+msgid "Protecció de dades"
+msgstr "Protección de datos"
+
+msgid ""
+"La informació de privacitat està pendent de validació. No introdueixis dades "
+"personals fins que l'AFA l'hagi publicat."
+msgstr ""
+"La información de privacidad está pendiente de validación. No introduzcas "
+"datos personales hasta que la AFA la haya publicado."
+
+msgid "Galetes i emmagatzematge del navegador"
+msgstr "Cookies y almacenamiento del navegador"
+
+msgid ""
+"El portal utilitza galetes de sessió, protecció CSRF i preferències "
+"d'idioma, i emmagatzematge local de navegació. No incorpora analítica ni "
+"publicitat de tercers. Les pàgines privades no es desen a la memòria cau de "
+"l'aplicació."
+msgstr ""
+"El portal utiliza cookies de sesión, protección CSRF y preferencias de "
+"idioma, y almacenamiento local de navegación. No incorpora analítica ni "
+"publicidad de terceros. Las páginas privadas no se guardan en la caché de la "
+"aplicación."
+
+msgid "Exerceix els teus drets"
+msgstr "Ejerce tus derechos"
+
+msgid "Posada en servei pendent"
+msgstr "Puesta en servicio pendiente"
+
+msgid ""
+"L'AFA ha de validar la política, les bases jurídiques, els terminis, els "
+"contractes i la recuperació abans de registrar dades personals."
+msgstr ""
+"La AFA debe validar la política, las bases jurídicas, los plazos, los "
+"contratos y la recuperación antes de registrar datos personales."
+
+msgid "Informació de privacitat"
+msgstr "Información de privacidad"
+
+msgid "Revisa la sol·licitud"
+msgstr "Revisa la solicitud"
+
+msgid ""
+"L'esborrany no inclou documents ni dades de tercers automàticament. Revisa "
+"l'abast, completa les dades que corresponguin i registra la resposta. Les "
+"dades de salut requereixen també autorització de revisió mèdica."
+msgstr ""
+"El borrador no incluye documentos ni datos de terceros automáticamente. "
+"Revisa el alcance, completa los datos que correspondan y registra la "
+"respuesta. Los datos de salud requieren también autorización de revisión "
+"médica."
+
+msgid "Resol i registra la resposta"
+msgstr "Resuelve y registra la respuesta"
 
 msgid ""
 "Tots els mesos del curs en una sola vista. Fes clic en un dia per consultar-"
@@ -3172,6 +3739,29 @@ msgstr "No hay ninguna incidencia registrada."
 
 msgid "La vista anual necessita un curs amb dates d'inici i final."
 msgstr "La vista anual necesita un curso con fechas de inicio y finalización."
+
+msgid ""
+"Afegeix aquest compte a una aplicació autenticadora de confiança. No "
+"comparteixis aquesta clau ni utilitzis generadors de codis QR externs."
+msgstr ""
+"Añade esta cuenta a una aplicación autenticadora de confianza. No compartas "
+"esta clave ni utilices generadores de códigos QR externos."
+
+msgid "Codis de recuperació"
+msgstr "Códigos de recuperación"
+
+msgid ""
+"Es mostren una sola vegada. Guarda'ls fora del servidor, en un lloc segur. "
+"Cada codi només es pot utilitzar una vegada."
+msgstr ""
+"Se muestran una sola vez. Guárdalos fuera del servidor, en un lugar seguro. "
+"Cada código solo se puede utilizar una vez."
+
+msgid "Continua"
+msgstr "Continúa"
+
+msgid "Confirma"
+msgstr "Confirma"
 
 msgid "Resum de"
 msgstr "Resumen de"

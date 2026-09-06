@@ -1,9 +1,11 @@
 from pathlib import Path
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -30,7 +32,6 @@ from .models import (
     FinancialAccount,
     Invitation,
     MealSettings,
-    MealPlan,
     PortalSettings,
     PriceRule,
     Role,
@@ -53,6 +54,8 @@ class FamilyBookingPreferenceForm(forms.Form):
 
 
 class InvitationForm(forms.ModelForm):
+    email = forms.EmailField(max_length=150, label=_("Correu electrònic"))
+
     class Meta:
         model = Invitation
         fields = ("email", "role", "family")
@@ -99,9 +102,18 @@ class StudentAllergyFormMixin(forms.ModelForm):
         help_text=_("Si hi ha una al·lèrgia, cal aportar un document mèdic que la justifiqui."),
     )
 
-    def __init__(self, *args, require_profile_completion=False, **kwargs):
+    def __init__(self, *args, require_profile_completion=False, actor=None, family=None, **kwargs):
         self.require_profile_completion = require_profile_completion
         super().__init__(*args, **kwargs)
+        self.actor = actor
+        if family is not None:
+            self.instance.family = family
+        from .privacy import medical_access
+        self.medical_allowed = medical_access(actor, self.instance) if actor else not settings.PRIVACY_ENFORCED
+        if not self.medical_allowed:
+            for name in ("allergy_declaration", "allergy_title", "allergy_details", "allergy_document", "dietary_notes", "kitchen_instructions"):
+                self.fields.pop(name, None)
+            return
         self._previous_allergy = {
             "has_allergy": self.instance.has_allergy,
             "title": self.instance.allergy_title,
@@ -109,7 +121,9 @@ class StudentAllergyFormMixin(forms.ModelForm):
             "document": self.instance.allergy_document.name if self.instance.allergy_document else "",
             "status": self.instance.allergy_review_status,
         }
-        self.fields["allergy_declaration"].required = require_profile_completion
+        from .privacy import CLINICAL_FIELDS
+        self._previous_health = {name: getattr(self.instance, name) for name in CLINICAL_FIELDS}
+        self.fields["allergy_declaration"].required = require_profile_completion or settings.PRIVACY_ENFORCED
         allergy_key = self.prefix or "student"
         self.fields["allergy_declaration"].widget.attrs["data-allergy-declaration"] = allergy_key
         if self.instance.has_allergy is True:
@@ -126,10 +140,17 @@ class StudentAllergyFormMixin(forms.ModelForm):
             self.fields[field_name].widget.attrs["data-allergy-field"] = allergy_key
         if require_profile_completion:
             self.fields["birth_date"].required = True
+        if settings.PRIVACY_ENFORCED:
+            from .models import PrivacyNotice
+            from django.utils.translation import get_language
+            self.notice = PrivacyNotice.current()
+            notice_text = (self.notice.health_text_es if get_language() == "es" else self.notice.health_text_ca) if self.notice else ""
+            self.fields["health_consent"] = forms.BooleanField(required=False, label=_("Consento explícitament el tractament de salut descrit"), help_text=notice_text)
+            self.fields["parental_authority"] = forms.BooleanField(required=False, label=_("Confirmo que tinc representació legal per autoritzar aquest tractament"))
 
     def clean_allergy_document(self):
         uploaded = self.cleaned_data.get("allergy_document")
-        if not uploaded or uploaded is False:
+        if not isinstance(uploaded, UploadedFile):
             return uploaded
         extension = Path(uploaded.name).suffix.lower()
         if extension not in MEDICAL_DOCUMENT_EXTENSIONS:
@@ -140,7 +161,12 @@ class StudentAllergyFormMixin(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        if not self.medical_allowed:
+            return cleaned
         declaration = cleaned.get("allergy_declaration", "")
+        if not declaration and self._previous_allergy["has_allergy"] is not None:
+            declaration = "yes" if self._previous_allergy["has_allergy"] else "no"
+            cleaned["allergy_declaration"] = declaration
         if not declaration:
             if self.require_profile_completion:
                 self.add_error("allergy_declaration", _("Indica si l’alumne/a té alguna al·lèrgia."))
@@ -150,6 +176,15 @@ class StudentAllergyFormMixin(forms.ModelForm):
         cleaned["has_allergy"] = has_allergy
         if not has_allergy:
             return cleaned
+        if settings.PRIVACY_ENFORCED:
+            from .privacy import has_health_consent
+            from .models import FamilyMembership
+            if not has_health_consent(self.instance):
+                is_representative = self.actor and FamilyMembership.objects.filter(user=self.actor, family_id=self.instance.family_id).exists()
+                if not (self.notice and is_representative and cleaned.get("health_consent") and cleaned.get("parental_authority")):
+                    self.add_error("health_consent", _("Cal el consentiment explícit d'una persona representant de l'infant."))
+            if not cleaned.get("kitchen_instructions", "").strip():
+                self.add_error("kitchen_instructions", _("Indica únicament les instruccions alimentàries necessàries per a cuina."))
 
         if not cleaned.get("allergy_title", "").strip():
             self.add_error("allergy_title", _("Indica un títol de l’al·lèrgia."))
@@ -158,12 +193,18 @@ class StudentAllergyFormMixin(forms.ModelForm):
         uploaded = cleaned.get("allergy_document")
         requires_new_document = self._previous_allergy["status"] == AllergyReviewStatus.REJECTED
         has_existing_document = bool(self._previous_allergy["document"])
-        if uploaded is False or (not uploaded and (not has_existing_document or requires_new_document)):
+        if uploaded is False or (requires_new_document and not isinstance(uploaded, UploadedFile)) or (not uploaded and not has_existing_document):
             self.add_error("allergy_document", _("Adjunta el document mèdic que acredita l’al·lèrgia."))
         return cleaned
 
+    @transaction.atomic
     def save(self, commit=True):
         student = super().save(commit=False)
+        if not self.medical_allowed:
+            if commit:
+                student.save()
+                self.save_m2m()
+            return student
         declaration = self.cleaned_data.get("allergy_declaration", "")
         previous = self._previous_allergy
         previous_document = previous["document"]
@@ -173,6 +214,8 @@ class StudentAllergyFormMixin(forms.ModelForm):
             student.has_allergy = False
             student.allergy_title = ""
             student.allergy_details = ""
+            student.dietary_notes = ""
+            student.kitchen_instructions = ""
             student.allergy_document = None
             student.allergy_document_name = ""
             student.allergy_review_status = ""
@@ -182,13 +225,14 @@ class StudentAllergyFormMixin(forms.ModelForm):
             delete_previous_document = bool(previous_document)
         elif declaration == "yes":
             uploaded = self.cleaned_data.get("allergy_document")
-            if uploaded and uploaded is not False:
+            new_document = isinstance(uploaded, UploadedFile)
+            if new_document:
                 student.allergy_document_name = Path(uploaded.name).name[:255]
             changed = (
                 previous["has_allergy"] is not True
                 or previous["title"] != student.allergy_title
                 or previous["details"] != student.allergy_details
-                or bool(uploaded and uploaded is not False)
+                or new_document
             )
             if changed:
                 student.has_allergy = True
@@ -196,14 +240,35 @@ class StudentAllergyFormMixin(forms.ModelForm):
                 student.allergy_rejection_reason = ""
                 student.allergy_reviewed_at = None
                 student.allergy_reviewed_by = None
-                delete_previous_document = bool(previous_document and uploaded and uploaded is not False)
+                delete_previous_document = bool(previous_document and new_document)
 
         if commit:
+            if settings.PRIVACY_ENFORCED and previous["has_allergy"] and (
+                declaration == "no" or self._previous_health != {name: getattr(student, name) for name in self._previous_health} or delete_previous_document
+            ):
+                from datetime import timedelta
+                from django.utils import timezone
+                from .models import BlockedData
+                from .privacy import journal_restriction, retention_days
+                journal_restriction(student, applied=True)
+                BlockedData.objects.create(subject=student.privacy_id, category="health", payload=self._previous_health,
+                    file_name=previous_document if delete_previous_document else "",
+                    destroy_after=timezone.now() + timedelta(days=retention_days("health")))
             student.save()
+            self.record_consent(student)
             self.save_m2m()
-            if delete_previous_document and previous_document:
-                student.allergy_document.storage.delete(previous_document)
+            if delete_previous_document and previous_document and not settings.PRIVACY_ENFORCED:
+                storage = student.allergy_document.storage
+                transaction.on_commit(lambda: storage.delete(previous_document))
         return student
+
+    def record_consent(self, student):
+        if settings.PRIVACY_ENFORCED and self.medical_allowed and self.cleaned_data.get("health_consent") and self.cleaned_data.get("parental_authority"):
+            from .models import ConsentRecord, FamilyMembership, log_event
+            if not self.actor or not FamilyMembership.objects.filter(user=self.actor, family_id=student.family_id).exists():
+                raise ValidationError(_("Només una persona representant pot prestar el consentiment."))
+            ConsentRecord.objects.get_or_create(student=student, representative=self.actor, notice=self.notice, withdrawn_at=None, defaults={"authority_confirmed": True})
+            log_event(self.actor, "privacy.health_consent_granted", student, {"version": self.notice.version})
 
 
 class TutorStudentForm(StudentAllergyFormMixin):
@@ -212,7 +277,7 @@ class TutorStudentForm(StudentAllergyFormMixin):
         fields = (
             "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
             "contact_notes", "default_diet", "dietary_notes", "meal_plan", "allergy_title",
-            "allergy_details", "allergy_document",
+            "allergy_details", "allergy_document", "kitchen_instructions",
         )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
@@ -235,7 +300,7 @@ class FamilyStudentCreateForm(TutorStudentForm):
         fields = (
             "course_group", "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
             "contact_notes", "default_diet", "dietary_notes", "meal_plan", "allergy_title",
-            "allergy_details", "allergy_document",
+            "allergy_details", "allergy_document", "kitchen_instructions",
         )
 
     def __init__(self, *args, academic_year=None, **kwargs):
@@ -278,7 +343,7 @@ class StaffStudentForm(StudentAllergyFormMixin):
         fields = (
             "family", "course_group", "first_name", "last_name", "birth_date", "contact_email",
             "contact_phone", "contact_notes", "default_diet", "dietary_notes", "is_scholarship",
-            "meal_plan", "active", "allergy_title", "allergy_details", "allergy_document",
+            "meal_plan", "active", "allergy_title", "allergy_details", "allergy_document", "kitchen_instructions",
         )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
@@ -401,6 +466,14 @@ class AfaMembershipForm(forms.ModelForm):
             "paid_on": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
+        labels = {
+            "status": _("Estat de la quota"),
+            "amount": _("Import de la quota (€)"),
+            "paid_on": _("Data de cobrament"),
+            "payment_method": _("Mètode de cobrament"),
+            "payment_reference": _("Referència"),
+            "notes": _("Observacions"),
+        }
 
 
 class FinancialAccountForm(forms.ModelForm):
@@ -494,14 +567,6 @@ class EconomicSubmissionForm(forms.ModelForm):
         self.fields["category"].queryset = EconomicCategory.objects.filter(
             active=True, entry_type=EconomicEntryType.EXPENSE
         )
-        labels = {
-            "status": _("Estat de la quota"),
-            "amount": _("Import de la quota (€)"),
-            "paid_on": _("Data de cobrament"),
-            "payment_method": _("Mètode de cobrament"),
-            "payment_reference": _("Referència"),
-            "notes": _("Observacions"),
-        }
 
 
 class CourseGroupForm(forms.ModelForm):
@@ -562,9 +627,35 @@ class PortalFamilyRegistrationSettingsForm(forms.ModelForm):
 
 
 class DailyReportRecipientForm(forms.ModelForm):
+    def __init__(self, *args, settings_object=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if settings_object:
+            self.instance.settings = settings_object
+        if settings.PRIVACY_ENFORCED:
+            from django.contrib.auth.models import User
+            self.fields["user"].required = True
+            self.fields["user"].queryset = User.objects.filter(is_active=True).filter(Q(is_superuser=True) | Q(groups__name__in=[Role.KITCHEN, Role.ADMIN, Role.MANAGER])).distinct()
+            self.fields["email"].required = False
+
+    def clean(self):
+        data = super().clean()
+        if data.get("user"):
+            if not data["user"].email:
+                self.add_error("user", _("El compte ha de tenir un correu electrònic verificat."))
+            data["email"] = data["user"].email.lower()
+            data["name"] = data["user"].get_full_name()
+        return data
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+        if self.instance.settings_id and DailyReportRecipient.objects.filter(settings_id=self.instance.settings_id, email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError(_("Aquest correu ja és destinatari dels informes."))
+        return email
+
     class Meta:
         model = DailyReportRecipient
-        fields = ("name", "email", "active")
+        fields = ("name", "email", "user", "active")
+        labels = {"user": _("Persona autoritzada")}
 
 
 class DietForm(forms.ModelForm):

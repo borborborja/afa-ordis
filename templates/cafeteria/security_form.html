@@ -1,0 +1,9 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block content %}
+<section class="card form-card"><h1>{{ title }}</h1>
+{% if otp_uri %}<p>{% translate "Afegeix aquest compte a una aplicació autenticadora de confiança. No comparteixis aquesta clau ni utilitzis generadors de codis QR externs." %}</p><code style="overflow-wrap:anywhere">{{ otp_uri }}</code>{% endif %}
+{% if recovery_codes %}<h2>{% translate "Codis de recuperació" %}</h2><p>{% translate "Es mostren una sola vegada. Guarda'ls fora del servidor, en un lloc segur. Cada codi només es pot utilitzar una vegada." %}</p><ul>{% for code in recovery_codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul><a class="button primary" href="{% url 'cafeteria:dashboard' %}">{% translate "Continua" %}</a>
+{% else %}<form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="button primary">{% translate "Confirma" %}</button></form>{% endif %}
+</section>
+{% endblock %}

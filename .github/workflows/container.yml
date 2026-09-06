@@ -28,6 +28,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             --volume "${{ github.workspace }}:/workspace" \
             --workdir /workspace \
+            -e DJANGO_DEBUG=true \
             --entrypoint sh \
             afa-ordis:${{ github.sha }} \
             -c 'python manage.py makemessages -l es --no-location --no-obsolete'
@@ -35,6 +36,7 @@ jobs:
           docker run --rm \
             --volume "${{ github.workspace }}:/workspace:ro" \
             --workdir /workspace \
+            -e DJANGO_DEBUG=true \
             --entrypoint sh \
             afa-ordis:${{ github.sha }} \
             -c 'python manage.py check_i18n'
@@ -53,15 +55,49 @@ jobs:
           docker run --rm
           -e DATABASE_ENGINE=django.db.backends.sqlite3
           -e DATABASE_NAME=/tmp/test.sqlite3
+          -e DATABASE_TEST_NAME=/tmp/test-suite.sqlite3
           -e DJANGO_DEBUG=true
           --entrypoint python
           afa-ordis:${{ github.sha }} manage.py test apps.cafeteria -v 1
+
+      - name: Validate production security settings
+        run: |
+          docker run --rm --tmpfs /tmp \
+            -e DJANGO_SECRET_KEY=ci-only-production-check-key-abcdefghijklmnopqrstuvwxyz-0123456789 \
+            -e APP_BASE_URL=https://portal.example.test \
+            -e DJANGO_ALLOWED_HOSTS=portal.example.test \
+            -e ENCRYPTION_KEY_FILE=/tmp/keys.json \
+            -e DATABASE_NAME=/tmp/production-check.sqlite3 \
+            --entrypoint sh afa-ordis:${{ github.sha }} -c '
+              DJANGO_DEBUG=true DATA_ENCRYPTION_ENABLED=false python manage.py generate_encryption_keys --output /tmp/keys.json &&
+              DJANGO_DEBUG=false python manage.py check --deploy --fail-level WARNING'
+
+      - name: Run encrypted database, media and recovery integration tests
+        run: |
+          docker run --rm --tmpfs /tmp \
+            -e ENCRYPTION_KEY_FILE=/tmp/keys.json \
+            -e DATABASE_NAME=/tmp/encrypted.sqlite3 \
+            -e DATABASE_TEST_NAME=/tmp/encrypted-suite.sqlite3 \
+            --entrypoint sh afa-ordis:${{ github.sha }} -c '
+              DJANGO_DEBUG=true DATA_ENCRYPTION_ENABLED=false python manage.py generate_encryption_keys --output /tmp/keys.json &&
+              DJANGO_DEBUG=true DATA_ENCRYPTION_ENABLED=true python manage.py test apps.cafeteria --noinput -v 1'
+
+      - name: Audit locked runtime dependencies
+        run: |
+          python -m pip install pip-audit==2.10.1
+          python -m pip_audit -r requirements.txt --progress-spinner off
+
+      - name: Check Python for undefined names and invalid code
+        run: |
+          python -m pip install ruff==0.16.6
+          python -m ruff check apps config --select F
 
       - name: Verify migrations are current
         run: >-
           docker run --rm
           -e DATABASE_ENGINE=django.db.backends.sqlite3
           -e DATABASE_NAME=/tmp/check.sqlite3
+          -e DJANGO_DEBUG=true
           --entrypoint python
           afa-ordis:${{ github.sha }} manage.py makemigrations --check --dry-run
 

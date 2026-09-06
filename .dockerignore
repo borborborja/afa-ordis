@@ -4,8 +4,17 @@
 !.env.example
 __pycache__/
 *.py[cod]
+**/__pycache__/
+**/*.py[cod]
+**/*.mo
 *.sqlite3
 staticfiles/
 media/
 .pytest_cache/
 .coverage
+**/*.afaenc
+**/keys*.json
+**/afa_keys
+backups/
+secrets/
+**/.privacy-*

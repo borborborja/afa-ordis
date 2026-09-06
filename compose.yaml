@@ -4,6 +4,11 @@ services:
     env_file: ${ENV_FILE:-.env}
     volumes:
       - app_data:/data
+      - ${ENCRYPTION_KEY_HOST_FILE:?Set ENCRYPTION_KEY_HOST_FILE}:/run/secrets/afa_keys:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777
+    ulimits:
+      core: 0
     networks:
       - proxy
     labels:
@@ -14,6 +19,11 @@ services:
       - traefik.http.routers.afa-ordis.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
       - traefik.http.services.afa-ordis.loadbalancer.server.port=8000
     restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
 volumes:
   app_data:

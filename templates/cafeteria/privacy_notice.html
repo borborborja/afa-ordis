@@ -1,0 +1,10 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block content %}
+<section class="card"><h1>{% translate "Protecció de dades" %}</h1>
+{% if notice %}<p><strong>{{ notice.controller }}</strong> · {{ notice.tax_id }}<br>{{ notice.address }}<br><a href="mailto:{{ notice.contact_email }}">{{ notice.contact_email }}</a></p><p>{% translate "Versió" %}: {{ notice.version }} · {{ notice.published_at|date:'d/m/Y' }}</p><div>{{ policy_text|linebreaks }}</div>
+{% else %}<p>{% translate "La informació de privacitat està pendent de validació. No introdueixis dades personals fins que l'AFA l'hagi publicat." %}</p>{% endif %}
+<h2>{% translate "Galetes i emmagatzematge del navegador" %}</h2><p>{% translate "El portal utilitza galetes de sessió, protecció CSRF i preferències d'idioma, i emmagatzematge local de navegació. No incorpora analítica ni publicitat de tercers. Les pàgines privades no es desen a la memòria cau de l'aplicació." %}</p>
+{% if user.is_authenticated %}<a class="button primary" href="{% url 'cafeteria:privacy_center' %}">{% translate "Exerceix els teus drets" %}</a>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,3 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block content %}<section class="card form-card"><h1>{% translate "Revisa la sol·licitud" %}</h1><p>{{ item.get_kind_display }} · {{ item.requester.email }} · {{ item.student.full_name }}</p><p>{{ item.message|linebreaksbr }}</p><p>{% translate "L'esborrany no inclou documents ni dades de tercers automàticament. Revisa l'abast, completa les dades que corresponguin i registra la resposta. Les dades de salut requereixen també autorització de revisió mèdica." %}</p><form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="button primary">{% translate "Resol i registra la resposta" %}</button></form></section>{% endblock %}

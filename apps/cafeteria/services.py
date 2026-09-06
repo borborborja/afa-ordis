@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from calendar import monthrange
-from datetime import date, datetime, time
+from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from .models import (
     BookingStatus,
-    DailyReport,
     MealBooking,
     MonthlyStatement,
     PriceRule,
@@ -20,7 +19,6 @@ from .models import (
     TeacherMealBooking,
     TeacherMonthlyStatement,
     TeacherStatementLine,
-    log_event,
 )
 
 
@@ -42,11 +40,33 @@ def is_service_day(service_date: date, student=None) -> bool:
 def is_tutor_locked(service_date: date) -> bool:
     from .models import MealSettings
 
+    now = timezone.localtime()
+    if service_date < now.date():
+        return True
+    if service_date > now.date():
+        return False
     settings = MealSettings.objects.filter(academic_year__starts_on__lte=service_date, academic_year__ends_on__gte=service_date).first()
     if not settings or not settings.daily_cutoff:
         return False
+    return now.time() >= settings.daily_cutoff
+
+
+def service_calendar(starts_on, ends_on):
+    """Load availability and deadlines once for a whole calendar, shared by siblings."""
+    from .models import AcademicHoliday, MealSettings, ServiceDay
+
+    days = ServiceDay.objects.filter(date__range=(starts_on, ends_on), is_service_day=True)
+    holidays = list(AcademicHoliday.objects.filter(starts_on__lte=ends_on, ends_on__gte=starts_on))
+    available = {
+        day.date for day in days
+        if not any(holiday.academic_year_id == day.academic_year_id and holiday.starts_on <= day.date <= holiday.ends_on for holiday in holidays)
+    }
     now = timezone.localtime()
-    return service_date < now.date() or (service_date == now.date() and now.time() >= settings.daily_cutoff)
+    meal_settings = MealSettings.objects.filter(
+        academic_year__starts_on__lte=now.date(), academic_year__ends_on__gte=now.date(),
+    ).first()
+    today_locked = bool(meal_settings and meal_settings.daily_cutoff and now.time() >= meal_settings.daily_cutoff)
+    return available, now.date(), today_locked
 
 
 def bookings_for_day(service_date: date):
@@ -64,14 +84,14 @@ def build_daily_report_text(service_date: date) -> str:
     allergy_alerts = []
     for booking in bookings:
         course = booking.student.course_group.name if booking.student.course_group else _("Sense curs")
-        diet = booking.diet_name or _("Dieta ordinària")
+        diet = _("ATURA LA PREPARACIÓ") if booking.student.meal_safety_hold else booking.diet_name or _("Dieta ordinària")
         by_diet[diet] = by_diet.get(diet, 0) + 1
         lines.append(f"- {booking.student.full_name} · {course} · {diet}")
         if booking.student.has_operational_allergy_alert:
-            status = _("PENDENT DE VALIDAR") if booking.student.allergy_review_status == "pending" else _("VALIDADA")
+            status = _("ATURA LA PREPARACIÓ") if booking.student.meal_safety_hold else _("PENDENT DE VALIDAR") if booking.student.allergy_review_status == "pending" else _("VALIDADA")
             allergy_alerts.append(
-                f"- {booking.student.full_name} · {booking.student.allergy_title} · "
-                f"{booking.student.allergy_details} [{status}]"
+                f"- {booking.student.full_name} · "
+                f"{'' if booking.student.meal_safety_hold else booking.student.kitchen_instructions} [{status}]"
             )
     teacher_bookings = teacher_bookings_for_day(service_date)
     if teacher_bookings.exists():
@@ -104,6 +124,8 @@ def prepare_monthly_statement(family, year: int, month: int) -> MonthlyStatement
         date__month=month,
         status=BookingStatus.ACTIVE,
     ).select_related("student")
+    if bookings.filter(unit_price__isnull=True).exists():
+        raise ValidationError(_("Hi ha reserves sense tarifa. Configura els preus abans de preparar o tancar el resum."))
     lines = []
     for booking in bookings:
         if booking.unit_price is None:
@@ -112,7 +134,7 @@ def prepare_monthly_statement(family, year: int, month: int) -> MonthlyStatement
             statement=statement,
             student=booking.student,
             service_date=booking.date,
-            diet_name=booking.diet_name,
+            diet_name="",
             meal_plan=booking.student.meal_plan,
             scholarship=booking.student.is_scholarship,
             unit_price=booking.unit_price,
@@ -132,9 +154,11 @@ def prepare_teacher_monthly_statement(teacher, year: int, month: int) -> Teacher
     bookings = TeacherMealBooking.objects.filter(
         teacher=teacher, date__year=year, date__month=month, status=BookingStatus.ACTIVE,
     )
+    if bookings.filter(unit_price__isnull=True).exists():
+        raise ValidationError(_("Hi ha reserves sense tarifa. Configura els preus abans de preparar o tancar el resum."))
     TeacherStatementLine.objects.bulk_create([
         TeacherStatementLine(
-            statement=statement, service_date=booking.date, diet_name=booking.diet_name,
+            statement=statement, service_date=booking.date, diet_name="",
             meal_plan=teacher.meal_plan, unit_price=booking.unit_price,
         )
         for booking in bookings if booking.unit_price is not None

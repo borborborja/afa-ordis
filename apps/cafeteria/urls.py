@@ -2,13 +2,28 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
 from . import views
+from . import privacy_views
+from .auth import PortalLoginView
 
 app_name = "cafeteria"
 
 urlpatterns = [
+    path("privacitat/", privacy_views.privacy_notice, name="privacy_notice"),
+    path("comptes/privacitat/", privacy_views.privacy_center, name="privacy_center"),
+    path("comptes/privacitat/<uuid:request_id>/exportacio/", privacy_views.request_export_download, name="request_export_download"),
+    path("comptes/privacitat/<int:student_id>/retirada/", privacy_views.withdraw_health_consent, name="withdraw_health_consent"),
+    path("comptes/segon-factor/configura/", privacy_views.mfa_setup, name="mfa_setup"),
+    path("comptes/segon-factor/verifica/", privacy_views.mfa_verify, name="mfa_verify"),
+    path("cuina/avui/", privacy_views.kitchen_report, name="kitchen_report"),
+    path("gestio/privacitat/", privacy_views.privacy_administration, name="privacy_administration"),
+    path("gestio/privacitat/autoritzacions/", privacy_views.privacy_roles, name="privacy_roles"),
+    path("gestio/privacitat/sollicitud/<uuid:request_id>/", privacy_views.privacy_request_review, name="privacy_request_review"),
+    path("gestio/privacitat/reserva/<int:record_id>/", privacy_views.reserved_data_access, name="reserved_data_access"),
+    path("gestio/privacitat/custodia/", privacy_views.backup_custody, name="backup_custody"),
+    path("gestio/privacitat/registre/", privacy_views.restriction_ledger_download, name="restriction_ledger_download"),
     path("health/", views.healthcheck, name="healthcheck"),
     path("", views.dashboard, name="dashboard"),
-    path("comptes/entrada/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
+    path("comptes/entrada/", PortalLoginView.as_view(), name="login"),
     path("comptes/sortida/", auth_views.LogoutView.as_view(), name="logout"),
     path("comptes/idioma/", views.set_language, name="set_language"),
     path("comptes/navegacio/", views.navigation_preferences, name="navigation_preferences"),

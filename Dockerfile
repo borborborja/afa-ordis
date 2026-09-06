@@ -16,8 +16,15 @@ RUN apt-get update \
 COPY . .
 RUN django-admin compilemessages \
     && chmod +x /app/entrypoint.sh \
-    && mkdir -p /app/staticfiles /app/media
+    && mkdir -p /app/staticfiles /data \
+    && DJANGO_DEBUG=true python manage.py collectstatic --noinput \
+    && groupadd --gid 10001 portal \
+    && useradd --uid 10001 --gid portal --no-create-home portal \
+    && chown portal:portal /data
 
 EXPOSE 8000
+USER portal
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD python -c "import os, urllib.request, urllib.parse; host = urllib.parse.urlsplit(os.environ.get('APP_BASE_URL', 'http://localhost')).netloc; r = urllib.request.Request('http://127.0.0.1:8000/health/', headers={'Host': host}); urllib.request.urlopen(r, timeout=3)" || exit 1
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "--timeout", "60"]

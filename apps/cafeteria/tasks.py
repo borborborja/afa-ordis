@@ -1,37 +1,53 @@
 from __future__ import annotations
 
 import logging
+from calendar import monthrange
+from datetime import date
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.urls import reverse
 
 from .models import (
-    BookingStatus,
     DailyReport,
     MealSettings,
     MonthlyStatement,
+    MonthlyPreparation,
     StatementStatus,
     TeacherMonthlyStatement,
+    ServiceDay,
     log_event,
 )
-from .services import build_daily_report_text, expected_report_is_due, is_service_day, prepare_statements_for_month
+from .services import expected_report_is_due, is_service_day, prepare_statements_for_month
 
 logger = logging.getLogger(__name__)
 
 
 def _statement_text(statement: MonthlyStatement) -> str:
-    lines = [
-        _("Resum de menjador — %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
-        _("Família: %(family)s") % {"family": statement.family.name},
-        "",
-    ]
-    for line in statement.lines.select_related("student"):
-        meal = line.diet_name or _("Dieta ordinària")
-        lines.append(f"- {line.service_date:%d/%m/%Y}: {line.student.full_name} · {meal} · {line.unit_price:.2f} €")
-    lines += ["", _("Total: %(total)s €") % {"total": f"{statement.total:.2f}"}]
-    return "\n".join(lines)
+    return _notice_text("cafeteria:monthly_statements")
+
+
+def _notice_text(route):
+    return _("Tens una actualització disponible al portal de l'AFA. Inicia sessió per consultar-la.") + "\n\n" + settings.APP_BASE_URL + reverse(route)
+
+
+def notify_portal(recipients, route):
+    from .privacy import privacy_ready
+    if settings.PRIVACY_ENFORCED and not privacy_ready():
+        return False
+    sent = False
+    for address in sorted(set(recipients)):
+        delivered = send_mail(
+            subject=_("Actualització al portal de l'AFA"), message=_notice_text(route),
+            from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[address], fail_silently=False,
+        )
+        if not delivered:
+            return False
+        sent = True
+    return sent
 
 
 def send_daily_report(service_date_iso: str, actor_id: int | None = None) -> bool:
@@ -39,24 +55,30 @@ def send_daily_report(service_date_iso: str, actor_id: int | None = None) -> boo
     from django.contrib.auth import get_user_model
 
     service_date = date.fromisoformat(service_date_iso)
-    service_day = __import__("apps.cafeteria.models", fromlist=["ServiceDay"]).ServiceDay.objects.filter(date=service_date, is_service_day=True).first()
-    if not service_day:
+    service_day = ServiceDay.objects.filter(date=service_date, is_service_day=True).first()
+    if not service_day or not is_service_day(service_date):
         return False
     meal_settings = MealSettings.objects.filter(academic_year=service_day.academic_year).first()
     if not meal_settings:
         return False
-    recipients = list(meal_settings.daily_recipients.filter(active=True).values_list("email", flat=True))
+    from .models import Role
+    from .privacy import explicit_role
+    recipients = []
+    accounts = []
+    for recipient in meal_settings.daily_recipients.filter(active=True).select_related("user"):
+        account = recipient.user
+        if account is None:
+            account = get_user_model().objects.filter(email__iexact=recipient.email, is_active=True).first()
+        if account and account.is_active and (account.is_superuser or explicit_role(account, Role.KITCHEN, Role.ADMIN, Role.MANAGER)):
+            recipients.append(account.email)
+            accounts.append(account)
     if not recipients:
         return False
 
     report, _created = DailyReport.objects.get_or_create(date=service_date)
-    send_mail(
-        subject=_("Llistat de menjador · %(date)s") % {"date": service_date.strftime("%d/%m/%Y")},
-        message=build_daily_report_text(service_date),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-        fail_silently=False,
-    )
+    sent = all(notify_portal([account.email], "cafeteria:kitchen_report" if explicit_role(account, Role.KITCHEN) else "cafeteria:daily_reports") for account in accounts)
+    if not sent:
+        return False
     actor = get_user_model().objects.filter(pk=actor_id).first() if actor_id else None
     report.sent_at = timezone.now()
     report.sent_by = actor
@@ -76,13 +98,8 @@ def send_monthly_statement(statement_id: int, actor_id: int | None = None) -> bo
     recipients = statement.family.recipient_emails()
     if not recipients:
         return False
-    send_mail(
-        subject=_("Resum de menjador · %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
-        message=_statement_text(statement),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-        fail_silently=False,
-    )
+    if not notify_portal(recipients, "cafeteria:monthly_statements"):
+        return False
     actor = get_user_model().objects.filter(pk=actor_id).first() if actor_id else None
     statement.status = StatementStatus.SENT
     statement.sent_at = timezone.now()
@@ -99,19 +116,8 @@ def send_teacher_monthly_statement(statement_id: int, actor_id: int | None = Non
     ).first()
     if not statement or not statement.teacher.user.email:
         return False
-    lines = [
-        _("Resum de menjador — %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
-        _("Persona: %(person)s") % {"person": statement.teacher.full_name}, "",
-    ]
-    for line in statement.lines.all():
-        meal = line.diet_name or _("Dieta ordinària")
-        lines.append(f"- {line.service_date:%d/%m/%Y}: {meal} · {line.unit_price:.2f} €")
-    lines += ["", _("Total: %(total)s €") % {"total": f"{statement.total:.2f}"}]
-    send_mail(
-        subject=_("Resum de menjador · %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
-        message="\n".join(lines), from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[statement.teacher.user.email], fail_silently=False,
-    )
+    if not notify_portal([statement.teacher.user.email], "cafeteria:monthly_statements"):
+        return False
     actor = get_user_model().objects.filter(pk=actor_id).first() if actor_id else None
     statement.status = StatementStatus.SENT
     statement.sent_at = timezone.now()
@@ -131,7 +137,7 @@ def send_due_daily_reports() -> int:
             continue
         if not is_service_day(today):
             continue
-        if DailyReport.objects.filter(date=today).exists():
+        if DailyReport.objects.filter(date=today, sent_at__isnull=False).exists():
             continue
         try:
             if send_daily_report(today.isoformat()):
@@ -141,14 +147,26 @@ def send_due_daily_reports() -> int:
     return count
 
 
+@transaction.atomic
 def prepare_due_monthly_statements() -> int:
     now = timezone.localtime()
     if now.month == 1:
         target_year, target_month = now.year - 1, 12
     else:
         target_year, target_month = now.year, now.month - 1
-    count = 0
-    for meal_settings in MealSettings.objects.filter(monthly_statements_enabled=True):
-        if now.day == meal_settings.monthly_preparation_day and now.time() >= meal_settings.monthly_preparation_hour:
-            count += prepare_statements_for_month(target_year, target_month)
-    return count
+    if MonthlyPreparation.objects.filter(year=target_year, month=target_month).exists():
+        return 0
+    period_start = date(target_year, target_month, 1)
+    period_end = date(target_year, target_month, monthrange(target_year, target_month)[1])
+    for meal_settings in MealSettings.objects.filter(
+        monthly_statements_enabled=True,
+        academic_year__starts_on__lte=period_end,
+        academic_year__ends_on__gte=period_start,
+    ):
+        if now.day > meal_settings.monthly_preparation_day or (
+            now.day == meal_settings.monthly_preparation_day and now.time() >= meal_settings.monthly_preparation_hour
+        ):
+            count = prepare_statements_for_month(target_year, target_month)
+            MonthlyPreparation.objects.create(year=target_year, month=target_month)
+            return count
+    return 0

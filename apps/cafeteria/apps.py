@@ -8,6 +8,10 @@ class CafeteriaConfig(AppConfig):
 
     def ready(self):
         from . import signals  # noqa: F401
+        from django.conf import settings
+        if settings.DATA_ENCRYPTION_ENABLED:
+            from .crypto import keyring
+            keyring()
         from django.db.backends.signals import connection_created
 
         def configure_sqlite(sender, connection, **kwargs):

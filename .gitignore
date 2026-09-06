@@ -3,6 +3,7 @@
 !.env.example
 __pycache__/
 *.py[cod]
+*.mo
 *.sqlite3
 staticfiles/
 media/
@@ -10,3 +11,9 @@ media/
 .coverage
 htmlcov/
 *.log
+*.afaenc
+keys*.json
+afa_keys
+backups/
+secrets/
+.privacy-*
