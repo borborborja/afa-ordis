@@ -135,9 +135,9 @@ def web_app_manifest(request):
     start_url = reverse("cafeteria:dashboard")
     response = JsonResponse({
         "id": start_url,
-        "name": "Portal AFA Ordis",
+        "name": _("Portal AFA Ordis"),
         "short_name": "AFA Ordis",
-        "description": "Portal de gestió de l'AFA d'Ordis",
+        "description": _("Portal de gestió de l'AFA d'Ordis"),
         "lang": translation.get_language() or "ca",
         "start_url": start_url,
         "scope": start_url,
@@ -1458,11 +1458,14 @@ def statement_csv(request, statement_id):
     response["Content-Disposition"] = f'attachment; filename="menjador-{statement.year}-{statement.month:02d}-{statement.family_id}.csv"'
     response.write("\ufeff")
     writer = csv.writer(response)
-    writer.writerow(["Data", "Alumne", "Dieta", "Modalitat", "Becat", "Import"])
+    writer.writerow([_("Data"), _("Alumne"), _("Dieta"), _("Modalitat"), _("Becat"), _("Import")])
     for line in statement.lines.select_related("student"):
-        writer.writerow([line.service_date.isoformat(), line.student.full_name, line.diet_name, line.get_meal_plan_display(), "Sí" if line.scholarship else "No", line.unit_price])
+        writer.writerow([
+            line.service_date.isoformat(), line.student.full_name, line.diet_name,
+            line.get_meal_plan_display(), _("Sí") if line.scholarship else _("No"), line.unit_price,
+        ])
     writer.writerow([])
-    writer.writerow(["Total", "", "", "", "", statement.total])
+    writer.writerow([_("Total"), "", "", "", "", statement.total])
     return response
 
 

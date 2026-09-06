@@ -22,6 +22,23 @@ jobs:
       - name: Build the application image
         run: docker build --tag afa-ordis:${{ github.sha }} .
 
+      - name: Block incomplete or mixed-language interface text
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume "${{ github.workspace }}:/workspace" \
+            --workdir /workspace \
+            --entrypoint sh \
+            afa-ordis:${{ github.sha }} \
+            -c 'python manage.py makemessages -l es --no-location --no-obsolete'
+          git diff --exit-code -- locale
+          docker run --rm \
+            --volume "${{ github.workspace }}:/workspace:ro" \
+            --workdir /workspace \
+            --entrypoint sh \
+            afa-ordis:${{ github.sha }} \
+            -c 'python manage.py check_i18n'
+
       - name: Validate Django configuration
         run: >-
           docker run --rm

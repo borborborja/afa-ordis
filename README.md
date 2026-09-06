@@ -87,6 +87,18 @@ sudo docker run --rm -e DATABASE_ENGINE=django.db.backends.sqlite3 -e DATABASE_N
 
 Inclou proves de reserves familiars, restricció de beques, excursions, facturació i correu de llistat diari.
 
-No hi ha cap panell web de Django Admin publicat: la gestió operativa és íntegrament dins del portal, amb navegació per rols. Cada usuari pot triar Català o Castellano des del menú de compte; l'elecció es conserva al seu perfil.
+### Qualitat dels idiomes
+
+El català és l'idioma predeterminat i el castellà ha d'estar completament traduït. Abans de pujar un canvi que afecti textos, executa:
+
+```bash
+python manage.py makemessages -l es --no-location --no-obsolete
+python manage.py check_i18n
+python manage.py compilemessages
+```
+
+`check_i18n` rebutja catàlegs buits o dubtosos, text visible que no utilitza `{% translate %}` o `_()`, i termes habituals en castellà o anglès que hagin entrat a la interfície. GitHub Actions aplica la mateixa barrera abans de publicar una imatge.
+
+No hi ha cap panell web de Django Admin publicat: la gestió operativa és íntegrament dins del portal, amb navegació per rols. Cada usuari pot triar Català o Castellà des del menú de compte; l'elecció es conserva al seu perfil.
 
 La [GitHub Action](.github/workflows/container.yml) construeix la imatge, valida la configuració Django, executa les proves, comprova les migracions i publica la imatge validada a `ghcr.io/borborborja/afa-ordis` quan es modifica `main`.

@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 import tempfile
 from unittest.mock import patch
 import zipfile
@@ -10,7 +11,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
@@ -51,6 +52,7 @@ from .models import (
     TeacherMealBooking,
     TeacherMealProfile,
 )
+from .i18n_audit import audit_catalog, audit_javascript, audit_project, audit_python, audit_templates
 from .services import (
     build_daily_report_text,
     expected_report_is_due,
@@ -59,6 +61,38 @@ from .services import (
     prepare_teacher_monthly_statement,
 )
 from .tasks import send_daily_report
+
+
+class I18nAuditTests(SimpleTestCase):
+    def test_current_portal_passes_the_strict_language_audit(self):
+        self.assertEqual(audit_project(settings.BASE_DIR), [])
+
+    def test_catalog_audit_rejects_an_untranslated_or_fuzzy_entry(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            catalog = Path(temporary_directory) / "django.po"
+            catalog.write_text(
+                'msgid ""\nmsgstr "Language: es\\n"\n\n#, fuzzy\nmsgid "Desa"\nmsgstr ""\n',
+                encoding="utf-8",
+            )
+            errors = audit_catalog(catalog, "es")
+        self.assertTrue(any("fuzzy" in error for error in errors))
+        self.assertTrue(any("falta la traducció" in error for error in errors))
+
+    def test_template_javascript_and_report_audits_reject_untranslated_visible_text(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            template = root / "bad.html"
+            script = root / "bad.js"
+            report_builder = root / "services.py"
+            template.write_text("<button>Save changes</button>", encoding="utf-8")
+            script.write_text("element.textContent = 'Save changes';", encoding="utf-8")
+            report_builder.write_text('lines.append("Save changes")', encoding="utf-8")
+            template_errors = audit_templates(root)
+            javascript_errors = audit_javascript(root)
+            python_errors = audit_python(root)
+        self.assertTrue(any("Save changes" in error for error in template_errors))
+        self.assertTrue(any("Save changes" in error for error in javascript_errors))
+        self.assertTrue(any("Save changes" in error for error in python_errors))
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -103,6 +137,21 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(booking.status, BookingStatus.ACTIVE)
         self.assertEqual(booking.unit_price, Decimal("6.50"))
         self.assertEqual(booking.diet_name, "Ordinària")
+
+    def test_operational_report_and_csv_follow_the_selected_language(self):
+        booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        statement = prepare_monthly_statement(self.family, self.today.year, self.today.month)
+        self.client.force_login(self.user)
+        with translation.override("es"):
+            report = build_daily_report_text(self.today)
+            response = self.client.get(reverse("cafeteria:statement_csv", args=[statement.id]))
+        self.assertIn("Lista del comedor", report)
+        self.assertIn("ATENCIÓN — ALERGIAS", report)
+        self.assertIn("No hay alergias declaradas", report)
+        self.assertContains(response, "Alumno/a")
+        self.assertContains(response, "Becado/a")
+        self.assertContains(response, "Importe")
+        self.assertEqual(booking.status, BookingStatus.ACTIVE)
 
     def test_joint_booking_keeps_each_student_diet_during_an_excursion(self):
         sibling = Student.objects.create(

@@ -7,6 +7,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .models import (
     BookingStatus,
@@ -58,41 +59,41 @@ def teacher_bookings_for_day(service_date: date):
 
 def build_daily_report_text(service_date: date) -> str:
     bookings = bookings_for_day(service_date)
-    lines = [f"Llistat de menjador — {service_date:%d/%m/%Y}", ""]
+    lines = [_("Llistat de menjador — %(date)s") % {"date": service_date.strftime("%d/%m/%Y")}, ""]
     by_diet = {}
     allergy_alerts = []
     for booking in bookings:
-        course = booking.student.course_group.name if booking.student.course_group else "Sense curs"
-        diet = booking.diet_name or "Dieta ordinària"
+        course = booking.student.course_group.name if booking.student.course_group else _("Sense curs")
+        diet = booking.diet_name or _("Dieta ordinària")
         by_diet[diet] = by_diet.get(diet, 0) + 1
         lines.append(f"- {booking.student.full_name} · {course} · {diet}")
         if booking.student.has_operational_allergy_alert:
-            status = "PENDENT DE VALIDAR" if booking.student.allergy_review_status == "pending" else "VALIDADA"
+            status = _("PENDENT DE VALIDAR") if booking.student.allergy_review_status == "pending" else _("VALIDADA")
             allergy_alerts.append(
                 f"- {booking.student.full_name} · {booking.student.allergy_title} · "
                 f"{booking.student.allergy_details} [{status}]"
             )
     teacher_bookings = teacher_bookings_for_day(service_date)
     if teacher_bookings.exists():
-        lines.extend(["", "Personal docent"])
+        lines.extend(["", _("Personal docent")])
         for booking in teacher_bookings:
-            diet = booking.diet_name or "Dieta ordinària"
+            diet = booking.diet_name or _("Dieta ordinària")
             by_diet[diet] = by_diet.get(diet, 0) + 1
             lines.append(f"- {booking.teacher.full_name} · {diet}")
-    lines.extend(["", "ATENCIÓ — AL·LÈRGIES"])
+    lines.extend(["", _("ATENCIÓ — AL·LÈRGIES")])
     if allergy_alerts:
         lines.extend(allergy_alerts)
     else:
-        lines.append("Cap al·lèrgia declarada entre els àpats programats.")
+        lines.append(_("Cap al·lèrgia declarada entre els àpats programats."))
     lines.append("")
-    lines.append(f"Total: {bookings.count() + teacher_bookings.count()}")
+    lines.append(_("Total: %(total)s") % {"total": bookings.count() + teacher_bookings.count()})
     lines.extend(f"{diet}: {total}" for diet, total in sorted(by_diet.items()))
     return "\n".join(lines)
 
 
 @transaction.atomic
 def prepare_monthly_statement(family, year: int, month: int) -> MonthlyStatement:
-    statement, _ = MonthlyStatement.objects.get_or_create(family=family, year=year, month=month)
+    statement, _created = MonthlyStatement.objects.get_or_create(family=family, year=year, month=month)
     if statement.status != StatementStatus.PREPARED:
         return statement
 
@@ -124,7 +125,7 @@ def prepare_monthly_statement(family, year: int, month: int) -> MonthlyStatement
 
 @transaction.atomic
 def prepare_teacher_monthly_statement(teacher, year: int, month: int) -> TeacherMonthlyStatement:
-    statement, _ = TeacherMonthlyStatement.objects.get_or_create(teacher=teacher, year=year, month=month)
+    statement, _created = TeacherMonthlyStatement.objects.get_or_create(teacher=teacher, year=year, month=month)
     if statement.status != StatementStatus.PREPARED:
         return statement
     statement.lines.all().delete()

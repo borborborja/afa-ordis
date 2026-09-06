@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .models import (
     BookingStatus,
@@ -22,14 +23,14 @@ logger = logging.getLogger(__name__)
 
 def _statement_text(statement: MonthlyStatement) -> str:
     lines = [
-        f"Resum de menjador — {statement.month:02d}/{statement.year}",
-        f"Família: {statement.family.name}",
+        _("Resum de menjador — %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
+        _("Família: %(family)s") % {"family": statement.family.name},
         "",
     ]
     for line in statement.lines.select_related("student"):
-        meal = line.diet_name or "Dieta ordinària"
+        meal = line.diet_name or _("Dieta ordinària")
         lines.append(f"- {line.service_date:%d/%m/%Y}: {line.student.full_name} · {meal} · {line.unit_price:.2f} €")
-    lines += ["", f"Total: {statement.total:.2f} €"]
+    lines += ["", _("Total: %(total)s €") % {"total": f"{statement.total:.2f}"}]
     return "\n".join(lines)
 
 
@@ -48,9 +49,9 @@ def send_daily_report(service_date_iso: str, actor_id: int | None = None) -> boo
     if not recipients:
         return False
 
-    report, _ = DailyReport.objects.get_or_create(date=service_date)
+    report, _created = DailyReport.objects.get_or_create(date=service_date)
     send_mail(
-        subject=f"Llistat de menjador · {service_date:%d/%m/%Y}",
+        subject=_("Llistat de menjador · %(date)s") % {"date": service_date.strftime("%d/%m/%Y")},
         message=build_daily_report_text(service_date),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=recipients,
@@ -76,7 +77,7 @@ def send_monthly_statement(statement_id: int, actor_id: int | None = None) -> bo
     if not recipients:
         return False
     send_mail(
-        subject=f"Resum de menjador · {statement.month:02d}/{statement.year}",
+        subject=_("Resum de menjador · %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
         message=_statement_text(statement),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=recipients,
@@ -99,15 +100,15 @@ def send_teacher_monthly_statement(statement_id: int, actor_id: int | None = Non
     if not statement or not statement.teacher.user.email:
         return False
     lines = [
-        f"Resum de menjador — {statement.month:02d}/{statement.year}",
-        f"Persona: {statement.teacher.full_name}", "",
+        _("Resum de menjador — %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
+        _("Persona: %(person)s") % {"person": statement.teacher.full_name}, "",
     ]
     for line in statement.lines.all():
-        meal = line.diet_name or "Dieta ordinària"
+        meal = line.diet_name or _("Dieta ordinària")
         lines.append(f"- {line.service_date:%d/%m/%Y}: {meal} · {line.unit_price:.2f} €")
-    lines += ["", f"Total: {statement.total:.2f} €"]
+    lines += ["", _("Total: %(total)s €") % {"total": f"{statement.total:.2f}"}]
     send_mail(
-        subject=f"Resum de menjador · {statement.month:02d}/{statement.year}",
+        subject=_("Resum de menjador · %(period)s") % {"period": f"{statement.month:02d}/{statement.year}"},
         message="\n".join(lines), from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[statement.teacher.user.email], fail_silently=False,
     )
