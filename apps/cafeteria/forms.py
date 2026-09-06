@@ -222,11 +222,34 @@ class TutorStudentForm(StudentAllergyFormMixin):
         }
 
 
+class FamilyStudentCreateForm(TutorStudentForm):
+    """Initial and later student creation, limited to the active school year."""
+
+    course_group = forms.ModelChoiceField(
+        queryset=CourseGroup.objects.none(),
+        label=_("Grup del curs"),
+        empty_label=_("Selecciona un grup"),
+    )
+
+    class Meta(TutorStudentForm.Meta):
+        fields = (
+            "course_group", "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
+            "contact_notes", "default_diet", "dietary_notes", "meal_plan", "allergy_title",
+            "allergy_details", "allergy_document",
+        )
+
+    def __init__(self, *args, academic_year=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["course_group"].queryset = CourseGroup.objects.filter(
+            academic_year=academic_year,
+        ).order_by("sort_order", "name")
+        self.fields["default_diet"].queryset = Diet.objects.filter(active=True)
+
+
 class FamilyForm(forms.ModelForm):
     class Meta:
         model = Family
-        fields = ("name", "billing_email", "phone", "address", "monthly_email_enabled", "active")
-        widgets = {"address": forms.Textarea(attrs={"rows": 3})}
+        fields = ("name", "phone", "monthly_email_enabled", "active")
 
 
 class FamilyContactForm(forms.ModelForm):
@@ -234,12 +257,9 @@ class FamilyContactForm(forms.ModelForm):
 
     class Meta:
         model = Family
-        fields = ("billing_email", "phone", "address", "monthly_email_enabled")
-        widgets = {"address": forms.Textarea(attrs={"rows": 3})}
+        fields = ("phone", "monthly_email_enabled")
         labels = {
-            "billing_email": _("Correu de facturació"),
             "phone": _("Telèfon de contacte"),
-            "address": _("Adreça"),
             "monthly_email_enabled": _("Rebre els resums mensuals per correu"),
         }
 
@@ -249,8 +269,7 @@ class FamilyOnboardingContactForm(FamilyContactForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name in ("billing_email", "phone", "address"):
-            self.fields[field_name].required = True
+        self.fields["phone"].required = True
 
 
 class StaffStudentForm(StudentAllergyFormMixin):
@@ -526,6 +545,20 @@ class PortalSettingsForm(forms.ModelForm):
         fields = ("school_menu_url",)
         labels = {"school_menu_url": _("Enllaç al menú de l'escola")}
         widgets = {"school_menu_url": forms.URLInput(attrs={"placeholder": "https://…"})}
+
+
+class PortalFamilyRegistrationSettingsForm(forms.ModelForm):
+    class Meta:
+        model = PortalSettings
+        fields = ("allow_family_student_creation",)
+        labels = {
+            "allow_family_student_creation": _("Permet que les famílies afegeixin alumnat"),
+        }
+        help_texts = {
+            "allow_family_student_creation": _(
+                "Les persones tutores podran crear fitxes per a la seva família i hauran de fer-ho en la primera alta si no hi ha alumnat vinculat."
+            ),
+        }
 
 
 class DailyReportRecipientForm(forms.ModelForm):

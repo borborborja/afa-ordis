@@ -65,6 +65,7 @@ class PortalSettings(models.Model):
     """Single shared setting for links that are useful to every account."""
 
     school_menu_url = models.URLField(default="https://agora.xtec.cat/esc-mariapages-ordis/")
+    allow_family_student_creation = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
@@ -132,9 +133,7 @@ class Diet(models.Model):
 
 class Family(models.Model):
     name = models.CharField(max_length=160, help_text=_("Nom identificatiu de la família"))
-    billing_email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
-    address = models.TextField(blank=True)
     monthly_email_enabled = models.BooleanField(default=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -147,13 +146,10 @@ class Family(models.Model):
         return self.name
 
     def recipient_emails(self) -> list[str]:
-        emails = list(
-            self.memberships.filter(user__profile__receive_operational_emails=True, user__is_active=True)
-            .exclude(user__email="")
-            .values_list("user__email", flat=True)
-        )
-        if self.billing_email:
-            emails.append(self.billing_email)
+        emails = self.memberships.filter(
+            user__profile__receive_operational_emails=True,
+            user__is_active=True,
+        ).exclude(user__email="").values_list("user__email", flat=True)
         return sorted(set(emails))
 
 

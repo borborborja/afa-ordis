@@ -53,28 +53,58 @@
   });
 
   const processedAllergyGroups = new Set();
-  document.querySelectorAll('[data-allergy-declaration]').forEach((input) => {
-    const form = input.closest('form');
-    const key = input.dataset.allergyDeclaration;
-    const groupId = `${input.form?.id || form?.action || 'form'}:${input.name}`;
-    if (!form || processedAllergyGroups.has(groupId)) return;
-    processedAllergyGroups.add(groupId);
-    const fields = [...form.querySelectorAll('[data-allergy-field]')]
-      .filter((field) => field.dataset.allergyField === key)
-      .map((field) => field.closest('.field'))
-      .filter(Boolean);
-    const syncAllergyFields = () => {
-      const selected = [...form.querySelectorAll('[data-allergy-declaration]')]
-        .find((choice) => choice.name === input.name && choice.checked);
-      const visible = selected?.value === 'yes';
-      fields.forEach((field) => { field.hidden = !visible; });
-    };
-    form.querySelectorAll('[data-allergy-declaration]').forEach((choice) => {
-      if (choice.name !== input.name) return;
-      choice.addEventListener('change', syncAllergyFields);
+  const setupAllergyFields = (scope = document) => {
+    scope.querySelectorAll('[data-allergy-declaration]').forEach((input) => {
+      const form = input.closest('form');
+      const key = input.dataset.allergyDeclaration;
+      const groupId = `${input.form?.id || form?.action || 'form'}:${input.name}`;
+      if (!form || processedAllergyGroups.has(groupId)) return;
+      processedAllergyGroups.add(groupId);
+      const fields = [...form.querySelectorAll('[data-allergy-field]')]
+        .filter((field) => field.dataset.allergyField === key)
+        .map((field) => field.closest('.field'))
+        .filter(Boolean);
+      const syncAllergyFields = () => {
+        const selected = [...form.querySelectorAll('[data-allergy-declaration]')]
+          .find((choice) => choice.name === input.name && choice.checked);
+        const visible = selected?.value === 'yes';
+        fields.forEach((field) => { field.hidden = !visible; });
+      };
+      form.querySelectorAll('[data-allergy-declaration]').forEach((choice) => {
+        if (choice.name !== input.name) return;
+        choice.addEventListener('change', syncAllergyFields);
+      });
+      syncAllergyFields();
     });
-    syncAllergyFields();
-  });
+  };
+  setupAllergyFields();
+
+  const studentFormset = document.querySelector('[data-student-formset]');
+  if (studentFormset) {
+    const totalForms = studentFormset.querySelector('[name="new-students-TOTAL_FORMS"]');
+    const list = studentFormset.querySelector('[data-student-form-list]');
+    const template = studentFormset.querySelector('[data-student-form-template]');
+    const addButton = studentFormset.querySelector('[data-add-student-form]');
+    addButton?.addEventListener('click', () => {
+      if (!totalForms || !list || !template) return;
+      const index = Number(totalForms.value);
+      const fragment = document.createRange().createContextualFragment(
+        template.innerHTML.replaceAll('__prefix__', String(index)),
+      );
+      list.append(fragment);
+      totalForms.value = String(index + 1);
+      setupAllergyFields(list.lastElementChild);
+    });
+    studentFormset.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-remove-student-form]');
+      if (!button) return;
+      const row = button.closest('[data-student-form-row]');
+      const deleted = row?.querySelector('[data-student-delete]');
+      if (!row || !deleted) return;
+      deleted.value = 'on';
+      row.hidden = true;
+    });
+  }
 
   const bookingCalendar = document.querySelector('[data-booking-calendar]');
   if (bookingCalendar) {

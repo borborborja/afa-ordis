@@ -5,11 +5,14 @@
 <section class="page-heading compact">
   <div>
     <p class="eyebrow">{{ family.name }}</p>
-    <h1>{% translate "Completa les dades de la família" %}</h1>
-    <p>{% translate "Abans d’entrar al portal, confirma les dades de contacte i la fitxa de cada infant. Per declarar una al·lèrgia cal adjuntar el document mèdic que l’acredita." %}</p>
+    <h1>{% translate "Dona d'alta l'alumnat" %}</h1>
+    <p>{% translate "Abans d’entrar al portal, confirma el telèfon de contacte i afegeix la fitxa de cada infant. Per declarar una al·lèrgia cal adjuntar el document mèdic que l’acredita." %}</p>
   </div>
 </section>
-<form method="post" enctype="multipart/form-data" class="onboarding-form">{% csrf_token %}
+{% if registration_unavailable %}
+<section class="message warning"><strong>{% translate "L'alta d'alumnat encara no està disponible" %}</strong><p>{% translate "L'administració ha d'activar un curs acadèmic i crear els grups abans que puguis completar aquesta alta." %}</p></section>
+{% else %}
+<form method="post" enctype="multipart/form-data" class="onboarding-form" data-student-formset>{% csrf_token %}
   {{ family_form.non_field_errors }}
   <section class="card form-card">
     <h2>{% translate "Contacte de la família" %}</h2>
@@ -22,9 +25,29 @@
     {{ form.non_field_errors }}
     <div class="form-grid">{% for field in form %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endfor %}</div>
   </section>
-  {% empty %}
-  <section class="message warning"><strong>{% translate "No hi ha alumnat actiu vinculat a aquesta família." %}</strong><p>{% translate "Posa’t en contacte amb ARAM per completar l’alta de l’alumnat abans de reservar menjador." %}</p></section>
   {% endfor %}
+  <section class="data-section">
+    <div class="section-title"><div><h2>{% translate "Alumnat de la família" %}</h2><p class="muted">{% translate "Afegeix com a mínim un infant. Pots afegir-ne tants com calgui." %}</p></div><button class="button secondary" type="button" data-add-student-form>{% include 'cafeteria/components/icon.html' with name='plus' %}{% translate "Afegeix un altre infant" %}</button></div>
+    {{ new_student_forms.management_form }}
+    {% if new_student_forms.non_form_errors %}<div class="form-errors">{{ new_student_forms.non_form_errors }}</div>{% endif %}
+    <div class="onboarding-student-forms" data-student-form-list>
+      {% for form in new_student_forms %}
+      <section class="card form-card onboarding-student-card" data-student-form-row>
+        <div class="section-title"><h2>{% translate "Fitxa de l'infant" %}</h2><button class="link-button danger-link" type="button" data-remove-student-form>{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></div>
+        {{ form.non_field_errors }}<input type="hidden" name="{{ form.DELETE.html_name }}" value="" data-student-delete>
+        <div class="form-grid">{% for field in form %}{% if field.name != 'DELETE' %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endif %}{% endfor %}</div>
+      </section>
+      {% endfor %}
+    </div>
+    <template data-student-form-template>
+      <section class="card form-card onboarding-student-card" data-student-form-row>
+        <div class="section-title"><h2>{% translate "Fitxa de l'infant" %}</h2><button class="link-button danger-link" type="button" data-remove-student-form>{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></div>
+        {{ new_student_forms.empty_form.non_field_errors }}<input type="hidden" name="{{ new_student_forms.empty_form.DELETE.html_name }}" value="" data-student-delete>
+        <div class="form-grid">{% for field in new_student_forms.empty_form %}{% if field.name != 'DELETE' %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endif %}{% endfor %}</div>
+      </section>
+    </template>
+  </section>
   <div class="form-actions"><button class="button primary" type="submit">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Completa la configuració" %}</button></div>
 </form>
+{% endif %}
 {% endblock %}

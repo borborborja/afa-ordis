@@ -26,6 +26,7 @@ from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Count, Q, Sum
+from django.forms import formset_factory
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -57,6 +58,7 @@ from .forms import (
     FamilyContactForm,
     FamilyForm,
     FamilyOnboardingContactForm,
+    FamilyStudentCreateForm,
     FinancialAccountForm,
     FamilyBookingPreferenceForm,
     InvitationAcceptanceForm,
@@ -66,6 +68,7 @@ from .forms import (
     StaffStudentForm,
     TutorStudentForm,
     PortalSettingsForm,
+    PortalFamilyRegistrationSettingsForm,
     TeacherMealProfileForm,
 )
 from .models import (
@@ -299,7 +302,8 @@ def _family_for_user_or_404(user, family_id):
 
 def _pending_family_onboarding(user, family_id=None):
     """Return the required initial setup for a tutor, if one is still open."""
-    if not user.is_authenticated or _is_staff(user):
+    portal = PortalSettings.objects.first()
+    if not user.is_authenticated or _is_staff(user) or not (portal and portal.allow_family_student_creation):
         return None
     memberships = FamilyMembership.objects.filter(
         user=user,
@@ -309,7 +313,10 @@ def _pending_family_onboarding(user, family_id=None):
     )
     if family_id is not None:
         memberships = memberships.filter(family_id=family_id)
-    return memberships.select_related("family").order_by("family__name").first()
+    for membership in memberships.select_related("family").order_by("family__name"):
+        if not membership.family.students.filter(active=True).exists():
+            return membership
+    return None
 
 
 def _student_profile_needs_completion(student):
@@ -318,9 +325,7 @@ def _student_profile_needs_completion(student):
 
 def _family_profile_needs_completion(family):
     return bool(
-        not family.billing_email
-        or not family.phone
-        or not family.address
+        not family.phone
         or any(_student_profile_needs_completion(student) for student in family.students.filter(active=True))
     )
 
@@ -580,15 +585,28 @@ def family_context_select(request):
 
 @login_required
 def family_onboarding(request, family_id):
-    """Required first setup for a newly invited tutor and their active students."""
+    """Shared initial setup when a family needs to create its first student."""
     membership = get_object_or_404(
         FamilyMembership.objects.select_related("family"),
         family_id=family_id,
         user=request.user,
     )
     family = membership.family
-    if not membership.onboarding_required or membership.onboarding_completed_at:
+    portal = PortalSettings.objects.first()
+    if (
+        not portal
+        or not portal.allow_family_student_creation
+        or not membership.onboarding_required
+        or membership.onboarding_completed_at
+        or family.students.filter(active=True).exists()
+    ):
         return redirect("cafeteria:family_home")
+    active_year = _active_year_or_none()
+    if not active_year or not CourseGroup.objects.filter(academic_year=active_year).exists():
+        return render(request, "cafeteria/family_onboarding.html", {
+            "family": family,
+            "registration_unavailable": True,
+        })
     students = list(family.students.filter(active=True).select_related("default_diet", "course_group"))
     family_form = FamilyOnboardingContactForm(request.POST or None, instance=family, prefix="family")
     student_forms = [
@@ -601,15 +619,43 @@ def family_onboarding(request, family_id):
         )
         for student in students
     ]
-    if request.method == "POST" and family_form.is_valid() and all(form.is_valid() for form in student_forms):
+    NewStudentFormSet = formset_factory(
+        FamilyStudentCreateForm,
+        extra=1,
+        can_delete=True,
+        min_num=1 if not students else 0,
+        validate_min=not students,
+    )
+    new_student_forms = NewStudentFormSet(
+        request.POST or None,
+        request.FILES or None,
+        prefix="new-students",
+        form_kwargs={"academic_year": active_year, "require_profile_completion": True},
+    )
+    if (
+        request.method == "POST"
+        and family_form.is_valid()
+        and all(form.is_valid() for form in student_forms)
+        and new_student_forms.is_valid()
+    ):
         with transaction.atomic():
             family_form.save()
             for form in student_forms:
                 saved_student = form.save()
                 reprice_open_bookings(student=saved_student)
                 log_event(request.user, "student.initial_profile_completed", saved_student)
-            membership.onboarding_completed_at = timezone.now()
-            membership.save(update_fields=["onboarding_completed_at"])
+            for form in new_student_forms:
+                if not form.cleaned_data or form.cleaned_data.get("DELETE"):
+                    continue
+                saved_student = form.save(commit=False)
+                saved_student.family = family
+                saved_student.save()
+                log_event(request.user, "student.created_by_family", saved_student)
+            completed_at = timezone.now()
+            FamilyMembership.objects.filter(family=family).update(
+                onboarding_required=False,
+                onboarding_completed_at=completed_at,
+            )
             log_event(request.user, "family.initial_profile_completed", family)
         messages.success(request, _("La configuració inicial de la família ja està completada."))
         return redirect("cafeteria:family_home")
@@ -617,6 +663,8 @@ def family_onboarding(request, family_id):
         "family": family,
         "family_form": family_form,
         "student_form_rows": list(zip(students, student_forms)),
+        "new_student_forms": new_student_forms,
+        "active_year": active_year,
     })
 
 
@@ -637,6 +685,38 @@ def family_profile(request, family_id):
         "form": form,
         "students": family.students.filter(active=True).select_related("course_group", "default_diet"),
         "profile_needs_completion": _family_profile_needs_completion(family),
+        "can_add_students": bool(PortalSettings.objects.filter(allow_family_student_creation=True).exists()),
+    })
+
+
+@login_required
+def family_student_create(request, family_id):
+    """Let a family add a student only while self-service is enabled."""
+    family = _family_for_user_or_404(request.user, family_id)
+    if not PortalSettings.objects.filter(allow_family_student_creation=True).exists():
+        raise Http404(_("L'autogestió d'alumnat no està disponible."))
+    active_year = _active_year_or_none()
+    if not active_year or not CourseGroup.objects.filter(academic_year=active_year).exists():
+        messages.error(request, _("L'administració ha de configurar el curs acadèmic i els grups abans de donar d'alta alumnat."))
+        return redirect("cafeteria:family_profile", family_id=family.id)
+    form = FamilyStudentCreateForm(
+        request.POST or None,
+        request.FILES or None,
+        academic_year=active_year,
+        require_profile_completion=True,
+    )
+    if request.method == "POST" and form.is_valid():
+        saved = form.save(commit=False)
+        saved.family = family
+        saved.save()
+        log_event(request.user, "student.created_by_family", saved)
+        messages.success(request, _("S'ha afegit la fitxa de l'infant."))
+        return redirect("cafeteria:family_profile", family_id=family.id)
+    return render(request, "cafeteria/entity_form.html", {
+        "form": form,
+        "title": _("Afegeix alumnat a %(family)s") % {"family": family.name},
+        "back_url": reverse("cafeteria:family_profile", args=[family.id]),
+        "help_text": _("Selecciona el grup actual i completa la fitxa de menjador. L'ajut de menjador el gestiona l'administració."),
     })
 
 
@@ -1175,9 +1255,18 @@ def _finish_invitation(invitation, user):
             family=invitation.family,
             user=user,
         )
-        if not membership.onboarding_completed_at:
-            membership.onboarding_required = True
-            membership.save(update_fields=["onboarding_required"])
+        portal = PortalSettings.objects.first()
+        requires_student_setup = bool(
+            portal
+            and portal.allow_family_student_creation
+            and not invitation.family.students.filter(active=True).exists()
+        )
+        membership.onboarding_required = requires_student_setup
+        if requires_student_setup:
+            membership.onboarding_completed_at = None
+        elif not membership.onboarding_completed_at:
+            membership.onboarding_completed_at = timezone.now()
+        membership.save(update_fields=["onboarding_required", "onboarding_completed_at"])
     if invitation.role == Role.TEACHER:
         TeacherMealProfile.objects.get_or_create(user=user, defaults={"default_diet": _ordinary_diet()})
     invitation.accepted_at = timezone.now()
@@ -1199,7 +1288,7 @@ def invitation_accept(request, token):
             return HttpResponseForbidden(_("Aquesta invitació correspon a un altre compte."))
         membership = _finish_invitation(invitation, existing)
         messages.success(request, _("La invitació s'ha acceptat correctament."))
-        if membership:
+        if membership and _pending_family_onboarding(existing, membership.family_id):
             return redirect("cafeteria:family_onboarding", family_id=membership.family_id)
         return redirect("cafeteria:dashboard")
 
@@ -1210,7 +1299,7 @@ def invitation_accept(request, token):
         membership = _finish_invitation(invitation, user)
         login(request, user)
         messages.success(request, _("El teu compte ja està actiu."))
-        if membership:
+        if membership and _pending_family_onboarding(user, membership.family_id):
             return redirect("cafeteria:family_onboarding", family_id=membership.family_id)
         return redirect("cafeteria:dashboard")
     return render(request, "cafeteria/invitation_accept.html", {"form": form, "invitation": invitation})
@@ -1605,12 +1694,38 @@ def _accounts_context(request):
 
 @admin_required
 def portal_administration(request):
-    tabs = {"comptes", "invitacions", "copies", "auditoria"}
-    tab = request.GET.get("tab", "comptes")
+    tabs = {"configuracio", "comptes", "invitacions", "copies", "auditoria"}
+    tab = request.POST.get("tab") or request.GET.get("tab", "comptes")
     if tab not in tabs:
         tab = "comptes"
     context = {"tab": tab}
-    if tab == "comptes":
+    if tab == "configuracio":
+        portal, _created = PortalSettings.objects.get_or_create()
+        form = PortalFamilyRegistrationSettingsForm(
+            request.POST or None,
+            instance=portal,
+            prefix="family-registration",
+        )
+        if request.method == "POST" and form.is_valid():
+            if (
+                form.cleaned_data["allow_family_student_creation"]
+                and not CourseGroup.objects.filter(academic_year=_active_year_or_none()).exists()
+            ):
+                form.add_error(
+                    "allow_family_student_creation",
+                    _("Per activar aquesta opció, primer crea un curs acadèmic actiu amb almenys un grup."),
+                )
+            else:
+                saved = form.save(commit=False)
+                saved.updated_by = request.user
+                saved.save()
+                log_event(request.user, "portal.family_student_creation_updated", saved, {
+                    "enabled": saved.allow_family_student_creation,
+                })
+                messages.success(request, _("S'ha actualitzat la configuració de les famílies."))
+                return redirect(f"{reverse('cafeteria:portal_administration')}?tab=configuracio")
+        context["family_registration_form"] = form
+    elif tab == "comptes":
         context.update(_accounts_context(request))
         context.update({
             "reset_url": request.session.pop("portal_reset_url", None),
@@ -2958,7 +3073,7 @@ def diet_delete(request, diet_id):
 
 
 CSV_COLUMNS = (
-    "family_name,billing_email,family_phone,family_address,student_first_name,student_last_name,"
+    "family_name,family_phone,student_first_name,student_last_name,"
     "birth_date,course_group,student_email,student_phone,contact_notes,default_diet,dietary_notes,"
     "scholarship,meal_plan"
 ).split(",")
@@ -3068,12 +3183,11 @@ def family_import_confirm(request, batch_id):
         with transaction.atomic():
             family_cache = {}
             for row in batch.valid_rows:
-                key = (row["family_name"].casefold(), row["billing_email"].casefold())
+                key = row["family_name"].casefold()
                 family = family_cache.get(key)
                 if family is None:
                     family = Family.objects.create(
-                        name=row["family_name"], billing_email=row["billing_email"], phone=row["family_phone"],
-                        address=row["family_address"],
+                        name=row["family_name"], phone=row["family_phone"],
                     )
                     family_cache[key] = family
                     created_families += 1
@@ -3105,5 +3219,5 @@ def family_import_template(request):
     response.write("\ufeff")
     writer = csv.writer(response)
     writer.writerow(CSV_COLUMNS)
-    writer.writerow(["Família exemple", "familia@example.org", "600000000", "Carrer Major, 1", "Laia", "Puig", "2019-03-12", "I4", "", "", "", "Ordinària", "", "No", "Fix"])
+    writer.writerow(["Família exemple", "600000000", "Laia", "Puig", "2019-03-12", "I4", "", "", "", "Ordinària", "", "No", "Fix"])
     return response

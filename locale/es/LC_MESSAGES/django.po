@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 14:35+0200\n"
+"POT-Creation-Date: 2026-09-06 15:38+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -92,14 +92,14 @@ msgstr "Explica el detalle de la alergia."
 msgid "Adjunta el document mèdic que acredita l’al·lèrgia."
 msgstr "Adjunta el documento médico que acredita la alergia."
 
-msgid "Correu de facturació"
-msgstr "Correo electrónico de facturación"
+msgid "Grup del curs"
+msgstr "Grupo del curso"
+
+msgid "Selecciona un grup"
+msgstr "Selecciona un grupo"
 
 msgid "Telèfon de contacte"
 msgstr "Teléfono de contacto"
-
-msgid "Adreça"
-msgstr "Dirección"
 
 msgid "Rebre els resums mensuals per correu"
 msgstr "Recibir resúmenes mensuales por correo"
@@ -255,6 +255,16 @@ msgstr "Habilitar la preparación automática de resúmenes"
 
 msgid "Enllaç al menú de l'escola"
 msgstr "Enlace al menú de la escuela"
+
+msgid "Permet que les famílies afegeixin alumnat"
+msgstr "Permite que las familias añadan alumnado"
+
+msgid ""
+"Les persones tutores podran crear fitxes per a la seva família i hauran de "
+"fer-ho en la primera alta si no hi ha alumnat vinculat."
+msgstr ""
+"Las personas tutoras podrán crear fichas para su familia y deberán hacerlo "
+"en el primer alta si no hay alumnado vinculado."
 
 msgid "Fitxer CSV"
 msgstr "Archivo CSV"
@@ -625,6 +635,30 @@ msgstr "La configuración inicial de la familia ya está completada."
 msgid "S'han actualitzat les dades de contacte de la família."
 msgstr "Se han actualizado los datos de contacto de la familia."
 
+msgid "L'autogestió d'alumnat no està disponible."
+msgstr "La autogestión del alumnado no está disponible."
+
+msgid ""
+"L'administració ha de configurar el curs acadèmic i els grups abans de donar "
+"d'alta alumnat."
+msgstr ""
+"La administración debe configurar el curso académico y los grupos antes de "
+"dar de alta alumnado."
+
+msgid "S'ha afegit la fitxa de l'infant."
+msgstr "Se ha añadido la ficha del menor."
+
+#, python-format
+msgid "Afegeix alumnat a %(family)s"
+msgstr "Añade alumnado a %(family)s"
+
+msgid ""
+"Selecciona el grup actual i completa la fitxa de menjador. L'ajut de "
+"menjador el gestiona l'administració."
+msgstr ""
+"Selecciona el grupo actual y completa la ficha de comedor. La ayuda de "
+"comedor la gestiona la administración."
+
 msgid "El termini de canvis per a aquest dia ha acabat."
 msgstr "El periodo de cambio para este día ha terminado."
 
@@ -832,6 +866,16 @@ msgid ""
 msgstr ""
 "La recuperación de correo aún no está configurada. Solicite a la "
 "administración un enlace de restauración personal."
+
+msgid ""
+"Per activar aquesta opció, primer crea un curs acadèmic actiu amb almenys un "
+"grup."
+msgstr ""
+"Para activar esta opción, crea primero un curso académico activo con al "
+"menos un grupo."
+
+msgid "S'ha actualitzat la configuració de les famílies."
+msgstr "Se ha actualizado la configuración de las familias."
 
 #, python-format
 msgid "S'ha enviat l'enllaç de restauració a %(email)s."
@@ -1408,9 +1452,6 @@ msgstr "Todavía no hay cuotas registradas para este curso."
 
 msgid "Famílies no sòcies"
 msgstr "Familias no asociadas"
-
-msgid "Contacte de facturació"
-msgstr "Contacto de facturación"
 
 msgid "Registra la quota"
 msgstr "Registrar la cuota"
@@ -2440,17 +2481,27 @@ msgstr "Esta vista previa no se puede confirmar. Vuelve a subir el archivo."
 msgid "Configuració inicial"
 msgstr "Configuración inicial"
 
-msgid "Completa les dades de la família"
-msgstr "Completa los datos de la familia"
+msgid "Dona d'alta l'alumnat"
+msgstr "Da de alta al alumnado"
 
 msgid ""
-"Abans d’entrar al portal, confirma les dades de contacte i la fitxa de cada "
-"infant. Per declarar una al·lèrgia cal adjuntar el document mèdic que "
-"l’acredita."
+"Abans d’entrar al portal, confirma el telèfon de contacte i afegeix la fitxa "
+"de cada infant. Per declarar una al·lèrgia cal adjuntar el document mèdic "
+"que l’acredita."
 msgstr ""
-"Antes de entrar en el portal, confirma los datos de contacto y la ficha de "
-"cada menor. Para declarar una alergia es necesario adjuntar el documento "
-"médico que la acredita."
+"Antes de entrar en el portal, confirma el teléfono de contacto y añade la "
+"ficha de cada menor. Para declarar una alergia es necesario adjuntar el "
+"documento médico que la acredita."
+
+msgid "L'alta d'alumnat encara no està disponible"
+msgstr "El alta de alumnado aún no está disponible"
+
+msgid ""
+"L'administració ha d'activar un curs acadèmic i crear els grups abans que "
+"puguis completar aquesta alta."
+msgstr ""
+"La administración debe activar un curso académico y crear los grupos antes "
+"de que puedas completar este alta."
 
 msgid "Contacte de la família"
 msgstr "Contacto familiar"
@@ -2458,15 +2509,17 @@ msgstr "Contacto familiar"
 msgid "Completa la fitxa de l’infant i confirma la declaració d’al·lèrgies."
 msgstr "Completa la ficha del menor y confirma la declaración de alergias."
 
-msgid "No hi ha alumnat actiu vinculat a aquesta família."
-msgstr "No hay estudiantes activos vinculados a esta familia."
+msgid "Alumnat de la família"
+msgstr "Alumnado de la familia"
 
-msgid ""
-"Posa’t en contacte amb ARAM per completar l’alta de l’alumnat abans de "
-"reservar menjador."
-msgstr ""
-"Ponte en contacto con ARAM para completar el alta del alumnado antes de "
-"reservar comedor."
+msgid "Afegeix com a mínim un infant. Pots afegir-ne tants com calgui."
+msgstr "Añade al menos un menor. Puedes añadir tantos como necesites."
+
+msgid "Afegeix un altre infant"
+msgstr "Añade otro menor"
+
+msgid "Fitxa de l'infant"
+msgstr "Ficha del menor"
 
 msgid "Completa la configuració"
 msgstr "Completa la configuración"
@@ -2509,6 +2562,9 @@ msgstr ""
 msgid "Fitxes de l'alumnat"
 msgstr "Registros estudiantiles"
 
+msgid "Afegeix alumnat"
+msgstr "Añade alumnado"
+
 msgid "Dieta habitual"
 msgstr "Dieta habitual"
 
@@ -2526,6 +2582,9 @@ msgstr "Hay que completar la declaración de alergias"
 
 msgid "Edita la fitxa"
 msgstr "Editar la ficha"
+
+msgid "No hi ha alumnat actiu vinculat a aquesta família."
+msgstr "No hay estudiantes activos vinculados a esta familia."
 
 msgid ""
 "Consulta el curs d'un cop d'ull. Fes clic en un dia per llegir festius, "
@@ -2897,6 +2956,33 @@ msgstr ""
 
 msgid "Seccions d'administració"
 msgstr "Secciones de administración"
+
+msgid "Autogestió familiar"
+msgstr "Autogestión familiar"
+
+msgid "Alta d'alumnat"
+msgstr "Alta de alumnado"
+
+msgid ""
+"Quan activis aquesta opció, la primera persona tutora d'una família sense "
+"alumnat haurà d'afegir-ne almenys un en crear el compte. Les persones "
+"tutores següents no hauran de repetir aquest pas."
+msgstr ""
+"Cuando actives esta opción, la primera persona tutora de una familia sin "
+"alumnado deberá añadir al menos una ficha al crear la cuenta. Las siguientes "
+"personas tutoras no tendrán que repetir este paso."
+
+msgid "Abans d'activar-ho"
+msgstr "Antes de activarlo"
+
+msgid ""
+"Cal tenir un curs acadèmic actiu i els grups creats. Les famílies podran "
+"triar el grup, però l'ajut de menjador continuarà sent gestionat per "
+"l'administració."
+msgstr ""
+"Debe haber un curso académico activo y los grupos creados. Las familias "
+"podrán elegir el grupo, pero la ayuda de comedor seguirá siendo gestionada "
+"por la administración."
 
 msgid "Consulta accessos i genera enllaços segurs per restaurar contrasenyes."
 msgstr ""

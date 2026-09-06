@@ -2296,6 +2296,7 @@ td small {
 .allergy-profile-status .icon { width: 14px; height: 14px; }
 .warning-text { color: #8a5706; }
 .onboarding-form { display: grid; gap: 18px; }
+.onboarding-student-forms { display: grid; gap: 14px; }
 .onboarding-student-card { border-top: 4px solid #8bb5a9; }
 .allergy-review-summary p { margin: 0 0 14px; }
 

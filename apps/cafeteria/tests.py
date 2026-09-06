@@ -45,6 +45,7 @@ from .models import (
     MealBooking,
     MealPlan,
     MealSettings,
+    PortalSettings,
     PriceRule,
     ServiceDay,
     StatementStatus,
@@ -107,7 +108,7 @@ class CafeteriaFlowTests(TestCase):
             is_active=True,
         )
         self.group = CourseGroup.objects.create(academic_year=self.year, name="I4")
-        self.family = Family.objects.create(name="Família Puig", billing_email="family@example.com")
+        self.family = Family.objects.create(name="Família Puig")
         self.user = User.objects.create_user("tutor@example.com", "tutor@example.com", "correct-horse-battery-staple")
         FamilyMembership.objects.create(family=self.family, user=self.user)
         self.diet = Diet.objects.create(name="Ordinària")
@@ -305,37 +306,95 @@ class CafeteriaFlowTests(TestCase):
 
     def test_new_tutor_invitation_requires_initial_family_setup(self):
         admin = User.objects.create_superuser("onboarding-admin@example.com", "onboarding-admin@example.com", "correct-horse-battery-staple")
-        invitation = Invitation.objects.create(email="onboarding@example.com", role="tutor", family=self.family, created_by=admin)
+        PortalSettings.objects.create(allow_family_student_creation=True)
+        new_family = Family.objects.create(name="Família Rius")
+        invitation = Invitation.objects.create(email="onboarding@example.com", role="tutor", family=new_family, created_by=admin)
         response = self.client.post(reverse("cafeteria:invitation_accept", args=[invitation.token]), {
             "first_name": "Joana",
             "last_name": "Rius",
             "new_password1": "another-correct-horse-battery-staple",
             "new_password2": "another-correct-horse-battery-staple",
         })
-        self.assertRedirects(response, reverse("cafeteria:family_onboarding", args=[self.family.id]))
-        response = self.client.post(reverse("cafeteria:family_onboarding", args=[self.family.id]), {
-            "family-billing_email": "family@example.com",
+        self.assertRedirects(response, reverse("cafeteria:family_onboarding", args=[new_family.id]))
+        response = self.client.post(reverse("cafeteria:family_onboarding", args=[new_family.id]), {
             "family-phone": "600000000",
-            "family-address": "Carrer Major, 1",
             "family-monthly_email_enabled": "on",
-            f"student-{self.student.id}-first_name": self.student.first_name,
-            f"student-{self.student.id}-last_name": self.student.last_name,
-            f"student-{self.student.id}-birth_date": "2020-01-15",
-            f"student-{self.student.id}-contact_email": "",
-            f"student-{self.student.id}-contact_phone": "",
-            f"student-{self.student.id}-contact_notes": "",
-            f"student-{self.student.id}-default_diet": self.diet.id,
-            f"student-{self.student.id}-dietary_notes": "",
-            f"student-{self.student.id}-meal_plan": MealPlan.FIXED,
-            f"student-{self.student.id}-allergy_declaration": "no",
-            f"student-{self.student.id}-allergy_title": "",
-            f"student-{self.student.id}-allergy_details": "",
+            "new-students-TOTAL_FORMS": "1",
+            "new-students-INITIAL_FORMS": "0",
+            "new-students-MIN_NUM_FORMS": "1",
+            "new-students-MAX_NUM_FORMS": "1000",
+            "new-students-0-course_group": self.group.id,
+            "new-students-0-first_name": "Pau",
+            "new-students-0-last_name": "Rius",
+            "new-students-0-birth_date": "2020-01-15",
+            "new-students-0-contact_email": "",
+            "new-students-0-contact_phone": "",
+            "new-students-0-contact_notes": "",
+            "new-students-0-default_diet": self.diet.id,
+            "new-students-0-dietary_notes": "",
+            "new-students-0-meal_plan": MealPlan.FIXED,
+            "new-students-0-allergy_declaration": "no",
+            "new-students-0-allergy_title": "",
+            "new-students-0-allergy_details": "",
         })
         self.assertRedirects(response, reverse("cafeteria:family_home"))
-        membership = FamilyMembership.objects.get(family=self.family, user__email="onboarding@example.com")
+        membership = FamilyMembership.objects.get(family=new_family, user__email="onboarding@example.com")
         self.assertIsNotNone(membership.onboarding_completed_at)
-        self.student.refresh_from_db()
-        self.assertFalse(self.student.has_allergy)
+        student = Student.objects.get(family=new_family, first_name="Pau")
+        self.assertEqual(student.course_group, self.group)
+        self.assertFalse(student.has_allergy)
+
+    def test_second_tutor_skips_initial_setup_when_the_family_already_has_students(self):
+        admin = User.objects.create_superuser("second-tutor-admin@example.com", "second-tutor-admin@example.com", "correct-horse-battery-staple")
+        PortalSettings.objects.create(allow_family_student_creation=True)
+        invitation = Invitation.objects.create(email="second-tutor@example.com", role="tutor", family=self.family, created_by=admin)
+        response = self.client.post(reverse("cafeteria:invitation_accept", args=[invitation.token]), {
+            "first_name": "Pol", "last_name": "Puig",
+            "new_password1": "another-correct-horse-battery-staple",
+            "new_password2": "another-correct-horse-battery-staple",
+        })
+        self.assertRedirects(response, reverse("cafeteria:dashboard"))
+        membership = FamilyMembership.objects.get(family=self.family, user__email="second-tutor@example.com")
+        self.assertFalse(membership.onboarding_required)
+        self.assertIsNotNone(membership.onboarding_completed_at)
+
+    def test_family_can_add_a_student_only_when_self_service_is_enabled(self):
+        self.client.force_login(self.user)
+        disabled = self.client.get(reverse("cafeteria:family_student_create", args=[self.family.id]))
+        self.assertEqual(disabled.status_code, 404)
+        PortalSettings.objects.create(allow_family_student_creation=True)
+        response = self.client.post(reverse("cafeteria:family_student_create", args=[self.family.id]), {
+            "course_group": self.group.id,
+            "first_name": "Biel", "last_name": "Puig", "birth_date": "2021-02-03",
+            "contact_email": "", "contact_phone": "", "contact_notes": "",
+            "default_diet": self.diet.id, "dietary_notes": "", "meal_plan": MealPlan.SPORADIC,
+            "allergy_declaration": "no", "allergy_title": "", "allergy_details": "",
+        })
+        self.assertRedirects(response, reverse("cafeteria:family_profile", args=[self.family.id]))
+        student = Student.objects.get(family=self.family, first_name="Biel")
+        self.assertEqual(student.course_group, self.group)
+        self.assertFalse(student.is_scholarship)
+
+    def test_portal_administration_requires_an_active_group_before_enabling_family_student_creation(self):
+        admin = User.objects.create_superuser("family-settings@example.com", "family-settings@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        self.group.delete()
+        response = self.client.post(f"{reverse('cafeteria:portal_administration')}?tab=configuracio", {
+            "tab": "configuracio",
+            "family-registration-allow_family_student_creation": "on",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "primer crea un curs acadèmic actiu")
+        self.assertFalse(PortalSettings.objects.get().allow_family_student_creation)
+
+        group = CourseGroup.objects.create(academic_year=self.year, name="I5")
+        response = self.client.post(f"{reverse('cafeteria:portal_administration')}?tab=configuracio", {
+            "tab": "configuracio",
+            "family-registration-allow_family_student_creation": "on",
+        })
+        self.assertRedirects(response, f"{reverse('cafeteria:portal_administration')}?tab=configuracio")
+        self.assertTrue(PortalSettings.objects.get().allow_family_student_creation)
+        self.assertEqual(group.academic_year, self.year)
 
     def test_web_app_manifest_and_service_worker_are_available(self):
         response = self.client.get(reverse("web_app_manifest"))
@@ -536,14 +595,12 @@ class CafeteriaFlowTests(TestCase):
     def test_family_contact_edit_does_not_allow_group_or_scholarship_changes(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse("cafeteria:family_profile", args=[self.family.id]), {
-            "billing_email": "nou-contacte@example.com",
             "phone": "600111222",
-            "address": "Carrer Major, 1",
             "monthly_email_enabled": "on",
         })
         self.assertEqual(response.status_code, 302)
         self.family.refresh_from_db()
-        self.assertEqual(self.family.billing_email, "nou-contacte@example.com")
+        self.assertEqual(self.family.phone, "600111222")
 
         other_group = CourseGroup.objects.create(academic_year=self.year, name="I5")
         response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
@@ -705,9 +762,9 @@ class CafeteriaFlowTests(TestCase):
         admin = User.objects.create_superuser("admin@example.com", "admin@example.com", "correct-horse-battery-staple")
         self.client.force_login(admin)
         csv_content = (
-            "family_name,billing_email,family_phone,family_address,student_first_name,student_last_name,"
+            "family_name,family_phone,student_first_name,student_last_name,"
             "birth_date,course_group,student_email,student_phone,contact_notes,default_diet,dietary_notes,scholarship,meal_plan\n"
-            f"Família Nova,nova@example.com,600000000,,Arnau,Serra,2019-02-03,{self.group.name},,,,Ordinària,,No,Fix\n"
+            f"Família Nova,600000000,Arnau,Serra,2019-02-03,{self.group.name},,,,Ordinària,,No,Fix\n"
         )
         response = self.client.post(reverse("cafeteria:family_import"), {
             "academic_year": self.year.id,

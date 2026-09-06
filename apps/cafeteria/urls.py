@@ -27,6 +27,7 @@ urlpatterns = [
     path("families/<int:family_id>/calendari-escolar/", views.family_school_calendar, name="family_school_calendar"),
     path("families/<int:family_id>/dades/", views.family_profile, name="family_profile"),
     path("families/<int:family_id>/configuracio-inicial/", views.family_onboarding, name="family_onboarding"),
+    path("families/<int:family_id>/alumnat/nou/", views.family_student_create, name="family_student_create"),
     path("families/<int:family_id>/menjador/actualitza/", views.bulk_booking, name="bulk_booking"),
     path("families/<int:family_id>/menjador/actualitza-tots/", views.family_bulk_booking, name="family_bulk_booking"),
     path("families/<int:family_id>/menjador/reserva-automatica/", views.family_booking_update, name="family_booking_update"),
