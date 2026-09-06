@@ -41,7 +41,6 @@ from .models import (
     FamilyImportBatch,
     Invitation,
     MealBooking,
-    MealType,
     MealPlan,
     MealSettings,
     PriceRule,
@@ -98,7 +97,7 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(booking.unit_price, Decimal("6.50"))
         self.assertEqual(booking.diet_name, "Ordinària")
 
-    def test_joint_booking_copies_to_siblings_and_marks_packed_lunch(self):
+    def test_joint_booking_keeps_each_student_diet_during_an_excursion(self):
         sibling = Student.objects.create(
             family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
             default_diet=self.diet, meal_plan=MealPlan.FIXED,
@@ -112,7 +111,7 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         bookings = MealBooking.objects.filter(student__in=[self.student, sibling], date=self.today)
         self.assertEqual(bookings.count(), 2)
-        self.assertTrue(all(booking.meal_type == MealType.PACKED_LUNCH for booking in bookings))
+        self.assertTrue(all(booking.diet == self.diet for booking in bookings))
 
     def test_monthly_booking_calendar_shows_all_active_children_together(self):
         sibling = Student.objects.create(
@@ -124,7 +123,9 @@ class CafeteriaFlowTests(TestCase):
         self.assertContains(response, "Calendari mensual de reserves")
         self.assertContains(response, self.student.full_name)
         self.assertContains(response, sibling.full_name)
-        self.assertNotContains(response, "Setmana del")
+        self.assertContains(response, "family-booking-calendars")
+        self.assertContains(response, "Reserva per a tota la família")
+        self.assertNotContains(response, "monthly-booking-scroll")
 
     def test_web_app_manifest_and_service_worker_are_available(self):
         response = self.client.get(reverse("web_app_manifest"))
@@ -191,19 +192,23 @@ class CafeteriaFlowTests(TestCase):
             default_diet=sibling_diet, meal_plan=MealPlan.FIXED,
         )
         self.client.force_login(self.user)
-        update_url = reverse("cafeteria:family_booking_update", args=[self.family.id])
-        self.client.post(update_url, {
-            "student_id": self.student.id, "service_date": self.today.isoformat(), "operation": "reserve",
-        })
         response = self.client.post(reverse("cafeteria:family_booking_apply", args=[self.family.id]), {
-            "source_student_id": self.student.id,
             "service_date": self.today.isoformat(),
-            "student_ids": [sibling.id],
         })
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["updated"], 1)
+        self.assertEqual(response.json()["updated"], 2)
+        self.assertEqual(MealBooking.objects.get(student=self.student, date=self.today).diet, self.diet)
         booking = MealBooking.objects.get(student=sibling, date=self.today)
         self.assertEqual(booking.diet, sibling_diet)
+
+        response = self.client.post(reverse("cafeteria:family_booking_apply", args=[self.family.id]), {
+            "service_date": self.today.isoformat(),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["action"], "cancel")
+        self.assertFalse(MealBooking.objects.filter(
+            student__in=[self.student, sibling], date=self.today, status=BookingStatus.ACTIVE,
+        ).exists())
 
     def test_monthly_booking_api_does_not_bypass_the_cutoff(self):
         MealSettings.objects.create(academic_year=self.year, daily_cutoff=time(0, 0))
@@ -235,7 +240,7 @@ class CafeteriaFlowTests(TestCase):
         CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió")
         booking.refresh_from_db()
         self.assertEqual(booking.status, BookingStatus.ACTIVE)
-        self.assertEqual(booking.meal_type, MealType.PACKED_LUNCH)
+        self.assertEqual(booking.diet, self.diet)
 
     def test_academic_holiday_cancels_bookings_and_closes_service(self):
         student_booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
@@ -451,14 +456,37 @@ class CafeteriaFlowTests(TestCase):
         })
         profile = TeacherMealProfile.objects.get(user__email="teacher@example.com")
         PriceRule.objects.create(scholarship=False, meal_plan=MealPlan.SPORADIC, effective_from=self.today - timedelta(days=1), amount=Decimal("7.00"))
-        response = self.client.post(reverse("cafeteria:teacher_bulk_booking"), {
-            "dates": [self.today.isoformat()], "action": "add",
+        response = self.client.get(f"{reverse('cafeteria:teacher_calendar')}?month={self.today:%Y-%m}")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Calendari mensual de reserves")
+        self.assertNotContains(response, "Setmana del")
+        response = self.client.get(f"{reverse('cafeteria:teacher_calendar')}?week={self.today:%Y-%m-%d}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["month_start"], self.today.replace(day=1))
+
+        response = self.client.post(reverse("cafeteria:teacher_booking_update"), {
+            "service_date": self.today.isoformat(), "operation": "reserve",
         })
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["booking"]["state"], "reserved")
         booking = TeacherMealBooking.objects.get(teacher=profile, date=self.today)
         self.assertEqual(booking.unit_price, Decimal("7.00"))
+
+        alternative_diet = Diet.objects.create(name="Vegetariana docent")
+        response = self.client.post(reverse("cafeteria:teacher_booking_update"), {
+            "service_date": self.today.isoformat(), "operation": "diet", "diet_id": alternative_diet.id,
+        })
+        self.assertEqual(response.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.diet, alternative_diet)
+
+        response = self.client.post(reverse("cafeteria:teacher_booking_update"), {
+            "service_date": self.today.isoformat(), "operation": "cancel",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["booking"]["state"], "empty")
         statement = prepare_teacher_monthly_statement(profile, self.today.year, self.today.month)
-        self.assertEqual(statement.total, Decimal("7.00"))
+        self.assertEqual(statement.total, Decimal("0.00"))
 
     def test_public_django_admin_route_is_disabled(self):
         self.assertEqual(self.client.get("/ca/admin/").status_code, 404)
@@ -576,7 +604,7 @@ class CafeteriaFlowTests(TestCase):
         booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
         closure = CourseClosure.objects.create(course_group=self.group, date=self.today, title="Excursió I4")
         booking.refresh_from_db()
-        self.assertEqual(booking.meal_type, MealType.PACKED_LUNCH)
+        self.assertEqual(booking.diet, self.diet)
         self.client.force_login(admin)
 
         response = self.client.get(reverse("cafeteria:course_group_edit", args=[self.group.id]))
@@ -598,7 +626,7 @@ class CafeteriaFlowTests(TestCase):
         self.assertFalse(CourseGroup.objects.filter(pk=self.group.pk).exists())
         self.assertFalse(CourseClosure.objects.filter(pk=closure.pk).exists())
         booking.refresh_from_db()
-        self.assertEqual(booking.meal_type, MealType.REGULAR)
+        self.assertEqual(booking.status, BookingStatus.ACTIVE)
 
     def test_admin_can_edit_and_delete_a_diet_without_breaking_profiles_or_history(self):
         admin = User.objects.create_superuser("diet-edit@example.com", "diet-edit@example.com", "correct-horse-battery-staple")

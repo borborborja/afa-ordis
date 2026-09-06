@@ -358,11 +358,6 @@ class MealPlan(models.TextChoices):
     SPORADIC = "sporadic", _("Esporàdic")
 
 
-class MealType(models.TextChoices):
-    REGULAR = "regular", _("Menú convencional")
-    PACKED_LUNCH = "packed_lunch", _("Carmanyola")
-
-
 class Student(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="students")
     course_group = models.ForeignKey(CourseGroup, null=True, blank=True, on_delete=models.SET_NULL, related_name="students")
@@ -618,7 +613,6 @@ class MealBooking(models.Model):
     date = models.DateField()
     diet = models.ForeignKey(Diet, null=True, blank=True, on_delete=models.SET_NULL, related_name="bookings")
     diet_name = models.CharField(max_length=80, blank=True)
-    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
     status = models.CharField(max_length=12, choices=BookingStatus.choices, default=BookingStatus.ACTIVE)
     unit_price = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_bookings")
@@ -650,7 +644,6 @@ class TeacherMealBooking(models.Model):
     date = models.DateField()
     diet = models.ForeignKey(Diet, null=True, blank=True, on_delete=models.SET_NULL, related_name="teacher_bookings")
     diet_name = models.CharField(max_length=80, blank=True)
-    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
     status = models.CharField(max_length=12, choices=BookingStatus.choices, default=BookingStatus.ACTIVE)
     unit_price = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_teacher_bookings")
@@ -723,7 +716,6 @@ class StatementLine(models.Model):
     student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="statement_lines")
     service_date = models.DateField()
     diet_name = models.CharField(max_length=80, blank=True)
-    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices)
     scholarship = models.BooleanField(default=False)
     unit_price = models.DecimalField(max_digits=7, decimal_places=2)
@@ -759,7 +751,6 @@ class TeacherStatementLine(models.Model):
     statement = models.ForeignKey(TeacherMonthlyStatement, on_delete=models.CASCADE, related_name="lines")
     service_date = models.DateField()
     diet_name = models.CharField(max_length=80, blank=True)
-    meal_type = models.CharField(max_length=16, choices=MealType.choices, default=MealType.REGULAR)
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices)
     unit_price = models.DecimalField(max_digits=7, decimal_places=2)
 

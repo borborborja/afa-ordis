@@ -12,7 +12,6 @@ from .models import (
     BookingStatus,
     DailyReport,
     MealBooking,
-    MealType,
     MonthlyStatement,
     PriceRule,
     StatementLine,
@@ -63,14 +62,14 @@ def build_daily_report_text(service_date: date) -> str:
     by_diet = {}
     for booking in bookings:
         course = booking.student.course_group.name if booking.student.course_group else "Sense curs"
-        diet = "Carmanyola" if booking.meal_type == MealType.PACKED_LUNCH else booking.diet_name or "Dieta ordinària"
+        diet = booking.diet_name or "Dieta ordinària"
         by_diet[diet] = by_diet.get(diet, 0) + 1
         lines.append(f"- {booking.student.full_name} · {course} · {diet}")
     teacher_bookings = teacher_bookings_for_day(service_date)
     if teacher_bookings.exists():
         lines.extend(["", "Personal docent"])
         for booking in teacher_bookings:
-            diet = "Carmanyola" if booking.meal_type == MealType.PACKED_LUNCH else booking.diet_name or "Dieta ordinària"
+            diet = booking.diet_name or "Dieta ordinària"
             by_diet[diet] = by_diet.get(diet, 0) + 1
             lines.append(f"- {booking.teacher.full_name} · {diet}")
     lines.append("")
@@ -101,7 +100,6 @@ def prepare_monthly_statement(family, year: int, month: int) -> MonthlyStatement
             student=booking.student,
             service_date=booking.date,
             diet_name=booking.diet_name,
-            meal_type=booking.meal_type,
             meal_plan=booking.student.meal_plan,
             scholarship=booking.student.is_scholarship,
             unit_price=booking.unit_price,
@@ -124,7 +122,7 @@ def prepare_teacher_monthly_statement(teacher, year: int, month: int) -> Teacher
     TeacherStatementLine.objects.bulk_create([
         TeacherStatementLine(
             statement=statement, service_date=booking.date, diet_name=booking.diet_name,
-            meal_type=booking.meal_type, meal_plan=teacher.meal_plan, unit_price=booking.unit_price,
+            meal_plan=teacher.meal_plan, unit_price=booking.unit_price,
         )
         for booking in bookings if booking.unit_price is not None
     ])

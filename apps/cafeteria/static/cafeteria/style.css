@@ -2258,7 +2258,6 @@ td small {
 }
 .monthly-booking-cell[data-state="empty"] { border-color: #a4cfc2; background: #f5fbf8; }
 .monthly-booking-cell[data-state="reserved"] { border-color: #4b9a89; background: #dff3ec; }
-.monthly-booking-cell[data-state="packed"] { border-color: #e6c568; background: #fff7da; }
 .monthly-booking-cell[data-state="unavailable"] { background: #eef0ed; color: #91a09a; }
 .monthly-booking-cell[data-saving="true"] { opacity: .58; pointer-events: none; }
 
@@ -2339,7 +2338,6 @@ td small {
 }
 .booking-diet-trigger .icon { width: 11px; height: 11px; }
 .monthly-booking-cell[data-state="reserved"] .booking-diet-trigger,
-.monthly-booking-cell[data-state="packed"] .booking-diet-trigger { display: grid; }
 .booking-diet-trigger:hover:not(:disabled),
 .booking-diet-trigger:focus-visible { background: var(--mint); outline: 2px solid var(--forest); }
 .booking-diet-trigger:disabled { cursor: not-allowed; opacity: .55; }
@@ -2494,4 +2492,150 @@ td small {
     display: grid;
     grid-template-columns: 1fr;
   }
+}
+
+/* Direct monthly meal booking: cards avoid a 31-column horizontal table. */
+.family-booking-calendars {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.student-month-calendar,
+.teacher-month-calendar {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.student-month-calendar > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.student-month-calendar > header strong,
+.student-month-calendar > header small { display: block; }
+.student-month-calendar > header small { color: var(--muted); font-size: .78rem; }
+.month-calendar-weekdays,
+.month-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.month-calendar-weekdays { margin-bottom: 4px; }
+.month-calendar-weekdays span {
+  color: var(--muted);
+  font-size: .64rem;
+  font-weight: 800;
+  text-align: center;
+}
+.month-calendar-blank { min-height: 108px; }
+.booking-day {
+  position: relative;
+  display: grid;
+  grid-template-rows: 17px minmax(42px, 1fr) 38px;
+  min-width: 0;
+  min-height: 108px;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.booking-day[data-state="empty"] { border-color: #a4cfc2; background: #f5fbf8; }
+.booking-day[data-state="reserved"] { border-color: #4b9a89; background: #dff3ec; }
+.booking-day[data-state="unavailable"] { background: #eef0ed; color: #91a09a; }
+.booking-day[data-saving="true"] { opacity: .58; pointer-events: none; }
+.booking-day-number {
+  display: block;
+  padding: 4px 5px 0;
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.booking-day.weekend .booking-day-number { color: #8d6d62; }
+.booking-day .booking-cell-main {
+  min-height: 42px;
+  border-radius: 7px;
+}
+.booking-day-diet {
+  width: 100%;
+  min-height: 38px;
+  padding: 4px 2px;
+  border: 0;
+  border-top: 1px solid rgba(24, 92, 81, .16);
+  border-radius: 0 0 8px 8px;
+  background: rgba(255, 255, 255, .5);
+  color: var(--forest-dark);
+  font-size: .68rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.booking-day-diet:disabled {
+  visibility: hidden;
+  pointer-events: none;
+}
+.booking-day-diet:not(:disabled):hover,
+.booking-day-diet:not(:disabled):focus-visible { background: var(--mint); outline: 2px solid var(--forest); outline-offset: -2px; }
+.booking-excursion-marker {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff5c9;
+  color: #8b6200;
+}
+.booking-excursion-marker .icon { width: 11px; height: 11px; }
+.booking-day .booking-lock-marker { top: 2px; left: auto; right: 2px; }
+.booking-day:has(.booking-excursion-marker) .booking-lock-marker { right: 20px; }
+.family-booking-switch {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid #a9d4c7;
+  border-radius: 13px;
+  background: #f1faf6;
+  cursor: pointer;
+}
+.family-booking-switch input {
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  accent-color: var(--forest);
+}
+.family-booking-switch strong,
+.family-booking-switch small { display: block; }
+.family-booking-switch small { margin-top: 2px; color: var(--muted); font-size: .78rem; }
+.teacher-monthly-workspace { max-width: 760px; }
+.teacher-default-diet { margin: 0 0 14px; color: var(--muted); }
+
+@media (min-width: 820px) {
+  .family-booking-calendars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .monthly-booking-workspace,
+  .teacher-monthly-workspace { padding: 14px 8px; }
+  .family-booking-calendars { grid-template-columns: 1fr; gap: 13px; }
+  .student-month-calendar,
+  .teacher-month-calendar { padding: 9px 5px; border-width: 0; border-radius: 0; }
+  .month-calendar-weekdays,
+  .month-calendar-grid { gap: 2px; }
+  .month-calendar-weekdays span { font-size: .57rem; }
+  .month-calendar-blank,
+  .booking-day { min-height: 96px; }
+  .booking-day { grid-template-rows: 16px minmax(40px, 1fr) 34px; border-radius: 8px; }
+  .booking-day .booking-cell-main { min-height: 40px; }
+  .booking-day-diet { min-height: 34px; font-size: .62rem; }
+  .booking-day-number { padding-left: 4px; font-size: .64rem; }
+  .booking-diet-menu { position: fixed; right: 16px; left: 16px; top: auto; bottom: 16px; width: auto; max-width: none; padding: 10px; }
+  .booking-diet-menu button { padding: 11px; font-size: .9rem; }
 }

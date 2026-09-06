@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 00:28+0200\n"
+"POT-Creation-Date: 2026-09-06 10:24+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -220,7 +220,6 @@ msgstr "Catalán"
 msgid "Castellà"
 msgstr "Español"
 
-#| msgid "Només pot existir una configuració econòmica."
 msgid "Només pot existir una configuració del portal."
 msgstr "Solo puede existir una configuración del portal."
 
@@ -290,15 +289,12 @@ msgstr "Solo puede existir una configuración económica."
 msgid "L'import ha de ser superior a zero."
 msgstr "El importe debe ser superior a cero."
 
-#| msgid "Selecciona una categoria del mateix tipus que el moviment."
 msgid "La categoria no correspon al tipus de moviment."
 msgstr "La categoría no corresponde al tipo de movimiento."
 
-#| msgid "Compte de l'AFA"
 msgid "Cal indicar el compte de l'AFA."
 msgstr "Debe indicarse la cuenta de la AFA."
 
-#| msgid "Cal indicar el motiu del canvi fora de termini."
 msgid "Cal indicar el motiu del rebuig."
 msgstr "Debe indicarse el motivo del rechazo."
 
@@ -307,12 +303,6 @@ msgstr "Arreglar"
 
 msgid "Esporàdic"
 msgstr "Esporádico"
-
-msgid "Menú convencional"
-msgstr "Menú convencional"
-
-msgid "Carmanyola"
-msgstr "Fiambrera"
 
 msgid "Ajut de menjador"
 msgstr "Ayuda de comedor"
@@ -504,9 +494,6 @@ msgstr "Selecciona una dieta disponible para una reserva activa."
 msgid "L'acció de reserva no és vàlida."
 msgstr "La acción de reserva no es válida."
 
-msgid "Primer reserva l'àpat de l'infant seleccionat."
-msgstr "Primero reserva la comida de la persona seleccionada."
-
 msgid "Cal indicar el motiu de qualsevol canvi després de l'hora límit."
 msgstr ""
 "Se debe indicar el motivo de cualquier cambio después de la hora límite."
@@ -531,6 +518,10 @@ msgstr "Esta página es para el personal docente."
 
 msgid "No tens permís per modificar aquestes reserves."
 msgstr "No tienes permiso para modificar estas reservas."
+
+#| msgid "Selecciona una dieta disponible per a una reserva activa."
+msgid "Selecciona una dieta disponible."
+msgstr "Selecciona una dieta disponible."
 
 #, python-format
 msgid "S'han actualitzat %(count)s reserves."
@@ -914,12 +905,8 @@ msgstr ""
 "El grupo %(group)s se ha eliminado. %(students)d estudiantes se quedan sin "
 "grupo y %(closures)d excursiones se han eliminado."
 
-msgid ""
-"S'ha desat l'excursió. Les reserves es mantenen i, si cal, es mostraran com "
-"a carmanyola."
-msgstr ""
-"La excursión se ha guardado. Las reservas se mantienen y, si es necesario, "
-"se mostrarán como carmanyola."
+msgid "S'ha desat l'excursió. Les reserves es mantenen sense canvis."
+msgstr "La excursión se ha guardado. Las reservas se mantienen sin cambios."
 
 msgid "No s'ha pogut desar l'excursió."
 msgstr "No se ha podido guardar la excursión."
@@ -931,11 +918,11 @@ msgid "Edita l'excursió"
 msgstr "Editar la excursión"
 
 msgid ""
-"L'excursió és informativa: les famílies encara poden reservar l'àpat, que "
-"s'identificarà com a carmanyola al llistat."
+"L'excursió és informativa: les famílies encara poden reservar l'àpat amb la "
+"dieta que correspongui."
 msgstr ""
-"La excursión es informativa: las familias aún pueden reservar la comida, que "
-"se identificará como fiambrera en el listado."
+"La excursión es informativa: las familias aún pueden reservar la comida con "
+"la dieta que corresponda."
 
 msgid "S'ha eliminat l'excursió."
 msgstr "La excursión se ha eliminado."
@@ -1545,11 +1532,11 @@ msgid "Llegenda"
 msgstr "Leyendas"
 
 msgid ""
-"Les excursions es marquen al calendari. Si hi ha una reserva aquell dia, el "
-"llistat mostra carmanyola."
+"Les excursions es marquen al calendari i no modifiquen les reserves ni les "
+"dietes."
 msgstr ""
-"Las excursiones están marcadas en el calendario. Si hay una reserva ese día, "
-"la lista muestra carmanyola."
+"Las excursiones están marcadas en el calendario y no modifican las reservas "
+"ni las dietas."
 
 msgid "Enviaments recents"
 msgstr "Envíos recientes"
@@ -2008,11 +1995,13 @@ msgstr "Cancelar reserva"
 msgid "Reserva desada"
 msgstr "Reserva guardada"
 
-msgid "No hi havia cap reserva nova per aplicar."
-msgstr "No había nuevas reservas para aplicar."
+#| msgid "S'han actualitzat les dades de contacte de la família."
+msgid "S’han actualitzat les reserves de la família."
+msgstr "Se han actualizado las reservas de la familia."
 
-msgid "Cada infant conservarà la seva dieta habitual."
-msgstr "Cada menor conservará su dieta habitual."
+#| msgid "No hi havia cap reserva nova per aplicar."
+msgid "No hi ha cap reserva disponible per modificar."
+msgstr "No hay ninguna reserva disponible para modificar."
 
 msgid "No s’ha pogut desar el canvi."
 msgstr "El cambio no se ha podido guardar."
@@ -2035,24 +2024,48 @@ msgstr "Reservar"
 msgid "Disponible"
 msgstr "Disponible"
 
-msgid "Carmanyola per excursió"
-msgstr "Fiambrera para excursión"
-
 msgid "Canvis tancats"
 msgstr "Cambios cerrados"
 
+#| msgid ""
+#| "Per canviar la dieta d’un dia reservat, toca la icona del menú al costat "
+#| "de la reserva."
 msgid ""
-"Per canviar la dieta d’un dia reservat, toca la icona del menú al costat de "
-"la reserva."
+"Per canviar la dieta d’un dia reservat, toca l’acció Dieta del mateix dia."
 msgstr ""
-"Para cambiar la dieta de un día reservado, toca el icono del menú junto a la "
-"reserva."
+"Para cambiar la dieta de un día reservado, toca la acción Dieta del mismo "
+"día."
+
+#| msgid "Envia a la família"
+msgid "Reserva per a tota la família"
+msgstr "Reserva para toda la familia"
+
+msgid "En reservar o anul·lar un dia, s’aplica a tot l’alumnat disponible."
+msgstr "Al reservar o anular un día, se aplica a todo el alumnado disponible."
 
 msgid "Calendari mensual de reserves"
 msgstr "Calendario de reservas mensuales"
 
-msgid "Infant"
-msgstr "Alumno/a"
+msgid "Dl"
+msgstr "Lu"
+
+msgid "Dt"
+msgstr "Ma"
+
+msgid "Dc"
+msgstr "Mi"
+
+msgid "Dj"
+msgstr "Ju"
+
+msgid "Dv"
+msgstr "Vi"
+
+msgid "Ds"
+msgstr "Sá"
+
+msgid "Dg"
+msgstr "Do"
 
 msgid "Anul·la la reserva de"
 msgstr "Cancelar reserva para"
@@ -2066,14 +2079,8 @@ msgstr "Día sin servicio por"
 msgid "Canvia la dieta de"
 msgstr "Cambiar la dieta de"
 
-msgid "També vols reservar aquest dia per a la resta?"
-msgstr "¿También quieres reservar este día para el resto?"
-
-msgid "Aplica la reserva"
-msgstr "Aplicar reserva"
-
-msgid "Ara no"
-msgstr "Ahora no"
+msgid "Dieta"
+msgstr "Dieta"
 
 msgid "No hi ha infants actius en aquesta família."
 msgstr "No hay alumnado activo en esta familia."
@@ -2169,9 +2176,6 @@ msgstr "Alumno/a"
 msgid "Grup"
 msgstr "Grupo"
 
-msgid "Dieta"
-msgstr "Dieta"
-
 msgid "No hi ha cap fila vàlida per importar."
 msgstr "No hay ninguna fila válida para importar."
 
@@ -2259,27 +2263,6 @@ msgstr "Incidente"
 
 msgid "Calendari del curs"
 msgstr "Calendario del curso"
-
-msgid "Dl"
-msgstr "Lu"
-
-msgid "Dt"
-msgstr "Ma"
-
-msgid "Dc"
-msgstr "Mi"
-
-msgid "Dj"
-msgstr "Ju"
-
-msgid "Dv"
-msgstr "Vi"
-
-msgid "Ds"
-msgstr "Sá"
-
-msgid "Dg"
-msgstr "Do"
 
 msgid "Dia lectiu amb servei de menjador."
 msgstr "Día escolar con servicio de comedor."
@@ -2534,9 +2517,6 @@ msgstr "Echa un vistazo a las reservas programadas para cada día."
 
 msgid "àpats"
 msgstr "comidas"
-
-msgid "carmanyoles"
-msgstr "carmanyoles"
 
 msgid "No hi ha dies de servei en aquest mes."
 msgstr "No hay días de servicio en este mes."
@@ -2850,27 +2830,19 @@ msgstr ""
 msgid "Reserva d'àpats"
 msgstr "Reserva de comida"
 
+#| msgid ""
+#| "La dieta habitual s'utilitza per defecte; pots canviar-la per als dies "
+#| "marcats."
 msgid ""
-"La dieta habitual s'utilitza per defecte; pots canviar-la per als dies "
-"marcats."
+"Toca un dia per reservar-lo. La dieta habitual s’utilitza per defecte i es "
+"pot canviar en dies concrets."
 msgstr ""
-"La dieta habitual se utiliza de forma predeterminada; puedes cambiarla por "
-"los días marcados."
+"Toca un día para reservarlo. La dieta habitual se utiliza por defecto y "
+"puede cambiarse en días concretos."
 
-msgid "Setmana anterior"
-msgstr "Semana anterior"
-
-msgid "Setmana del"
-msgstr "Semana del"
-
-msgid "Setmana següent"
-msgstr "Semana siguiente"
-
-msgid "Desa les reserves"
-msgstr "Guardar las reservas"
-
-msgid "Anul·la les reserves"
-msgstr "Cancelar las reservas"
+#| msgid "Canvia la dieta de"
+msgid "Canvia la dieta"
+msgstr "Cambiar la dieta"
 
 msgid "Resum mensual"
 msgstr "Resumen mensual"

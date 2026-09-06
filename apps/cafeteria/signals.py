@@ -8,7 +8,6 @@ from .models import (
     CourseClosure,
     DailyReport,
     MealBooking,
-    MealType,
     TeacherMealBooking,
     UserProfile,
     log_event,
@@ -23,19 +22,13 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=CourseClosure)
 def mark_report_outdated_for_course_closure(sender, instance, created, **kwargs):
-    """Excursions inform the calendar; they never cancel a family's reservation."""
-    if created:
-        MealBooking.objects.filter(
-            student__course_group=instance.course_group,
-            date=instance.date,
-            status=BookingStatus.ACTIVE,
-        ).update(meal_type=MealType.PACKED_LUNCH)
+    """Excursions are informative calendar events and never change reservations."""
     DailyReport.objects.filter(date=instance.date).update(is_outdated=True)
 
 
 @receiver(post_save, sender=AcademicHoliday)
 def cancel_bookings_for_academic_holiday(sender, instance, created, **kwargs):
-    """A school holiday means no meal service; unlike an excursion, it is not a packed lunch."""
+    """A school holiday means there is no meal service."""
     student_bookings = MealBooking.objects.filter(
         date__range=(instance.starts_on, instance.ends_on), status=BookingStatus.ACTIVE,
     )

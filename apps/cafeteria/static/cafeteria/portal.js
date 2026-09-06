@@ -55,9 +55,10 @@
   const bookingCalendar = document.querySelector('[data-booking-calendar]');
   if (bookingCalendar) {
     const status = bookingCalendar.querySelector('[data-booking-status]');
-    const applyPanel = bookingCalendar.querySelector('[data-apply-panel]');
     const updateUrl = bookingCalendar.dataset.updateUrl;
     const applyUrl = bookingCalendar.dataset.applyUrl;
+    const isFamilyCalendar = bookingCalendar.dataset.bookingKind === 'family';
+    const familyBatchSwitch = bookingCalendar.querySelector('[data-family-batch-switch]');
 
     const setStatus = (message, isError = false) => {
       if (!status) return;
@@ -66,9 +67,12 @@
     };
 
     const closeDietMenus = () => bookingCalendar.querySelectorAll('[data-diet-menu]').forEach((menu) => { menu.hidden = true; });
-    const cellFor = (studentId, serviceDate) => bookingCalendar.querySelector(
+    const cellsFor = (studentId, serviceDate) => [...bookingCalendar.querySelectorAll(
       `[data-booking-cell][data-student-id="${studentId}"][data-date="${serviceDate}"]`,
-    );
+    )];
+    const cellsForDate = (serviceDate) => [...bookingCalendar.querySelectorAll(
+      `[data-booking-cell][data-date="${serviceDate}"]`,
+    )];
     const applyBookingState = (cell, booking) => {
       if (!cell || !booking) return;
       cell.dataset.state = booking.state;
@@ -77,10 +81,14 @@
       if (mainButton) {
         mainButton.disabled = cell.dataset.locked === 'true' || booking.state === 'unavailable';
         const action = booking.reserved ? bookingCalendar.dataset.cancelLabel : bookingCalendar.dataset.reserveLabel;
-        mainButton.setAttribute('aria-label', `${action} ${cell.dataset.studentName} · ${cell.dataset.date}`);
+        const person = cell.dataset.studentName ? ` ${cell.dataset.studentName} ·` : '';
+        mainButton.setAttribute('aria-label', `${action}${person} ${cell.dataset.date}`);
       }
       const dietButton = cell.querySelector('[data-diet-trigger]');
-      if (dietButton) dietButton.title = booking.diet_name || '';
+      if (dietButton) {
+        dietButton.title = booking.diet_name || '';
+        dietButton.disabled = !booking.reserved || cell.dataset.locked === 'true';
+      }
       cell.querySelectorAll('[data-diet-choice]').forEach((choice) => {
         if (String(booking.diet_id || '') === choice.dataset.dietId) {
           choice.setAttribute('aria-current', 'true');
@@ -121,23 +129,6 @@
         if (!button.closest('[data-diet-menu]')) button.disabled = busy || cell.dataset.locked === 'true' || cell.dataset.state === 'unavailable';
       });
     };
-    const showApplyPanel = (cell) => {
-      if (!applyPanel) return;
-      const sourceId = cell.dataset.studentId;
-      const serviceDate = cell.dataset.date;
-      applyPanel.dataset.sourceStudentId = sourceId;
-      applyPanel.dataset.serviceDate = serviceDate;
-      applyPanel.querySelectorAll('[data-apply-student]').forEach((choice) => {
-        const targetCell = cellFor(choice.value, serviceDate);
-        const eligible = choice.value !== sourceId && targetCell && targetCell.dataset.state === 'empty' && targetCell.dataset.locked !== 'true';
-        choice.disabled = !eligible;
-        choice.checked = Boolean(eligible);
-      });
-      const description = applyPanel.querySelector('[data-apply-description]');
-      if (description) description.textContent = `${cell.dataset.date} · ${bookingCalendar.dataset.applyDefaultLabel}`;
-      applyPanel.hidden = false;
-      applyPanel.querySelector('[data-apply-booking]')?.focus();
-    };
 
     bookingCalendar.addEventListener('click', async (event) => {
       const dietChoice = event.target.closest('[data-diet-choice]');
@@ -148,13 +139,15 @@
         if (!cell || cell.dataset.locked === 'true') return;
         setBusy(cell, true);
         try {
-          const data = await request(updateUrl, {
-            student_id: cell.dataset.studentId,
+          const values = {
             service_date: cell.dataset.date,
             operation: 'diet',
             diet_id: dietChoice.dataset.dietId,
-          });
+          };
+          if (isFamilyCalendar) values.student_id = cell.dataset.studentId;
+          const data = await request(updateUrl, values);
           applyBookingState(cell, data.booking);
+          if (isFamilyCalendar) cellsFor(cell.dataset.studentId, cell.dataset.date).forEach((item) => applyBookingState(item, data.booking));
           setStatus(bookingCalendar.dataset.savedLabel);
         } catch (error) {
           setStatus(error.message, true);
@@ -176,49 +169,30 @@
       const cell = mainButton.closest('[data-booking-cell]');
       if (!cell || cell.dataset.locked === 'true' || cell.dataset.state === 'unavailable') return;
       const operation = cell.dataset.state === 'empty' ? 'reserve' : 'cancel';
-      setBusy(cell, true);
+      const batch = isFamilyCalendar && familyBatchSwitch?.checked;
+      const affectedCells = batch ? cellsForDate(cell.dataset.date) : [cell];
+      affectedCells.forEach((item) => setBusy(item, true));
       try {
-        const data = await request(updateUrl, {
-          student_id: cell.dataset.studentId,
-          service_date: cell.dataset.date,
-          operation,
-        });
-        applyBookingState(cell, data.booking);
-        setStatus(bookingCalendar.dataset.savedLabel);
-        if (operation === 'reserve' && data.booking.reserved) showApplyPanel(cell);
+        if (batch) {
+          const data = await request(applyUrl, { service_date: cell.dataset.date });
+          data.bookings.forEach((entry) => {
+            cellsFor(entry.student_id, cell.dataset.date).forEach((item) => applyBookingState(item, entry.booking));
+          });
+          setStatus(data.updated ? bookingCalendar.dataset.batchSavedLabel : bookingCalendar.dataset.noChangesLabel);
+        } else {
+          const values = { service_date: cell.dataset.date, operation };
+          if (isFamilyCalendar) values.student_id = cell.dataset.studentId;
+          const data = await request(updateUrl, values);
+          applyBookingState(cell, data.booking);
+          if (isFamilyCalendar) cellsFor(cell.dataset.studentId, cell.dataset.date).forEach((item) => applyBookingState(item, data.booking));
+          setStatus(bookingCalendar.dataset.savedLabel);
+        }
       } catch (error) {
         setStatus(error.message, true);
       } finally {
-        setBusy(cell, false);
+        affectedCells.forEach((item) => setBusy(item, false));
       }
     });
-
-    bookingCalendar.querySelector('[data-apply-booking]')?.addEventListener('click', async () => {
-      const sourceStudentId = applyPanel?.dataset.sourceStudentId;
-      const serviceDate = applyPanel?.dataset.serviceDate;
-      const studentIds = [...applyPanel.querySelectorAll('[data-apply-student]:checked:not(:disabled)')].map((choice) => choice.value);
-      if (!sourceStudentId || !serviceDate || !studentIds.length) {
-        if (applyPanel) applyPanel.hidden = true;
-        return;
-      }
-      const button = applyPanel.querySelector('[data-apply-booking]');
-      button.disabled = true;
-      try {
-        const data = await request(applyUrl, {
-          source_student_id: sourceStudentId,
-          service_date: serviceDate,
-          student_ids: studentIds,
-        });
-        data.bookings.forEach((entry) => applyBookingState(cellFor(entry.student_id, serviceDate), entry.booking));
-        setStatus(data.updated ? bookingCalendar.dataset.savedLabel : bookingCalendar.dataset.noChangesLabel);
-        applyPanel.hidden = true;
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        button.disabled = false;
-      }
-    });
-    bookingCalendar.querySelector('[data-close-apply]')?.addEventListener('click', () => { if (applyPanel) applyPanel.hidden = true; });
   }
 
   document.querySelectorAll('[data-receipt-upload]').forEach((form) => {

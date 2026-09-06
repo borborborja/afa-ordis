@@ -27,7 +27,7 @@ def _statement_text(statement: MonthlyStatement) -> str:
         "",
     ]
     for line in statement.lines.select_related("student"):
-        meal = "Carmanyola" if line.meal_type == "packed_lunch" else (line.diet_name or "Dieta ordinària")
+        meal = line.diet_name or "Dieta ordinària"
         lines.append(f"- {line.service_date:%d/%m/%Y}: {line.student.full_name} · {meal} · {line.unit_price:.2f} €")
     lines += ["", f"Total: {statement.total:.2f} €"]
     return "\n".join(lines)
@@ -103,7 +103,7 @@ def send_teacher_monthly_statement(statement_id: int, actor_id: int | None = Non
         f"Persona: {statement.teacher.full_name}", "",
     ]
     for line in statement.lines.all():
-        meal = "Carmanyola" if line.meal_type == "packed_lunch" else (line.diet_name or "Dieta ordinària")
+        meal = line.diet_name or "Dieta ordinària"
         lines.append(f"- {line.service_date:%d/%m/%Y}: {meal} · {line.unit_price:.2f} €")
     lines += ["", f"Total: {statement.total:.2f} €"]
     send_mail(
