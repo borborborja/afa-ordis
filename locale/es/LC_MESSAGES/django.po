@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 22:42+0200\n"
+"POT-Creation-Date: 2026-09-06 22:21+0000\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -964,6 +964,22 @@ msgstr ""
 #, python-format
 msgid "S'ha actualitzat la fitxa de %(name)s."
 msgstr "Se ha actualizado la ficha de %(name)s."
+
+msgid "Alumne retirat de la fitxa"
+msgstr "Alumno/a retirado/a de la ficha"
+
+msgid ""
+"S'ha retirat l'alumne de les fitxes actives. Es conserven les reserves ja "
+"tancades per a la facturació."
+msgstr ""
+"Se ha retirado al alumno/a de las fichas activas. Se conservan las reservas "
+"ya cerradas para la facturación."
+
+msgid "S'han anul·lat les reserves que encara es podien modificar."
+msgstr "Se han cancelado las reservas que aún se podían modificar."
+
+msgid "S'ha eliminat la fitxa de l'alumne."
+msgstr "Se ha eliminado la ficha del alumno/a."
 
 msgid ""
 "La invitació s'ha creat. Copia l'enllaç i comparteix-lo manualment perquè la "
@@ -2651,8 +2667,11 @@ msgstr "Mes anterior"
 msgid "Mes següent"
 msgstr "El mes que viene"
 
-msgid "Aplica la vista"
-msgstr "Aplicar la vista"
+msgid "Vista conjunta"
+msgstr "Vista conjunta"
+
+msgid "Mostra tots els infants en una sola vista"
+msgstr "Muestra todo el alumnado en una sola vista"
 
 msgid "Reserva"
 msgstr "Reservar"
@@ -2929,6 +2948,13 @@ msgstr "Hay que completar la declaración de alergias"
 
 msgid "Edita la fitxa"
 msgstr "Editar la ficha"
+
+msgid ""
+"Retirarà l’alumne de les fitxes actives. Les reserves ja tancades es "
+"conservaran per a la facturació. Vols continuar?"
+msgstr ""
+"Se retirará al alumno/a de las fichas activas. Las reservas ya cerradas se "
+"conservarán para facturación. ¿Quieres continuar?"
 
 msgid "No hi ha alumnat actiu vinculat a aquesta família."
 msgstr "No hay estudiantes activos vinculados a esta familia."

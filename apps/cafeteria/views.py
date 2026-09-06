@@ -27,7 +27,7 @@ from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError, connection, transaction
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, F, Prefetch, Q, Sum
 from django.forms import formset_factory
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -85,6 +85,7 @@ from .models import (
     AfaMembershipStatus,
     AuditEvent,
     BookingStatus,
+    ConsentRecord,
     CourseClosure,
     CourseGroup,
     DailyReport,
@@ -1240,9 +1241,9 @@ def teacher_bulk_booking(request):
 @login_required
 def student_edit(request, student_id):
     if request.user.is_superuser or _is_admin(request.user):
-        student = get_object_or_404(Student, pk=student_id)
+        student = get_object_or_404(Student, pk=student_id, active=True)
     else:
-        student = get_object_or_404(Student, pk=student_id, family__memberships__user=request.user)
+        student = get_object_or_404(Student, pk=student_id, active=True, family__memberships__user=request.user)
     pending_onboarding = _pending_family_onboarding(request.user, student.family_id)
     if pending_onboarding:
         return redirect("cafeteria:family_onboarding", family_id=student.family_id)
@@ -1259,6 +1260,62 @@ def student_edit(request, student_id):
         "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student.allergy_document and medical_access(request.user, student) else None,
         "can_view_clinical": medical_access(request.user, student),
     })
+
+
+@login_required
+@require_POST
+@atomic_write
+def student_remove(request, student_id):
+    """Remove an accidental profile without losing chargeable meal history."""
+    is_administrator = _is_admin(request.user)
+    if is_administrator:
+        student = get_object_or_404(Student, pk=student_id, active=True)
+    else:
+        student = get_object_or_404(
+            Student, pk=student_id, active=True, family__memberships__user=request.user,
+        )
+
+    family_id = student.family_id
+    has_history = student.bookings.exists() or student.statement_lines.exists()
+    if has_history:
+        closed_months = set(MonthlyStatement.objects.filter(family_id=family_id).exclude(
+            status=StatementStatus.PREPARED,
+        ).values_list("year", "month"))
+        cancelled_dates = []
+        for booking in student.bookings.filter(status=BookingStatus.ACTIVE):
+            is_closed_month = (booking.date.year, booking.date.month) in closed_months
+            if is_closed_month or is_tutor_locked(booking.date):
+                continue
+            booking.status = BookingStatus.CANCELLED
+            booking.updated_by = request.user
+            booking.override_reason = _("Alumne retirat de la fitxa")
+            booking.save(update_fields=["status", "updated_by", "override_reason", "updated_at"])
+            cancelled_dates.append(booking.date)
+        if cancelled_dates:
+            DailyReport.objects.filter(date__in=cancelled_dates).update(is_outdated=True)
+        student.active = False
+        student.save(update_fields=["active", "inactive_since"])
+        log_event(request.user, "student.archived_with_booking_history", student, {
+            "count": student.bookings.count(),
+        })
+        messages.success(request, _(
+            "S'ha retirat l'alumne de les fitxes actives. Es conserven les reserves ja tancades per a la facturació."
+        ))
+        if cancelled_dates:
+            messages.info(request, _("S'han anul·lat les reserves que encara es podien modificar."))
+    else:
+        document_name = student.allergy_document.name if student.allergy_document else ""
+        document_storage = student.allergy_document.storage if document_name else None
+        ConsentRecord.objects.filter(student=student).delete()
+        log_event(request.user, "student.deleted", student)
+        student.delete()
+        if document_name and document_storage:
+            transaction.on_commit(lambda: document_storage.delete(document_name))
+        messages.success(request, _("S'ha eliminat la fitxa de l'alumne."))
+
+    if is_administrator:
+        return redirect("cafeteria:people")
+    return redirect("cafeteria:family_profile", family_id=family_id)
 
 
 @admin_required
@@ -1415,11 +1472,12 @@ def allergy_review_queue(request):
         selected_status = AllergyReviewStatus.PENDING
     declarations = Student.objects.filter(
         Q(has_allergy=True, allergy_review_status=selected_status) | Q(safety_hold=True),
+        active=True,
     ).select_related("family", "course_group", "allergy_reviewed_by").order_by(
         "allergy_review_status", "family__name", "first_name", "last_name"
     )
     counts = {
-        status: Student.objects.filter(has_allergy=True, allergy_review_status=status).count()
+        status: Student.objects.filter(active=True, has_allergy=True, allergy_review_status=status).count()
         for status in AllergyReviewStatus.values
     }
     return render(request, "cafeteria/allergy_review_queue.html", {
@@ -1436,7 +1494,8 @@ def allergy_review(request, student_id):
         return HttpResponseForbidden(_("No tens permís per revisar dades de salut."))
     student = get_object_or_404(
         Student.objects.select_related("family", "course_group", "allergy_reviewed_by").filter(
-            Q(has_allergy=True, allergy_review_status=AllergyReviewStatus.PENDING) | Q(safety_hold=True)),
+            Q(has_allergy=True, allergy_review_status=AllergyReviewStatus.PENDING) | Q(safety_hold=True),
+            active=True),
         pk=student_id,
     )
     form = AllergyReviewForm(request.POST or None)
@@ -2586,8 +2645,11 @@ def academic_dashboard(request):
 @admin_required
 def people(request):
     query = request.GET.get("q", "").strip()
-    families = Family.objects.prefetch_related("students", "memberships__user")
-    students = Student.objects.select_related("family", "course_group", "default_diet")
+    families = Family.objects.prefetch_related(
+        Prefetch("students", queryset=Student.objects.filter(active=True)),
+        "memberships__user",
+    )
+    students = Student.objects.filter(active=True).select_related("family", "course_group", "default_diet")
     if query:
         families = families.filter(name__icontains=query)
         students = students.filter(

@@ -48,6 +48,7 @@ urlpatterns = [
     path("personal/menjador/actualitza/", views.teacher_bulk_booking, name="teacher_bulk_booking"),
     path("personal/menjador/reserva-automatica/", views.teacher_booking_update, name="teacher_booking_update"),
     path("alumnes/<int:student_id>/edita/", views.student_edit, name="student_edit"),
+    path("alumnes/<int:student_id>/elimina/", views.student_remove, name="student_remove"),
     path("alumnes/<int:student_id>/document-medic/", views.allergy_document_download, name="allergy_document_download"),
     path("invitacions/nova/", views.invitation_create, name="invitation_create"),
     path("invitacions/<str:token>/", views.invitation_accept, name="invitation_accept"),

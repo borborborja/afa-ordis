@@ -50,6 +50,7 @@ from .models import (
     PortalSettings,
     PriceRule,
     ServiceDay,
+    StatementStatus,
     Student,
     TeacherMealBooking,
     TeacherMealProfile,
@@ -213,10 +214,44 @@ class CafeteriaFlowTests(TestCase):
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.family_booking_view, "matrix")
         response = self.client.get(calendar_url)
+        self.assertContains(response, "booking-view-switch")
+        self.assertContains(response, 'role="switch"')
         self.assertContains(response, "family-matrix-calendar")
         self.assertContains(response, "matrix-student-control")
         self.assertContains(response, self.student.full_name)
         self.assertContains(response, sibling.full_name)
+
+    def test_family_can_remove_an_unbooked_student(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:student_remove", args=[self.student.id]))
+        self.assertRedirects(response, reverse("cafeteria:family_profile", args=[self.family.id]))
+        self.assertFalse(Student.objects.filter(pk=self.student.id).exists())
+
+    def test_removing_a_student_archives_chargeable_bookings_and_cancels_future_ones(self):
+        past_day = self.today - timedelta(days=1)
+        future_day = (self.today.replace(day=28) + timedelta(days=8)).replace(day=1)
+        past_booking = MealBooking.objects.create(student=self.student, date=past_day, diet=self.diet)
+        future_booking = MealBooking.objects.create(student=self.student, date=future_day, diet=self.diet)
+        statement = prepare_monthly_statement(self.family, past_day.year, past_day.month)
+        statement.status = StatementStatus.CLOSED
+        statement.save(update_fields=["status"])
+
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:student_remove", args=[self.student.id]))
+        self.assertRedirects(response, reverse("cafeteria:family_profile", args=[self.family.id]))
+
+        self.student.refresh_from_db()
+        past_booking.refresh_from_db()
+        future_booking.refresh_from_db()
+        self.assertFalse(self.student.active)
+        self.assertEqual(past_booking.status, BookingStatus.ACTIVE)
+        self.assertEqual(future_booking.status, BookingStatus.CANCELLED)
+        self.assertTrue(statement.lines.filter(student=self.student, service_date=past_day).exists())
+        response = self.client.get(reverse("cafeteria:family_profile", args=[self.family.id]))
+        self.assertNotContains(response, self.student.full_name)
+        admin = User.objects.create_superuser("remove-admin@example.com", "remove-admin@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        self.assertNotContains(self.client.get(reverse("cafeteria:people")), self.student.full_name)
 
     def test_family_calendar_highlights_a_non_default_menu(self):
         alternative_diet = Diet.objects.create(name="Sense gluten")

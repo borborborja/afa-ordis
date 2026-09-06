@@ -1475,6 +1475,15 @@ td small {
 .student-profile-card .button {
   grid-column: 1 / -1;
 }
+.student-profile-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.student-profile-actions .button { grid-column: auto; }
+.student-profile-actions form { margin: 0; }
 .student-profile-icon {
   display: grid;
   width: 43px;
@@ -2655,23 +2664,16 @@ td small {
 .matrix-lock-marker { left: 11px; background: #e6ebe8; color: #718078; }
 .matrix-excursion-marker .icon,
 .matrix-lock-marker .icon { width: 8px; height: 8px; }
-.booking-view-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 12px;
-  margin: 0 0 16px;
-  padding: 13px;
-  border: 1px solid #a9d4c7;
-  border-radius: 13px;
-  background: #f1faf6;
-}
-.booking-view-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-.booking-view-form legend { margin-bottom: 3px; font-weight: 800; }
-.booking-view-form small { display: block; color: var(--muted); font-size: .78rem; }
-.booking-view-options > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
-.booking-view-options label { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-size: .86rem; }
-.booking-view-options input { margin: 0; accent-color: var(--forest); }
+.booking-calendar-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.booking-calendar-toolbar .month-nav { flex: 1; margin: 0; }
+.booking-view-switch { margin-left: auto; }
+.booking-view-switch label { display: flex; align-items: center; gap: 7px; color: var(--muted); cursor: pointer; font-size: .78rem; font-weight: 750; white-space: nowrap; }
+.booking-view-switch input { position: absolute; opacity: 0; }
+.booking-view-switch-control { position: relative; display: inline-block; width: 31px; height: 18px; border-radius: 99px; background: #c9d4cf; transition: background .16s ease; }
+.booking-view-switch-control::after { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .22); content: ""; transition: transform .16s ease; }
+.booking-view-switch input:checked + .booking-view-switch-control { background: var(--forest); }
+.booking-view-switch input:checked + .booking-view-switch-control::after { transform: translateX(13px); }
+.booking-view-switch input:focus-visible + .booking-view-switch-control { outline: 2px solid var(--forest); outline-offset: 2px; }
 
 @media (max-width: 640px) {
   .monthly-booking-workspace,
