@@ -13,6 +13,7 @@ urlpatterns = [
     path("comptes/idioma/", views.set_language, name="set_language"),
     path("comptes/navegacio/", views.navigation_preferences, name="navigation_preferences"),
     path("comptes/inici/", views.dashboard_preferences, name="dashboard_preferences"),
+    path("comptes/configuracio/", views.app_preferences, name="app_preferences"),
     path("comptes/contrasenya/", views.password_reset_request, name="password_reset"),
     path("comptes/contrasenya/enviada/", auth_views.PasswordResetDoneView.as_view(template_name="registration/password_reset_done.html"), name="password_reset_done"),
     path("comptes/contrasenya/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(

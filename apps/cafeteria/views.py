@@ -58,6 +58,7 @@ from .forms import (
     FamilyForm,
     FamilyOnboardingContactForm,
     FinancialAccountForm,
+    FamilyBookingPreferenceForm,
     InvitationAcceptanceForm,
     InvitationForm,
     MealSettingsForm,
@@ -91,6 +92,7 @@ from .models import (
     EconomicReviewStatus,
     EconomicSettings,
     Family,
+    FamilyBookingView,
     FamilyImportBatch,
     FamilyMembership,
     FinancialAccount,
@@ -470,6 +472,21 @@ def navigation_preferences(request):
     return HttpResponse(status=204)
 
 
+@login_required
+def app_preferences(request):
+    """Personal preferences that should follow the account on every device."""
+    profile, _created = UserProfile.objects.get_or_create(user=request.user)
+    form = FamilyBookingPreferenceForm(request.POST or None, initial={
+        "family_booking_view": profile.family_booking_view,
+    })
+    if request.method == "POST" and form.is_valid():
+        profile.family_booking_view = form.cleaned_data["family_booking_view"]
+        profile.save(update_fields=["family_booking_view"])
+        messages.success(request, _("S'ha desat la configuració de l'app."))
+        return redirect("cafeteria:app_preferences")
+    return render(request, "cafeteria/app_preferences.html", {"form": form})
+
+
 def _month_starts_for_academic_year(academic_year):
     current = academic_year.starts_on.replace(day=1)
     final_month = academic_year.ends_on.replace(day=1)
@@ -693,6 +710,21 @@ def family_calendar(request, family_id):
             })
         booking_rows.append({"student": student, "days": days})
 
+    profile, _created = UserProfile.objects.get_or_create(user=request.user)
+    booking_view = profile.family_booking_view
+    if booking_view not in FamilyBookingView.values:
+        booking_view = FamilyBookingView.TABS
+    matrix_days = [
+        {
+            "date": service_date,
+            "cells": [
+                {"student": row["student"], "cell": row["days"][index]}
+                for row in booking_rows
+            ],
+        }
+        for index, service_date in enumerate(month_days)
+    ]
+
     previous_month = (month_start.replace(day=1) - timedelta(days=1)).replace(day=1)
     next_month = (month_end + timedelta(days=1)).replace(day=1)
     today_change_notice = None
@@ -719,6 +751,8 @@ def family_calendar(request, family_id):
     return render(request, "cafeteria/family_calendar.html", {
         "family": family,
         "booking_rows": booking_rows,
+        "matrix_days": matrix_days,
+        "booking_view": booking_view,
         "month_days": month_days,
         "leading_days": range(month_start.weekday()),
         "diets": Diet.objects.filter(active=True),

@@ -83,6 +83,39 @@
     const applyUrl = bookingCalendar.dataset.applyUrl;
     const isFamilyCalendar = bookingCalendar.dataset.bookingKind === 'family';
     const familyBatchSwitch = bookingCalendar.querySelector('[data-family-batch-switch]');
+    const familyTabs = [...bookingCalendar.querySelectorAll('[data-family-calendar-tab]')];
+    const familyPanels = [...bookingCalendar.querySelectorAll('[data-family-calendar-panel]')];
+
+    if (familyTabs.length && familyPanels.length) {
+      const storageKey = `afa-ordis:family-calendar:${bookingCalendar.dataset.tabsKey || 'default'}:student`;
+      const selectStudentTab = (studentId, focus = false) => {
+        const selected = String(studentId);
+        familyTabs.forEach((tab) => {
+          const active = tab.dataset.studentId === selected;
+          tab.setAttribute('aria-selected', String(active));
+          tab.tabIndex = active ? 0 : -1;
+          if (active && focus) tab.focus();
+        });
+        familyPanels.forEach((panel) => { panel.hidden = panel.dataset.studentId !== selected; });
+        try { sessionStorage.setItem(storageKey, selected); } catch (_error) { /* Private browsing can disable storage. */ }
+      };
+      let storedStudent;
+      try { storedStudent = sessionStorage.getItem(storageKey); } catch (_error) { storedStudent = null; }
+      if (storedStudent && familyTabs.some((tab) => tab.dataset.studentId === storedStudent)) selectStudentTab(storedStudent);
+      familyTabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectStudentTab(tab.dataset.studentId));
+        tab.addEventListener('keydown', (event) => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          let nextIndex = index;
+          if (event.key === 'ArrowLeft') nextIndex = (index - 1 + familyTabs.length) % familyTabs.length;
+          if (event.key === 'ArrowRight') nextIndex = (index + 1) % familyTabs.length;
+          if (event.key === 'Home') nextIndex = 0;
+          if (event.key === 'End') nextIndex = familyTabs.length - 1;
+          selectStudentTab(familyTabs[nextIndex].dataset.studentId, true);
+        });
+      });
+    }
 
     const setStatus = (message, isError = false) => {
       if (!status) return;

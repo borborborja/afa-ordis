@@ -26,6 +26,7 @@ from .models import (
     EconomicReviewStatus,
     EconomicSettings,
     Family,
+    FamilyBookingView,
     FinancialAccount,
     Invitation,
     MealSettings,
@@ -40,6 +41,15 @@ from .models import (
 
 MEDICAL_DOCUMENT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"}
 MAX_MEDICAL_DOCUMENT_BYTES = 10 * 1024 * 1024
+
+
+class FamilyBookingPreferenceForm(forms.Form):
+    family_booking_view = forms.ChoiceField(
+        choices=FamilyBookingView.choices,
+        label=_("Vista de les reserves familiars"),
+        widget=forms.RadioSelect,
+        help_text=_("Aquesta preferència només afecta la pantalla de reserva de menjador de la família."),
+    )
 
 
 class InvitationForm(forms.ModelForm):

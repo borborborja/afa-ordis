@@ -22,6 +22,11 @@ class Role(models.TextChoices):
     TEACHER = "teacher", _("Personal docent")
 
 
+class FamilyBookingView(models.TextChoices):
+    TABS = "tabs", _("Una pestanya per infant")
+    MATRIX = "matrix", _("Matriu compartida")
+
+
 STAFF_ROLES = {Role.ADMIN, Role.MANAGER}
 
 
@@ -46,6 +51,11 @@ class UserProfile(models.Model):
     navigation_state = models.JSONField(default=dict, blank=True)
     dashboard_widgets = models.JSONField(default=list, blank=True)
     can_submit_expenses = models.BooleanField(default=False)
+    family_booking_view = models.CharField(
+        max_length=12,
+        choices=FamilyBookingView.choices,
+        default=FamilyBookingView.TABS,
+    )
 
     def __str__(self) -> str:
         return self.user.get_full_name() or self.user.email

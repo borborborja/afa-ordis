@@ -2334,6 +2334,10 @@ td small {
 .booking-cell-main:disabled { cursor: not-allowed; }
 .booking-state-icon { display: none; }
 .booking-state-icon .icon { width: 20px; height: 20px; }
+.booking-state-icon .icon { display: block; }
+[data-booking-cell][data-state="empty"] .state-empty,
+[data-booking-cell][data-state="reserved"] .state-reserved,
+[data-booking-cell][data-state="unavailable"] .state-unavailable { display: grid; }
 .monthly-booking-cell[data-state="empty"] .state-empty,
 .monthly-booking-cell[data-state="reserved"] .state-reserved,
 .monthly-booking-cell[data-state="packed"] .state-packed,
@@ -2433,6 +2437,210 @@ td small {
   .booking-apply-panel .button-row { display: grid; grid-template-columns: 1fr 1fr; }
   .booking-diet-menu { position: fixed; right: 16px; left: 16px; top: auto; bottom: 16px; width: auto; max-width: none; padding: 10px; }
   .booking-diet-menu button { padding: 11px; font-size: .9rem; }
+}
+
+/* Monthly booking: a direct touch calendar, without a wide data table. */
+.family-booking-calendars--tabs { display: block; }
+.family-booking-tabs {
+  display: flex;
+  gap: 7px;
+  margin: 0 0 14px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+.family-booking-tabs button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 7px 11px 7px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.family-booking-tabs button[aria-selected="true"] { border-color: var(--forest); background: var(--mint); color: var(--forest-dark); }
+.family-booking-tabs button:focus-visible { outline: 3px solid #8bb5a9; outline-offset: 2px; }
+.student-month-calendar[hidden] { display: none; }
+.booking-day {
+  grid-template-rows: 19px minmax(52px, 1fr);
+  min-height: 104px;
+}
+.month-calendar-blank { min-height: 104px; }
+.booking-day .booking-cell-main {
+  min-height: 52px;
+  margin: 1px 3px 4px;
+  border-radius: 50%;
+}
+.booking-day .booking-state-icon { width: 30px; height: 30px; place-items: center; border-radius: 50%; }
+.booking-day[data-state="empty"] .state-empty { border: 2px solid #4b9a89; background: #fff; }
+.booking-day[data-state="reserved"] .state-reserved { background: var(--forest); color: #fff; }
+.booking-day[data-state="unavailable"] .state-unavailable { color: #83918b; font-size: 1.2rem; }
+.booking-day-diet {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 3;
+  display: grid;
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #7aa99b;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--forest-dark);
+}
+.booking-day-diet .icon { width: 15px; height: 15px; }
+.booking-day-diet:disabled { visibility: hidden; }
+.booking-day-diet:not(:disabled):hover,
+.booking-day-diet:not(:disabled):focus-visible { background: var(--mint); outline: 2px solid var(--forest); outline-offset: 1px; }
+.booking-day .booking-lock-marker { right: 4px; }
+.booking-day:has(.booking-excursion-marker) .booking-lock-marker { right: 23px; }
+.family-matrix-calendar {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.family-matrix-day {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+}
+.family-matrix-day.weekend { background: #f4f5f3; }
+.family-matrix-day > .booking-day-number { padding: 2px 3px 3px; }
+.matrix-student-controls { display: grid; gap: 2px; }
+.matrix-student-control {
+  position: relative;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  min-height: 24px;
+  border-radius: 5px;
+}
+.matrix-student-control[data-state="empty"] { background: #f2faf7; }
+.matrix-student-control[data-state="reserved"] { background: #dff3ec; }
+.matrix-student-control[data-state="unavailable"] { opacity: .55; }
+.matrix-student-control[data-saving="true"] { opacity: .58; pointer-events: none; }
+.matrix-student-label {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #d3e9e2;
+  color: var(--forest-dark);
+  font-size: .52rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.matrix-booking-main {
+  display: grid;
+  width: 100%;
+  min-height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+}
+.matrix-booking-main:focus-visible { outline: 2px solid var(--forest); outline-offset: 1px; }
+.matrix-student-control .booking-state-icon { width: 17px; height: 17px; place-items: center; border-radius: 50%; }
+.matrix-student-control .booking-state-icon .icon { width: 12px; height: 12px; }
+.matrix-student-control[data-state="empty"] .state-empty { border: 1px solid #4b9a89; background: #fff; }
+.matrix-student-control[data-state="reserved"] .state-reserved { background: var(--forest); color: #fff; }
+.matrix-student-control[data-state="unavailable"] .state-unavailable { font-size: .95rem; }
+.matrix-diet-trigger {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 4;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #7aa99b;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--forest-dark);
+  cursor: pointer;
+}
+.matrix-diet-trigger .icon { width: 9px; height: 9px; }
+.matrix-diet-trigger:disabled { visibility: hidden; }
+.matrix-diet-trigger:not(:disabled):hover,
+.matrix-diet-trigger:not(:disabled):focus-visible { background: var(--mint); outline: 2px solid var(--forest); outline-offset: 1px; }
+.matrix-excursion-marker,
+.matrix-lock-marker {
+  position: absolute;
+  top: -2px;
+  z-index: 3;
+  display: grid;
+  width: 13px;
+  height: 13px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff5c9;
+  color: #8b6200;
+}
+.matrix-excursion-marker { right: -2px; }
+.matrix-lock-marker { left: 11px; background: #e6ebe8; color: #718078; }
+.matrix-excursion-marker .icon,
+.matrix-lock-marker .icon { width: 8px; height: 8px; }
+.app-preferences-card { max-width: 650px; }
+.app-preferences-card .field > ul { display: grid; gap: 10px; margin: 12px 0; padding: 0; list-style: none; }
+.app-preferences-card .field > ul label { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; cursor: pointer; }
+.app-preferences-card .field > ul input { margin-top: 3px; accent-color: var(--forest); }
+.account-popover-link { display: flex; align-items: center; gap: 8px; padding: 9px 0; color: var(--forest-dark); font-weight: 700; }
+.account-popover-link .icon { width: 17px; height: 17px; }
+
+@media (max-width: 640px) {
+  .monthly-booking-workspace,
+  .teacher-monthly-workspace { padding: 14px 7px; }
+  .student-month-calendar,
+  .teacher-month-calendar,
+  .family-matrix-calendar { padding: 8px 3px; border-width: 0; border-radius: 0; }
+  .month-calendar-weekdays,
+  .month-calendar-grid { gap: 2px; }
+  .month-calendar-weekdays span { font-size: .56rem; }
+  .month-calendar-blank,
+  .booking-day { min-height: 76px; }
+  .booking-day { grid-template-rows: 16px minmax(38px, 1fr); border-radius: 7px; }
+  .booking-day .booking-cell-main { min-height: 38px; margin: 0 1px 2px; }
+  .booking-day .booking-state-icon { width: 26px; height: 26px; }
+  .booking-day .booking-state-icon .icon { width: 17px; height: 17px; }
+  .booking-day-diet { right: 2px; bottom: 2px; width: 23px; min-height: 23px; height: 23px; }
+  .booking-day-diet .icon { width: 13px; height: 13px; }
+  .booking-day-number { padding: 3px 3px 0; font-size: .62rem; }
+  .family-booking-tabs { margin-inline: 2px; }
+  .family-booking-tabs button { min-height: 39px; padding-right: 10px; }
+  .family-matrix-day { min-height: 94px; padding: 2px; border-radius: 6px; }
+  .matrix-student-controls { gap: 1px; }
+  .matrix-student-control { grid-template-columns: 12px minmax(0, 1fr); min-height: 20px; }
+  .matrix-student-label { width: 12px; height: 12px; font-size: .44rem; }
+  .matrix-booking-main { min-height: 20px; }
+  .matrix-student-control .booking-state-icon { width: 15px; height: 15px; }
+  .matrix-diet-trigger { width: 14px; height: 14px; }
+  .matrix-excursion-marker,
+  .matrix-lock-marker { width: 11px; height: 11px; }
+  .matrix-lock-marker { left: 9px; }
 }
 
 @media (max-width: 640px) {

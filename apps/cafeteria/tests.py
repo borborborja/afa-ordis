@@ -134,6 +134,35 @@ class CafeteriaFlowTests(TestCase):
         self.assertContains(response, "Reserva per a tota la família")
         self.assertNotContains(response, "monthly-booking-scroll")
 
+    def test_family_booking_calendar_uses_tabs_by_default_and_has_visible_states(self):
+        sibling = Student.objects.create(
+            family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
+            default_diet=self.diet, meal_plan=MealPlan.FIXED,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        self.assertContains(response, "family-booking-tabs")
+        self.assertContains(response, f'student-tab-{self.student.id}')
+        self.assertContains(response, f'student-tab-{sibling.id}')
+        self.assertContains(response, 'data-state="empty"')
+        self.assertContains(response, 'booking-day-diet')
+
+    def test_family_booking_matrix_can_be_saved_as_an_account_preference(self):
+        sibling = Student.objects.create(
+            family=self.family, course_group=self.group, first_name="Biel", last_name="Puig",
+            default_diet=self.diet, meal_plan=MealPlan.FIXED,
+        )
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:app_preferences"), {"family_booking_view": "matrix"})
+        self.assertRedirects(response, reverse("cafeteria:app_preferences"))
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.family_booking_view, "matrix")
+        response = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        self.assertContains(response, "family-matrix-calendar")
+        self.assertContains(response, "matrix-student-control")
+        self.assertContains(response, self.student.full_name)
+        self.assertContains(response, sibling.full_name)
+
     def test_family_can_declare_an_allergy_only_with_a_medical_document(self):
         self.client.force_login(self.user)
         response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
