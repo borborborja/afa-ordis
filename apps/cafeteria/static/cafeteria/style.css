@@ -2285,6 +2285,24 @@ td small {
 .attached-documents ul { display: flex; flex-wrap: wrap; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .attached-documents li, .attachment-link { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; color: var(--forest); font-size: .86rem; }
 .attached-documents .icon, .attachment-link .icon { width: 16px; height: 16px; flex: 0 0 auto; }
+
+.allergy-alert-card { border-color: #d9a63a; background: #fffaf0; }
+.allergy-alert-card .section-title h2 { display: inline-flex; align-items: center; gap: 8px; }
+.allergy-alert-card .section-title .icon { width: 20px; height: 20px; color: #a25806; }
+.allergy-alert { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto; gap: 12px; align-items: start; padding: 13px 0; border-top: 1px solid #eadcb7; }
+.allergy-alert p { margin: 0; }
+.allergy-alert > div p { margin-top: 3px; color: var(--forest); font-weight: 700; }
+.allergy-profile-status { display: inline-flex; align-items: center; gap: 4px; color: #8a5706; }
+.allergy-profile-status .icon { width: 14px; height: 14px; }
+.warning-text { color: #8a5706; }
+.onboarding-form { display: grid; gap: 18px; }
+.onboarding-student-card { border-top: 4px solid #8bb5a9; }
+.allergy-review-summary p { margin: 0 0 14px; }
+
+@media (max-width: 640px) {
+  .allergy-alert { grid-template-columns: 1fr; gap: 6px; }
+  .allergy-alert .status { justify-self: start; }
+}
 .access-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .access-choice { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
 .access-choice > span:nth-child(2) { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--mint); color: var(--forest); }

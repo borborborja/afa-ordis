@@ -60,11 +60,18 @@ def build_daily_report_text(service_date: date) -> str:
     bookings = bookings_for_day(service_date)
     lines = [f"Llistat de menjador — {service_date:%d/%m/%Y}", ""]
     by_diet = {}
+    allergy_alerts = []
     for booking in bookings:
         course = booking.student.course_group.name if booking.student.course_group else "Sense curs"
         diet = booking.diet_name or "Dieta ordinària"
         by_diet[diet] = by_diet.get(diet, 0) + 1
         lines.append(f"- {booking.student.full_name} · {course} · {diet}")
+        if booking.student.has_operational_allergy_alert:
+            status = "PENDENT DE VALIDAR" if booking.student.allergy_review_status == "pending" else "VALIDADA"
+            allergy_alerts.append(
+                f"- {booking.student.full_name} · {booking.student.allergy_title} · "
+                f"{booking.student.allergy_details} [{status}]"
+            )
     teacher_bookings = teacher_bookings_for_day(service_date)
     if teacher_bookings.exists():
         lines.extend(["", "Personal docent"])
@@ -72,6 +79,11 @@ def build_daily_report_text(service_date: date) -> str:
             diet = booking.diet_name or "Dieta ordinària"
             by_diet[diet] = by_diet.get(diet, 0) + 1
             lines.append(f"- {booking.teacher.full_name} · {diet}")
+    lines.extend(["", "ATENCIÓ — AL·LÈRGIES"])
+    if allergy_alerts:
+        lines.extend(allergy_alerts)
+    else:
+        lines.append("Cap al·lèrgia declarada entre els àpats programats.")
     lines.append("")
     lines.append(f"Total: {bookings.count() + teacher_bookings.count()}")
     lines.extend(f"{diet}: {total}" for diet, total in sorted(by_diet.items()))

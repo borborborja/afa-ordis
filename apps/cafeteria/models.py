@@ -152,6 +152,8 @@ class FamilyMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_memberships")
     label = models.CharField(max_length=80, blank=True, help_text=_("Exemple: persona tutora o contacte principal"))
     is_primary_contact = models.BooleanField(default=False)
+    onboarding_required = models.BooleanField(default=False)
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["family", "user"], name="unique_family_membership")]
@@ -358,6 +360,18 @@ class MealPlan(models.TextChoices):
     SPORADIC = "sporadic", _("Esporàdic")
 
 
+class AllergyReviewStatus(models.TextChoices):
+    PENDING = "pending", _("Pendent de validar")
+    APPROVED = "approved", _("Validada")
+    REJECTED = "rejected", _("Rebutjada")
+
+
+def allergy_document_path(instance, filename):
+    """Keep medical files outside publicly meaningful paths."""
+    suffix = Path(filename).suffix.lower()[:12]
+    return f"alergies/{uuid.uuid4().hex}{suffix}"
+
+
 class Student(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="students")
     course_group = models.ForeignKey(CourseGroup, null=True, blank=True, on_delete=models.SET_NULL, related_name="students")
@@ -369,6 +383,18 @@ class Student(models.Model):
     contact_notes = models.TextField(blank=True)
     default_diet = models.ForeignKey(Diet, on_delete=models.PROTECT, related_name="students")
     dietary_notes = models.TextField(blank=True)
+    has_allergy = models.BooleanField(null=True, default=None)
+    allergy_title = models.CharField(max_length=160, blank=True)
+    allergy_details = models.TextField(blank=True)
+    allergy_document = models.FileField(upload_to=allergy_document_path, blank=True)
+    allergy_document_name = models.CharField(max_length=255, blank=True)
+    allergy_review_status = models.CharField(max_length=12, choices=AllergyReviewStatus.choices, blank=True)
+    allergy_rejection_reason = models.TextField(blank=True)
+    allergy_reviewed_at = models.DateTimeField(null=True, blank=True)
+    allergy_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="reviewed_student_allergies",
+    )
     is_scholarship = models.BooleanField(default=False, verbose_name=_("Ajut de menjador"))
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices, default=MealPlan.FIXED)
     active = models.BooleanField(default=True)
@@ -385,6 +411,17 @@ class Student(models.Model):
     @property
     def rate_category(self) -> str:
         return f"{'scholarship' if self.is_scholarship else 'standard'}_{self.meal_plan}"
+
+    @property
+    def has_operational_allergy_alert(self) -> bool:
+        """Pending declarations are shown too, so no real allergy is missed."""
+        return bool(
+            self.has_allergy
+            and self.allergy_review_status in {
+                AllergyReviewStatus.PENDING,
+                AllergyReviewStatus.APPROVED,
+            }
+        )
 
     def __str__(self) -> str:
         return self.full_name

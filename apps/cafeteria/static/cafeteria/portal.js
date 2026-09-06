@@ -52,6 +52,30 @@
     });
   });
 
+  const processedAllergyGroups = new Set();
+  document.querySelectorAll('[data-allergy-declaration]').forEach((input) => {
+    const form = input.closest('form');
+    const key = input.dataset.allergyDeclaration;
+    const groupId = `${input.form?.id || form?.action || 'form'}:${input.name}`;
+    if (!form || processedAllergyGroups.has(groupId)) return;
+    processedAllergyGroups.add(groupId);
+    const fields = [...form.querySelectorAll('[data-allergy-field]')]
+      .filter((field) => field.dataset.allergyField === key)
+      .map((field) => field.closest('.field'))
+      .filter(Boolean);
+    const syncAllergyFields = () => {
+      const selected = [...form.querySelectorAll('[data-allergy-declaration]')]
+        .find((choice) => choice.name === input.name && choice.checked);
+      const visible = selected?.value === 'yes';
+      fields.forEach((field) => { field.hidden = !visible; });
+    };
+    form.querySelectorAll('[data-allergy-declaration]').forEach((choice) => {
+      if (choice.name !== input.name) return;
+      choice.addEventListener('change', syncAllergyFields);
+    });
+    syncAllergyFields();
+  });
+
   const bookingCalendar = document.querySelector('[data-booking-calendar]');
   if (bookingCalendar) {
     const status = bookingCalendar.querySelector('[data-booking-status]');

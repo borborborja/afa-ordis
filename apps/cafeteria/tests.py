@@ -21,6 +21,7 @@ from .models import (
     AcademicIntensivePeriod,
     AcademicNotice,
     AcademicYear,
+    AllergyReviewStatus,
     AfaFeeSettings,
     AfaMembership,
     AfaMembershipStatus,
@@ -50,7 +51,13 @@ from .models import (
     TeacherMealBooking,
     TeacherMealProfile,
 )
-from .services import expected_report_is_due, is_service_day, prepare_monthly_statement, prepare_teacher_monthly_statement
+from .services import (
+    build_daily_report_text,
+    expected_report_is_due,
+    is_service_day,
+    prepare_monthly_statement,
+    prepare_teacher_monthly_statement,
+)
 from .tasks import send_daily_report
 
 
@@ -126,6 +133,131 @@ class CafeteriaFlowTests(TestCase):
         self.assertContains(response, "family-booking-calendars")
         self.assertContains(response, "Reserva per a tota la família")
         self.assertNotContains(response, "monthly-booking-scroll")
+
+    def test_family_can_declare_an_allergy_only_with_a_medical_document(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
+            "first_name": self.student.first_name,
+            "last_name": self.student.last_name,
+            "birth_date": "",
+            "contact_email": "",
+            "contact_phone": "",
+            "contact_notes": "",
+            "default_diet": self.diet.id,
+            "dietary_notes": "",
+            "meal_plan": MealPlan.FIXED,
+            "allergy_declaration": "yes",
+            "allergy_title": "Al·lèrgia als fruits secs",
+            "allergy_details": "Evitar traces de fruits secs.",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Adjunta el document mèdic")
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
+                "first_name": self.student.first_name,
+                "last_name": self.student.last_name,
+                "birth_date": "",
+                "contact_email": "",
+                "contact_phone": "",
+                "contact_notes": "",
+                "default_diet": self.diet.id,
+                "dietary_notes": "",
+                "meal_plan": MealPlan.FIXED,
+                "allergy_declaration": "yes",
+                "allergy_title": "Al·lèrgia als fruits secs",
+                "allergy_details": "Evitar traces de fruits secs.",
+                "allergy_document": SimpleUploadedFile("informe.pdf", b"%PDF-1.4 informe", content_type="application/pdf"),
+            })
+            self.assertEqual(response.status_code, 302)
+            self.student.refresh_from_db()
+            self.assertTrue(self.student.has_allergy)
+            self.assertEqual(self.student.allergy_review_status, AllergyReviewStatus.PENDING)
+            self.assertTrue(self.student.allergy_document.storage.exists(self.student.allergy_document.name))
+
+    def test_daily_report_and_email_text_highlight_pending_allergies(self):
+        self.student.has_allergy = True
+        self.student.allergy_title = "Al·lèrgia a l’ou"
+        self.student.allergy_details = "No servir ou ni derivats."
+        self.student.allergy_review_status = AllergyReviewStatus.PENDING
+        self.student.save()
+        MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
+        admin = User.objects.create_superuser("allergy-admin@example.com", "allergy-admin@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.get(f"{reverse('cafeteria:daily_reports')}?date={self.today.isoformat()}")
+        self.assertContains(response, "Atenció: al·lèrgies")
+        self.assertContains(response, self.student.allergy_title)
+        self.assertContains(response, self.student.allergy_details)
+        text = build_daily_report_text(self.today)
+        self.assertIn("ATENCIÓ — AL·LÈRGIES", text)
+        self.assertIn(self.student.allergy_title, text)
+        self.assertIn("PENDENT DE VALIDAR", text)
+
+    def test_staff_can_review_allergy_and_family_document_stays_private(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            self.student.has_allergy = True
+            self.student.allergy_title = "Al·lèrgia a la llet"
+            self.student.allergy_details = "No servir lactis."
+            self.student.allergy_review_status = AllergyReviewStatus.PENDING
+            self.student.allergy_document.save("informe.pdf", SimpleUploadedFile("informe.pdf", b"%PDF-1.4 informe"), save=True)
+            self.student.allergy_document_name = "informe.pdf"
+            self.student.save(update_fields=["allergy_document_name", "updated_at"])
+
+            admin = User.objects.create_superuser("reviewer@example.com", "reviewer@example.com", "correct-horse-battery-staple")
+            self.client.force_login(admin)
+            response = self.client.post(reverse("cafeteria:allergy_review", args=[self.student.id]), {
+                "decision": "reject", "rejection_reason": "Cal un informe vigent signat.",
+            })
+            self.assertEqual(response.status_code, 302)
+            self.student.refresh_from_db()
+            self.assertEqual(self.student.allergy_review_status, AllergyReviewStatus.REJECTED)
+            self.assertEqual(self.student.allergy_rejection_reason, "Cal un informe vigent signat.")
+
+            self.client.force_login(self.user)
+            self.assertEqual(
+                self.client.get(reverse("cafeteria:allergy_document_download", args=[self.student.id])).status_code,
+                200,
+            )
+            outsider = User.objects.create_user("outsider@example.com", "outsider@example.com", "correct-horse-battery-staple")
+            self.client.force_login(outsider)
+            self.assertEqual(
+                self.client.get(reverse("cafeteria:allergy_document_download", args=[self.student.id])).status_code,
+                403,
+            )
+
+    def test_new_tutor_invitation_requires_initial_family_setup(self):
+        admin = User.objects.create_superuser("onboarding-admin@example.com", "onboarding-admin@example.com", "correct-horse-battery-staple")
+        invitation = Invitation.objects.create(email="onboarding@example.com", role="tutor", family=self.family, created_by=admin)
+        response = self.client.post(reverse("cafeteria:invitation_accept", args=[invitation.token]), {
+            "first_name": "Joana",
+            "last_name": "Rius",
+            "new_password1": "another-correct-horse-battery-staple",
+            "new_password2": "another-correct-horse-battery-staple",
+        })
+        self.assertRedirects(response, reverse("cafeteria:family_onboarding", args=[self.family.id]))
+        response = self.client.post(reverse("cafeteria:family_onboarding", args=[self.family.id]), {
+            "family-billing_email": "family@example.com",
+            "family-phone": "600000000",
+            "family-address": "Carrer Major, 1",
+            "family-monthly_email_enabled": "on",
+            f"student-{self.student.id}-first_name": self.student.first_name,
+            f"student-{self.student.id}-last_name": self.student.last_name,
+            f"student-{self.student.id}-birth_date": "2020-01-15",
+            f"student-{self.student.id}-contact_email": "",
+            f"student-{self.student.id}-contact_phone": "",
+            f"student-{self.student.id}-contact_notes": "",
+            f"student-{self.student.id}-default_diet": self.diet.id,
+            f"student-{self.student.id}-dietary_notes": "",
+            f"student-{self.student.id}-meal_plan": MealPlan.FIXED,
+            f"student-{self.student.id}-allergy_declaration": "no",
+            f"student-{self.student.id}-allergy_title": "",
+            f"student-{self.student.id}-allergy_details": "",
+        })
+        self.assertRedirects(response, reverse("cafeteria:family_home"))
+        membership = FamilyMembership.objects.get(family=self.family, user__email="onboarding@example.com")
+        self.assertIsNotNone(membership.onboarding_completed_at)
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.has_allergy)
 
     def test_web_app_manifest_and_service_worker_are_available(self):
         response = self.client.get(reverse("web_app_manifest"))
@@ -753,7 +885,8 @@ class CafeteriaFlowTests(TestCase):
             "cafeteria/price_rules.html", "cafeteria/daily_reports.html", "cafeteria/monthly_statements.html",
             "cafeteria/statement_detail.html", "cafeteria/invitation_form.html", "cafeteria/student_form.html",
             "cafeteria/audit_log.html", "cafeteria/family_import_preview.html", "cafeteria/family_home.html",
-            "cafeteria/family_profile.html", "cafeteria/family_school_calendar.html",
+            "cafeteria/family_profile.html", "cafeteria/family_onboarding.html", "cafeteria/family_school_calendar.html",
+            "cafeteria/allergy_review_queue.html", "cafeteria/allergy_review.html",
             "cafeteria/economic_dashboard.html", "cafeteria/economic_entries.html",
             "cafeteria/economic_reports.html",
             "cafeteria/economic_entry_form.html", "cafeteria/economic_review.html",

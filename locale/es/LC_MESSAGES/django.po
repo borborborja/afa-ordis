@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 10:24+0200\n"
+"POT-Creation-Date: 2026-09-06 11:12+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -34,6 +34,51 @@ msgstr "Nombre"
 msgid "Cognoms"
 msgstr "Apellidos"
 
+msgid "Selecciona una opció"
+msgstr "Selecciona una opción"
+
+msgid "No té al·lèrgies declarades"
+msgstr "No tiene alergias declaradas"
+
+msgid "Sí, té una al·lèrgia"
+msgstr "Sí, tiene una alergia"
+
+msgid "Declaració d’al·lèrgies"
+msgstr "Declaración de alergias"
+
+msgid ""
+"Si hi ha una al·lèrgia, cal aportar un document mèdic que la justifiqui."
+msgstr "Si hay una alergia, hay que aportar un documento médico que la justifique."
+
+msgid "Exemple: Al·lèrgia a fruits secs."
+msgstr "Ejemplo: alergia a frutos secos."
+
+msgid ""
+"Indica la informació necessària perquè el menjador pugui actuar amb "
+"seguretat."
+msgstr "Indica la información necesaria para que el comedor pueda actuar con seguridad."
+
+msgid "Obligatori si hi ha al·lèrgia. PDF o imatge, màxim 10 MB."
+msgstr "Obligatorio si hay alergia. PDF o imagen, máximo 10 MB."
+
+msgid "El document mèdic ha de ser un PDF o una imatge compatible."
+msgstr "El documento médico debe ser un PDF o una imagen compatible."
+
+msgid "El document mèdic supera els 10 MB."
+msgstr "El documento médico supera los 10 MB."
+
+msgid "Indica si l’alumne/a té alguna al·lèrgia."
+msgstr "Indica si el alumno o la alumna tiene alguna alergia."
+
+msgid "Indica un títol de l’al·lèrgia."
+msgstr "Indica un título de la alergia."
+
+msgid "Explica el detall de l’al·lèrgia."
+msgstr "Explica el detalle de la alergia."
+
+msgid "Adjunta el document mèdic que acredita l’al·lèrgia."
+msgstr "Adjunta el documento médico que acredita la alergia."
+
 msgid "Correu de facturació"
 msgstr "Correo electrónico de facturación"
 
@@ -45,6 +90,25 @@ msgstr "Dirección"
 
 msgid "Rebre els resums mensuals per correu"
 msgstr "Recibir resúmenes mensuales por correo"
+
+msgid "Valida la declaració"
+msgstr "Valida la declaración"
+
+msgid "Rebutja i demana una correcció"
+msgstr "Rechaza y solicita una corrección"
+
+msgid "Decisió"
+msgstr "Decisión"
+
+msgid "Motiu del rebuig"
+msgstr "Motivo de rechazo"
+
+msgid ""
+"Obligatori si rebutges la declaració. La família el veurà a la seva fitxa."
+msgstr "Obligatorio si rechazas la declaración. La familia lo verá en su ficha."
+
+msgid "Explica què cal corregir o aportar."
+msgstr "Explica qué hay que corregir o aportar."
 
 msgid "Dieta predeterminada"
 msgstr "Dieta predeterminada"
@@ -304,6 +368,12 @@ msgstr "Arreglar"
 msgid "Esporàdic"
 msgstr "Esporádico"
 
+msgid "Pendent de validar"
+msgstr "Pendiente de validar"
+
+msgid "Validada"
+msgstr "Validada"
+
 msgid "Ajut de menjador"
 msgstr "Ayuda de comedor"
 
@@ -470,6 +540,9 @@ msgstr "Esta sección no es válida."
 msgid "No tens cap família activa vinculada al teu compte."
 msgstr "No tienes ninguna familia activa vinculada a tu cuenta."
 
+msgid "La configuració inicial de la família ja està completada."
+msgstr "La configuración inicial de la familia ya está completada."
+
 msgid "S'han actualitzat les dades de contacte de la família."
 msgstr "Se han actualizado los datos de contacto de la familia."
 
@@ -481,6 +554,9 @@ msgstr "No hay servicio de comedor en este día."
 
 msgid "Cal indicar el motiu del canvi fora de termini."
 msgstr "Se debe indicar el motivo del cambio tardío."
+
+msgid "Completa primer la configuració inicial de la família."
+msgstr "Completa primero la configuración inicial de la familia."
 
 msgid "No s'ha pogut actualitzar la reserva."
 msgstr "No se ha podido actualizar la reserva."
@@ -519,7 +595,6 @@ msgstr "Esta página es para el personal docente."
 msgid "No tens permís per modificar aquestes reserves."
 msgstr "No tienes permiso para modificar estas reservas."
 
-#| msgid "Selecciona una dieta disponible per a una reserva activa."
 msgid "Selecciona una dieta disponible."
 msgstr "Selecciona una dieta disponible."
 
@@ -593,6 +668,18 @@ msgstr "Se ha enviado el informe."
 
 msgid "No hi ha configuració de destinataris per a aquest dia."
 msgstr "No hay configuraciones de destinatarios para este día."
+
+msgid "S'ha validat la declaració d'al·lèrgia."
+msgstr "Se ha validado la declaración de alergia."
+
+msgid "S'ha rebutjat la declaració i la família ja pot corregir-la."
+msgstr "Se ha rechazado la declaración y la familia ya puede corregirla."
+
+msgid "No tens permís per consultar aquest document mèdic."
+msgstr "No tienes permiso para consultar este documento médico."
+
+msgid "No s'ha trobat el document mèdic."
+msgstr "No se ha encontrado el documento médico."
 
 msgid "Mes no vàlid."
 msgstr "Mes no válido."
@@ -1234,6 +1321,85 @@ msgstr "Registrar la cuota"
 msgid "Totes les famílies actives tenen una quota registrada."
 msgstr "Todas las familias activas tienen una cuota registrada."
 
+msgid "Revisa una al·lèrgia"
+msgstr "Revisa una alergia"
+
+msgid "Revisa la declaració"
+msgstr "Revisa la declaración"
+
+msgid ""
+"Confirma que la informació i el document mèdic permeten aplicar la dieta amb "
+"seguretat."
+msgstr "Confirma que la información y el documento médico permiten aplicar la dieta con seguridad."
+
+msgid "Torna"
+msgstr "Volver"
+
+msgid "Grup"
+msgstr "Grupo"
+
+msgid "Al·lèrgia"
+msgstr "Alergia"
+
+msgid "Detall"
+msgstr "Detalle"
+
+msgid "Obre el document mèdic"
+msgstr "Abre el documento médico"
+
+msgid "No hi ha cap document mèdic adjunt."
+msgstr "No hay ningún documento médico adjunto."
+
+msgid "Desa la decisió"
+msgstr "Guarda la decisión"
+
+msgid "Alertes d’al·lèrgies"
+msgstr "Alertas de alergias"
+
+msgid "Gestió del menjador"
+msgstr "Gestión del comedor"
+
+msgid "Declaracions d’al·lèrgia"
+msgstr "Declaraciones de alergia"
+
+msgid ""
+"Revisa els documents mèdics i valida o rebutja les declaracions. Les "
+"pendents apareixen al llistat diari per seguretat."
+msgstr "Revisa los documentos médicos y valida o rechaza las declaraciones. Las pendientes aparecen en el listado diario por seguridad."
+
+msgid "Torna als llistats"
+msgstr "Vuelve a los listados"
+
+msgid "Estat de les declaracions"
+msgstr "Estado de las declaraciones"
+
+msgid "Validades"
+msgstr "Validadas"
+
+msgid "Rebutjades"
+msgstr "Rechazado"
+
+msgid "Alumnat"
+msgstr "Alumni"
+
+msgid "Al·lèrgia declarada"
+msgstr "Alergia declarada"
+
+msgid "Revisió"
+msgstr "Revisión"
+
+msgid "Pendent"
+msgstr "Pendiente"
+
+msgid "Revisa"
+msgstr "Revisión"
+
+msgid "Document"
+msgstr "Documento"
+
+msgid "No hi ha declaracions en aquest estat."
+msgstr "No hay declaraciones en este estado."
+
 msgid "Registre"
 msgstr "Inscripción"
 
@@ -1254,9 +1420,6 @@ msgstr "Acción"
 
 msgid "Element"
 msgstr "Artículo"
-
-msgid "Detall"
-msgstr "Detalle"
 
 msgid "No hi ha canvis registrats."
 msgstr "No se han registrado cambios."
@@ -1528,15 +1691,14 @@ msgstr "comidas programadas"
 msgid "No hi ha àpats programats per a aquesta data."
 msgstr "No hay comidas programadas para esta fecha."
 
-msgid "Llegenda"
-msgstr "Leyendas"
+msgid "Atenció: al·lèrgies"
+msgstr "Atención: alergias"
 
-msgid ""
-"Les excursions es marquen al calendari i no modifiquen les reserves ni les "
-"dietes."
-msgstr ""
-"Las excursiones están marcadas en el calendario y no modifican las reservas "
-"ni las dietas."
+msgid "No hi ha cap al·lèrgia declarada entre els àpats programats."
+msgstr "No hay ninguna alergia declarada entre las comidas programadas."
+
+msgid "Revisa les declaracions"
+msgstr "Revisa las declaraciones"
 
 msgid "Enviaments recents"
 msgstr "Envíos recientes"
@@ -1546,9 +1708,6 @@ msgstr "Destinatarios"
 
 msgid "Cal actualitzar"
 msgstr "Actualización requerida"
-
-msgid "Pendent"
-msgstr "Pendiente"
 
 msgid "Envia"
 msgstr "Enviar"
@@ -1625,9 +1784,6 @@ msgstr "Aún no hay estudiantes"
 
 msgid "Contacta amb ARAM si hi falta alguna fitxa."
 msgstr "Póngase en contacto con ARAM si falta algún token."
-
-msgid "Gestió del menjador"
-msgstr "Gestión del comedor"
 
 msgid "Operativa diària"
 msgstr "Operación diaria"
@@ -1774,9 +1930,6 @@ msgstr "Configurar"
 msgid "Encara no hi ha cap compte actiu."
 msgstr "Aún no hay cuentas activas."
 
-msgid "Revisió"
-msgstr "Revisión"
-
 msgid "Tiquets per validar"
 msgstr "Tickets a validar"
 
@@ -1828,9 +1981,6 @@ msgstr "Gastos"
 msgid "Aprovades"
 msgstr "Aprobado"
 
-msgid "Rebutjades"
-msgstr "Rechazado"
-
 msgid "Filtra"
 msgstr "Filtro"
 
@@ -1843,9 +1993,6 @@ msgstr "Pago"
 msgid "Presentada per"
 msgstr "Enviado por"
 
-msgid "Revisa"
-msgstr "Revisión"
-
 msgid "Marca pagada"
 msgstr "Marca de pago"
 
@@ -1854,9 +2001,6 @@ msgstr "No se han encontrado movimientos con estos filtros."
 
 msgid "Afegeix un ingrés o una despesa. Cal conservar almenys un justificant."
 msgstr "Añadir un ingreso o gasto. Se debe conservar al menos un recibo."
-
-msgid "Torna"
-msgstr "Volver"
 
 msgid "Justificants ja adjuntats"
 msgstr "Comprobantes ya adjuntos"
@@ -1924,9 +2068,6 @@ msgstr "Verificar los datos, los documentos y decidir si la AFA lo aprueba."
 msgid "Torna a pendents"
 msgstr "Volver a pendientes"
 
-msgid "Motiu del rebuig"
-msgstr "Motivo de rechazo"
-
 msgid "Obligatori si rebutges la proposta"
 msgstr "Obligatorio si la propuesta es rechazada"
 
@@ -1954,6 +2095,9 @@ msgstr "Gestión"
 
 msgid "Dades"
 msgstr "Datos"
+
+msgid "Consulta el document mèdic actual"
+msgstr "Consulta el documento médico actual"
 
 msgid "Desa els canvis"
 msgstr "Guardar cambios"
@@ -1995,11 +2139,9 @@ msgstr "Cancelar reserva"
 msgid "Reserva desada"
 msgstr "Reserva guardada"
 
-#| msgid "S'han actualitzat les dades de contacte de la família."
 msgid "S’han actualitzat les reserves de la família."
 msgstr "Se han actualizado las reservas de la familia."
 
-#| msgid "No hi havia cap reserva nova per aplicar."
 msgid "No hi ha cap reserva disponible per modificar."
 msgstr "No hay ninguna reserva disponible para modificar."
 
@@ -2027,16 +2169,12 @@ msgstr "Disponible"
 msgid "Canvis tancats"
 msgstr "Cambios cerrados"
 
-#| msgid ""
-#| "Per canviar la dieta d’un dia reservat, toca la icona del menú al costat "
-#| "de la reserva."
 msgid ""
 "Per canviar la dieta d’un dia reservat, toca l’acció Dieta del mateix dia."
 msgstr ""
 "Para cambiar la dieta de un día reservado, toca la acción Dieta del mismo "
 "día."
 
-#| msgid "Envia a la família"
 msgid "Reserva per a tota la família"
 msgstr "Reserva para toda la familia"
 
@@ -2173,9 +2311,6 @@ msgstr "Fila"
 msgid "Alumne"
 msgstr "Alumno/a"
 
-msgid "Grup"
-msgstr "Grupo"
-
 msgid "No hi ha cap fila vàlida per importar."
 msgstr "No hay ninguna fila válida para importar."
 
@@ -2192,6 +2327,35 @@ msgstr "Confirmar la importación"
 msgid "Aquesta previsualització no es pot confirmar. Torna a pujar el fitxer."
 msgstr "Esta vista previa no se puede confirmar. Vuelve a subir el archivo."
 
+msgid "Configuració inicial"
+msgstr "Configuración inicial"
+
+msgid "Completa les dades de la família"
+msgstr "Completa los datos de la familia"
+
+msgid ""
+"Abans d’entrar al portal, confirma les dades de contacte i la fitxa de cada "
+"infant. Per declarar una al·lèrgia cal adjuntar el document mèdic que "
+"l’acredita."
+msgstr "Antes de entrar en el portal, confirma los datos de contacto y la ficha de cada menor. Para declarar una alergia es necesario adjuntar el documento médico que la acredita."
+
+msgid "Contacte de la família"
+msgstr "Contacto familiar"
+
+msgid "Completa la fitxa de l’infant i confirma la declaració d’al·lèrgies."
+msgstr "Completa la ficha del menor y confirma la declaración de alergias."
+
+msgid "No hi ha alumnat actiu vinculat a aquesta família."
+msgstr "No hay estudiantes activos vinculados a esta familia."
+
+msgid ""
+"Posa’t en contacte amb ARAM per completar l’alta de l’alumnat abans de "
+"reservar menjador."
+msgstr "Ponte en contacto con ARAM para completar el alta del alumnado antes de reservar comedor."
+
+msgid "Completa la configuració"
+msgstr "Completa la configuración"
+
 msgid "Dades de la família"
 msgstr "Datos familiares"
 
@@ -2202,8 +2366,14 @@ msgstr ""
 "Mantenga actualizados los datos familiares compartidos y los registros de "
 "los estudiantes."
 
-msgid "Contacte de la família"
-msgstr "Contacto familiar"
+msgid "Hi ha fitxes pendents de completar"
+msgstr "Hay fichas pendientes de completar"
+
+msgid ""
+"Revisa les dades de contacte, la data de naixement i la declaració "
+"d’al·lèrgies de cada infant. Si hi ha al·lèrgia, cal adjuntar el document "
+"mèdic que l’acredita."
+msgstr "Revisa los datos de contacto, la fecha de nacimiento y la declaración de alergias de cada menor. Si hay alergia, hay que adjuntar el documento médico que la acredita."
 
 msgid "Desa les dades"
 msgstr "Guardar detalles"
@@ -2224,11 +2394,20 @@ msgstr "Registros estudiantiles"
 msgid "Dieta habitual"
 msgstr "Dieta habitual"
 
+msgid "Cal corregir la declaració"
+msgstr "Hay que corregir la declaración"
+
+msgid "Al·lèrgia validada"
+msgstr "Alergia validada"
+
+msgid "Sense al·lèrgies declarades"
+msgstr "Sin alergias declaradas"
+
+msgid "Cal completar la declaració d’al·lèrgies"
+msgstr "Hay que completar la declaración de alergias"
+
 msgid "Edita la fitxa"
 msgstr "Editar la ficha"
-
-msgid "No hi ha alumnat actiu vinculat a aquesta família."
-msgstr "No hay estudiantes activos vinculados a esta familia."
 
 msgid ""
 "Consulta el curs d'un cop d'ull. Fes clic en un dia per llegir festius, "
@@ -2577,9 +2756,6 @@ msgstr "Buscar por familia, estudiante o maestro"
 msgid "Contacte"
 msgstr "Contacto"
 
-msgid "Alumnat"
-msgstr "Alumni"
-
 msgid "Quota AFA"
 msgstr "Tarifa AFA"
 
@@ -2821,18 +2997,29 @@ msgid "Fitxa de"
 msgstr "Ficha de"
 
 msgid ""
-"Pots actualitzar les dades de contacte, dieta i modalitat. La condició de "
-"beca i l'assignació de grup les modifica l'administració."
+"Pots actualitzar les dades de contacte, dieta, modalitat i declaració "
+"d’al·lèrgies. La condició de beca i l'assignació de grup les modifica "
+"l'administració."
 msgstr ""
-"Puedes actualizar tus datos de contacto, dieta y modalidad. La condición de "
-"beca y la asignación de grupo son modificadas por la administración."
+"Puedes actualizar los datos de contacto, la dieta, la modalidad y la "
+"declaración de alergias. La condición de beca y la asignación de grupo las "
+"modifica la administración."
+
+msgid "Declaració d’al·lèrgia"
+msgstr "Declaración de alergia"
+
+msgid "El document mèdic està pendent de validació per part del menjador."
+msgstr "El documento médico está pendiente de validación por parte del comedor."
+
+msgid "Cal corregir la declaració i adjuntar un document mèdic nou."
+msgstr "Hay que corregir la declaración y adjuntar un documento médico nuevo."
+
+msgid "La declaració està validada."
+msgstr "La declaración está validada."
 
 msgid "Reserva d'àpats"
 msgstr "Reserva de comida"
 
-#| msgid ""
-#| "La dieta habitual s'utilitza per defecte; pots canviar-la per als dies "
-#| "marcats."
 msgid ""
 "Toca un dia per reservar-lo. La dieta habitual s’utilitza per defecte i es "
 "pot canviar en dies concrets."
@@ -2840,7 +3027,6 @@ msgstr ""
 "Toca un día para reservarlo. La dieta habitual se utiliza por defecto y "
 "puede cambiarse en días concretos."
 
-#| msgid "Canvia la dieta de"
 msgid "Canvia la dieta"
 msgstr "Cambiar la dieta"
 

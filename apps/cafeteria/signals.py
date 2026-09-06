@@ -8,6 +8,7 @@ from .models import (
     CourseClosure,
     DailyReport,
     MealBooking,
+    Student,
     TeacherMealBooking,
     UserProfile,
     log_event,
@@ -24,6 +25,16 @@ def create_user_profile(sender, instance, created, **kwargs):
 def mark_report_outdated_for_course_closure(sender, instance, created, **kwargs):
     """Excursions are informative calendar events and never change reservations."""
     DailyReport.objects.filter(date=instance.date).update(is_outdated=True)
+
+
+@receiver(post_save, sender=Student)
+def mark_report_outdated_for_student_profile(sender, instance, **kwargs):
+    """Names, diets and allergy alerts all change the operational daily list."""
+    booking_dates = MealBooking.objects.filter(
+        student=instance,
+        status=BookingStatus.ACTIVE,
+    ).values_list("date", flat=True)
+    DailyReport.objects.filter(date__in=booking_dates).update(is_outdated=True)
 
 
 @receiver(post_save, sender=AcademicHoliday)

@@ -42,6 +42,7 @@ from .forms import (
     AcademicIntensivePeriodForm,
     AcademicNoticeForm,
     AcademicYearForm,
+    AllergyReviewForm,
     AfaFeeSettingsForm,
     AfaMembershipForm,
     CourseClosureForm,
@@ -55,6 +56,7 @@ from .forms import (
     EconomicSubmissionForm,
     FamilyContactForm,
     FamilyForm,
+    FamilyOnboardingContactForm,
     FinancialAccountForm,
     InvitationAcceptanceForm,
     InvitationForm,
@@ -70,6 +72,7 @@ from .models import (
     AcademicIntensivePeriod,
     AcademicNotice,
     AcademicYear,
+    AllergyReviewStatus,
     AfaFeeSettings,
     AfaMembership,
     AfaMembershipStatus,
@@ -227,6 +230,8 @@ def _return_to_calendar(family_id, selected_dates, week_start=None):
 
 def _update_student_booking(*, actor, student, service_date, action, diet, reason=""):
     """Apply one requested meal without silently changing dates outside the service."""
+    if _pending_family_onboarding(actor, student.family_id):
+        return False, "profile_required"
     locked = is_tutor_locked(service_date)
     if locked and not _is_staff(actor):
         return False, "locked"
@@ -288,6 +293,34 @@ def _family_for_user_or_404(user, family_id):
     if user.is_superuser or _is_admin(user):
         return get_object_or_404(Family, pk=family_id)
     return get_object_or_404(Family, pk=family_id, memberships__user=user)
+
+
+def _pending_family_onboarding(user, family_id=None):
+    """Return the required initial setup for a tutor, if one is still open."""
+    if not user.is_authenticated or _is_staff(user):
+        return None
+    memberships = FamilyMembership.objects.filter(
+        user=user,
+        onboarding_required=True,
+        onboarding_completed_at__isnull=True,
+        family__active=True,
+    )
+    if family_id is not None:
+        memberships = memberships.filter(family_id=family_id)
+    return memberships.select_related("family").order_by("family__name").first()
+
+
+def _student_profile_needs_completion(student):
+    return not student.birth_date or student.has_allergy is None
+
+
+def _family_profile_needs_completion(family):
+    return bool(
+        not family.billing_email
+        or not family.phone
+        or not family.address
+        or any(_student_profile_needs_completion(student) for student in family.students.filter(active=True))
+    )
 
 
 def _staff_dashboard_widgets(user):
@@ -392,6 +425,9 @@ def dashboard(request):
             "profile": profile, "upcoming": upcoming, "today": today,
         })
 
+    pending_onboarding = _pending_family_onboarding(request.user)
+    if pending_onboarding:
+        return redirect("cafeteria:family_onboarding", family_id=pending_onboarding.family_id)
     families = Family.objects.filter(memberships__user=request.user, active=True).prefetch_related("students__default_diet")
     upcoming = MealBooking.objects.filter(
         student__family__in=families,
@@ -505,6 +541,9 @@ def _build_year_calendar(academic_year, course_group_ids=None):
 
 @login_required
 def family_home(request):
+    pending_onboarding = _pending_family_onboarding(request.user)
+    if pending_onboarding:
+        return redirect("cafeteria:family_onboarding", family_id=pending_onboarding.family_id)
     families = Family.objects.filter(memberships__user=request.user, active=True).prefetch_related("students")
     if not families.exists():
         messages.info(request, _("No tens cap família activa vinculada al teu compte."))
@@ -523,8 +562,53 @@ def family_context_select(request):
 
 
 @login_required
+def family_onboarding(request, family_id):
+    """Required first setup for a newly invited tutor and their active students."""
+    membership = get_object_or_404(
+        FamilyMembership.objects.select_related("family"),
+        family_id=family_id,
+        user=request.user,
+    )
+    family = membership.family
+    if not membership.onboarding_required or membership.onboarding_completed_at:
+        return redirect("cafeteria:family_home")
+    students = list(family.students.filter(active=True).select_related("default_diet", "course_group"))
+    family_form = FamilyOnboardingContactForm(request.POST or None, instance=family, prefix="family")
+    student_forms = [
+        TutorStudentForm(
+            request.POST or None,
+            request.FILES or None,
+            instance=student,
+            prefix=f"student-{student.id}",
+            require_profile_completion=True,
+        )
+        for student in students
+    ]
+    if request.method == "POST" and family_form.is_valid() and all(form.is_valid() for form in student_forms):
+        with transaction.atomic():
+            family_form.save()
+            for form in student_forms:
+                saved_student = form.save()
+                reprice_open_bookings(student=saved_student)
+                log_event(request.user, "student.initial_profile_completed", saved_student)
+            membership.onboarding_completed_at = timezone.now()
+            membership.save(update_fields=["onboarding_completed_at"])
+            log_event(request.user, "family.initial_profile_completed", family)
+        messages.success(request, _("La configuració inicial de la família ja està completada."))
+        return redirect("cafeteria:family_home")
+    return render(request, "cafeteria/family_onboarding.html", {
+        "family": family,
+        "family_form": family_form,
+        "student_form_rows": list(zip(students, student_forms)),
+    })
+
+
+@login_required
 def family_profile(request, family_id):
     family = _family_for_user_or_404(request.user, family_id)
+    pending_onboarding = _pending_family_onboarding(request.user, family.id)
+    if pending_onboarding:
+        return redirect("cafeteria:family_onboarding", family_id=family.id)
     form = FamilyContactForm(request.POST or None, instance=family)
     if request.method == "POST" and form.is_valid():
         saved = form.save()
@@ -535,12 +619,16 @@ def family_profile(request, family_id):
         "family": family,
         "form": form,
         "students": family.students.filter(active=True).select_related("course_group", "default_diet"),
+        "profile_needs_completion": _family_profile_needs_completion(family),
     })
 
 
 @login_required
 def family_school_calendar(request, family_id):
     family = _family_for_user_or_404(request.user, family_id)
+    pending_onboarding = _pending_family_onboarding(request.user, family.id)
+    if pending_onboarding:
+        return redirect("cafeteria:family_onboarding", family_id=family.id)
     family_years = AcademicYear.objects.filter(
         Q(is_active=True) | Q(course_groups__students__family=family)
     ).distinct()
@@ -576,6 +664,9 @@ def family_school_calendar(request, family_id):
 @login_required
 def family_calendar(request, family_id):
     family = _family_for_user_or_404(request.user, family_id)
+    pending_onboarding = _pending_family_onboarding(request.user, family.id)
+    if pending_onboarding:
+        return redirect("cafeteria:family_onboarding", family_id=family.id)
     try:
         month_start = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date().replace(day=1)
     except ValueError:
@@ -658,6 +749,7 @@ def _booking_json_error(result):
         "locked": _("El termini de canvis per a aquest dia ha acabat."),
         "unavailable": _("Aquest dia no té servei de menjador."),
         "reason_required": _("Cal indicar el motiu del canvi fora de termini."),
+        "profile_required": _("Completa primer la configuració inicial de la família."),
     }
     return JsonResponse({"ok": False, "message": messages_by_result.get(result, _("No s'ha pogut actualitzar la reserva."))}, status=409)
 
@@ -989,14 +1081,21 @@ def student_edit(request, student_id):
         student = get_object_or_404(Student, pk=student_id)
     else:
         student = get_object_or_404(Student, pk=student_id, family__memberships__user=request.user)
-    form = TutorStudentForm(request.POST or None, instance=student)
+    pending_onboarding = _pending_family_onboarding(request.user, student.family_id)
+    if pending_onboarding:
+        return redirect("cafeteria:family_onboarding", family_id=student.family_id)
+    form = TutorStudentForm(request.POST or None, request.FILES or None, instance=student)
     if request.method == "POST" and form.is_valid():
         updated = form.save()
         reprice_open_bookings(student=updated)
         log_event(request.user, "student.updated_by_tutor", updated)
         messages.success(request, _("S'ha actualitzat la fitxa de %(name)s.") % {"name": updated.full_name})
         return redirect("cafeteria:family_profile", family_id=updated.family_id)
-    return render(request, "cafeteria/student_form.html", {"form": form, "student": student})
+    return render(request, "cafeteria/student_form.html", {
+        "form": form,
+        "student": student,
+        "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student.allergy_document else None,
+    })
 
 
 @admin_required
@@ -1032,17 +1131,25 @@ def invitation_create(request):
 
 def _finish_invitation(invitation, user):
     ensure_role_groups()
+    membership = None
     user.groups.add(Group.objects.get(name=invitation.role))
     if invitation.role == Role.ADMIN:
         user.is_staff = True
         user.save(update_fields=["is_staff"])
     if invitation.role == Role.TUTOR:
-        FamilyMembership.objects.get_or_create(family=invitation.family, user=user)
+        membership, _created = FamilyMembership.objects.get_or_create(
+            family=invitation.family,
+            user=user,
+        )
+        if not membership.onboarding_completed_at:
+            membership.onboarding_required = True
+            membership.save(update_fields=["onboarding_required"])
     if invitation.role == Role.TEACHER:
         TeacherMealProfile.objects.get_or_create(user=user, defaults={"default_diet": _ordinary_diet()})
     invitation.accepted_at = timezone.now()
     invitation.save(update_fields=["accepted_at"])
     log_event(user, "invitation.accepted", invitation, {"role": invitation.role})
+    return membership
 
 
 def invitation_accept(request, token):
@@ -1056,17 +1163,21 @@ def invitation_accept(request, token):
             return redirect(f"{reverse('cafeteria:login')}?next={request.path}")
         if request.user.pk != existing.pk:
             return HttpResponseForbidden(_("Aquesta invitació correspon a un altre compte."))
-        _finish_invitation(invitation, existing)
+        membership = _finish_invitation(invitation, existing)
         messages.success(request, _("La invitació s'ha acceptat correctament."))
+        if membership:
+            return redirect("cafeteria:family_onboarding", family_id=membership.family_id)
         return redirect("cafeteria:dashboard")
 
     user = User(username=invitation.email.lower(), email=invitation.email.lower())
     form = InvitationAcceptanceForm(user, request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
-        _finish_invitation(invitation, user)
+        membership = _finish_invitation(invitation, user)
         login(request, user)
         messages.success(request, _("El teu compte ja està actiu."))
+        if membership:
+            return redirect("cafeteria:family_onboarding", family_id=membership.family_id)
         return redirect("cafeteria:dashboard")
     return render(request, "cafeteria/invitation_accept.html", {"form": form, "invitation": invitation})
 
@@ -1084,6 +1195,7 @@ def daily_reports(request):
         selected_date = timezone.localdate()
     student_bookings = bookings_for_day(selected_date)
     teacher_bookings = teacher_bookings_for_day(selected_date)
+    allergy_alerts = [booking for booking in student_bookings if booking.student.has_operational_allergy_alert]
     diet_totals = {}
     for booking in list(student_bookings) + list(teacher_bookings):
         name = booking.diet_name or _("Ordinària")
@@ -1094,6 +1206,7 @@ def daily_reports(request):
         "student_bookings": student_bookings, "teacher_bookings": teacher_bookings,
         "diet_totals": sorted(diet_totals.items()),
         "daily_total": student_bookings.count() + teacher_bookings.count(),
+        "allergy_alerts": allergy_alerts,
     })
 
 
@@ -1111,6 +1224,84 @@ def daily_report_send(request, service_date):
     else:
         messages.success(request, _("S'ha enviat l'informe.") if sent else _("No hi ha configuració de destinataris per a aquest dia."))
     return redirect(f"{reverse('cafeteria:daily_reports')}?date={report_date.isoformat()}")
+
+
+@staff_required
+def allergy_review_queue(request):
+    selected_status = request.GET.get("status", AllergyReviewStatus.PENDING)
+    valid_statuses = set(AllergyReviewStatus.values)
+    if selected_status not in valid_statuses:
+        selected_status = AllergyReviewStatus.PENDING
+    declarations = Student.objects.filter(
+        has_allergy=True,
+        allergy_review_status=selected_status,
+    ).select_related("family", "course_group", "allergy_reviewed_by").order_by(
+        "allergy_review_status", "family__name", "first_name", "last_name"
+    )
+    counts = {
+        status: Student.objects.filter(has_allergy=True, allergy_review_status=status).count()
+        for status in AllergyReviewStatus.values
+    }
+    return render(request, "cafeteria/allergy_review_queue.html", {
+        "declarations": declarations,
+        "selected_status": selected_status,
+        "counts": counts,
+        "review_statuses": AllergyReviewStatus,
+    })
+
+
+@staff_required
+def allergy_review(request, student_id):
+    student = get_object_or_404(
+        Student.objects.select_related("family", "course_group", "allergy_reviewed_by"),
+        pk=student_id,
+        has_allergy=True,
+        allergy_review_status=AllergyReviewStatus.PENDING,
+    )
+    form = AllergyReviewForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["decision"] == "approve":
+            student.allergy_review_status = AllergyReviewStatus.APPROVED
+            student.allergy_rejection_reason = ""
+            action = "student_allergy.approved"
+            message = _("S'ha validat la declaració d'al·lèrgia.")
+        else:
+            student.allergy_review_status = AllergyReviewStatus.REJECTED
+            student.allergy_rejection_reason = form.cleaned_data["rejection_reason"].strip()
+            action = "student_allergy.rejected"
+            message = _("S'ha rebutjat la declaració i la família ja pot corregir-la.")
+        student.allergy_reviewed_at = timezone.now()
+        student.allergy_reviewed_by = request.user
+        student.save(update_fields=[
+            "allergy_review_status", "allergy_rejection_reason", "allergy_reviewed_at",
+            "allergy_reviewed_by", "updated_at",
+        ])
+        log_event(request.user, action, student, {
+            "status": student.allergy_review_status,
+            "title": student.allergy_title,
+        })
+        messages.success(request, message)
+        return redirect("cafeteria:allergy_review_queue")
+    return render(request, "cafeteria/allergy_review.html", {
+        "student": student,
+        "form": form,
+        "document_url": reverse("cafeteria:allergy_document_download", args=[student.id]),
+    })
+
+
+@login_required
+def allergy_document_download(request, student_id):
+    student = get_object_or_404(Student.objects.select_related("family"), pk=student_id)
+    is_family_member = FamilyMembership.objects.filter(family=student.family, user=request.user).exists()
+    if not _is_staff(request.user) and not is_family_member:
+        return HttpResponseForbidden(_("No tens permís per consultar aquest document mèdic."))
+    if not student.allergy_document or not student.allergy_document.storage.exists(student.allergy_document.name):
+        raise Http404(_("No s'ha trobat el document mèdic."))
+    log_event(request.user, "student_allergy.document_downloaded", student, {
+        "document": student.allergy_document_name,
+    })
+    filename = student.allergy_document_name or Path(student.allergy_document.name).name
+    return FileResponse(student.allergy_document.open("rb"), as_attachment=True, filename=filename)
 
 
 @staff_required
@@ -2171,7 +2362,12 @@ def family_form(request, family_id=None):
 @admin_required
 def management_student_form(request, student_id=None):
     student = get_object_or_404(Student, pk=student_id) if student_id else None
-    form = StaffStudentForm(request.POST or None, instance=student)
+    form = StaffStudentForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=student,
+        require_profile_completion=student is None,
+    )
     if request.method == "POST" and form.is_valid():
         saved = form.save()
         reprice_open_bookings(student=saved)
@@ -2179,8 +2375,10 @@ def management_student_form(request, student_id=None):
         messages.success(request, _("S'ha desat la fitxa de l'alumne."))
         return redirect("cafeteria:people")
     return render(request, "cafeteria/entity_form.html", {
-        "form": form, "title": _("Nou alumne") if student is None else _("Edita la fitxa de l'alumne"),
+        "form": form,
+        "title": _("Nou alumne") if student is None else _("Edita la fitxa de l'alumne"),
         "back_url": reverse("cafeteria:people"),
+        "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student and student.allergy_document else None,
     })
 
 

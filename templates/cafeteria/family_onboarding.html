@@ -1,0 +1,30 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Configuració inicial" %}{% endblock %}
+{% block content %}
+<section class="page-heading compact">
+  <div>
+    <p class="eyebrow">{{ family.name }}</p>
+    <h1>{% translate "Completa les dades de la família" %}</h1>
+    <p>{% translate "Abans d’entrar al portal, confirma les dades de contacte i la fitxa de cada infant. Per declarar una al·lèrgia cal adjuntar el document mèdic que l’acredita." %}</p>
+  </div>
+</section>
+<form method="post" enctype="multipart/form-data" class="onboarding-form">{% csrf_token %}
+  {{ family_form.non_field_errors }}
+  <section class="card form-card">
+    <h2>{% translate "Contacte de la família" %}</h2>
+    <div class="form-grid">{% for field in family_form %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endfor %}</div>
+  </section>
+  {% for student, form in student_form_rows %}
+  <section class="card form-card onboarding-student-card">
+    <div class="section-title"><h2>{{ student.full_name }}</h2><span>{{ forloop.counter }}</span></div>
+    <p class="muted">{% translate "Completa la fitxa de l’infant i confirma la declaració d’al·lèrgies." %}</p>
+    {{ form.non_field_errors }}
+    <div class="form-grid">{% for field in form %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endfor %}</div>
+  </section>
+  {% empty %}
+  <section class="message warning"><strong>{% translate "No hi ha alumnat actiu vinculat a aquesta família." %}</strong><p>{% translate "Posa’t en contacte amb ARAM per completar l’alta de l’alumnat abans de reservar menjador." %}</p></section>
+  {% endfor %}
+  <div class="form-actions"><button class="button primary" type="submit">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Completa la configuració" %}</button></div>
+</form>
+{% endblock %}

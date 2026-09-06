@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from django import forms
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -9,6 +12,7 @@ from .models import (
     AcademicIntensivePeriod,
     AcademicNotice,
     AcademicYear,
+    AllergyReviewStatus,
     AfaFeeSettings,
     AfaMembership,
     CourseClosure,
@@ -32,6 +36,10 @@ from .models import (
     Student,
     TeacherMealProfile,
 )
+
+
+MEDICAL_DOCUMENT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"}
+MAX_MEDICAL_DOCUMENT_BYTES = 10 * 1024 * 1024
 
 
 class InvitationForm(forms.ModelForm):
@@ -66,17 +74,141 @@ class InvitationAcceptanceForm(SetPasswordForm):
         return user
 
 
-class TutorStudentForm(forms.ModelForm):
+class StudentAllergyFormMixin(forms.ModelForm):
+    """Shared, family-safe allergy declaration fields for a student profile."""
+
+    allergy_declaration = forms.ChoiceField(
+        choices=(
+            ("", _("Selecciona una opció")),
+            ("no", _("No té al·lèrgies declarades")),
+            ("yes", _("Sí, té una al·lèrgia")),
+        ),
+        required=False,
+        label=_("Declaració d’al·lèrgies"),
+        widget=forms.RadioSelect,
+        help_text=_("Si hi ha una al·lèrgia, cal aportar un document mèdic que la justifiqui."),
+    )
+
+    def __init__(self, *args, require_profile_completion=False, **kwargs):
+        self.require_profile_completion = require_profile_completion
+        super().__init__(*args, **kwargs)
+        self._previous_allergy = {
+            "has_allergy": self.instance.has_allergy,
+            "title": self.instance.allergy_title,
+            "details": self.instance.allergy_details,
+            "document": self.instance.allergy_document.name if self.instance.allergy_document else "",
+            "status": self.instance.allergy_review_status,
+        }
+        self.fields["allergy_declaration"].required = require_profile_completion
+        allergy_key = self.prefix or "student"
+        self.fields["allergy_declaration"].widget.attrs["data-allergy-declaration"] = allergy_key
+        if self.instance.has_allergy is True:
+            self.fields["allergy_declaration"].initial = "yes"
+        elif self.instance.has_allergy is False:
+            self.fields["allergy_declaration"].initial = "no"
+        self.fields["allergy_title"].help_text = _("Exemple: Al·lèrgia a fruits secs.")
+        self.fields["allergy_details"].help_text = _("Indica la informació necessària perquè el menjador pugui actuar amb seguretat.")
+        self.fields["allergy_document"].help_text = _("Obligatori si hi ha al·lèrgia. PDF o imatge, màxim 10 MB.")
+        self.fields["allergy_document"].widget.attrs.update({
+            "accept": ".pdf,image/jpeg,image/png,image/webp,image/heic",
+        })
+        for field_name in ("allergy_title", "allergy_details", "allergy_document"):
+            self.fields[field_name].widget.attrs["data-allergy-field"] = allergy_key
+        if require_profile_completion:
+            self.fields["birth_date"].required = True
+
+    def clean_allergy_document(self):
+        uploaded = self.cleaned_data.get("allergy_document")
+        if not uploaded or uploaded is False:
+            return uploaded
+        extension = Path(uploaded.name).suffix.lower()
+        if extension not in MEDICAL_DOCUMENT_EXTENSIONS:
+            raise ValidationError(_("El document mèdic ha de ser un PDF o una imatge compatible."))
+        if uploaded.size > MAX_MEDICAL_DOCUMENT_BYTES:
+            raise ValidationError(_("El document mèdic supera els 10 MB."))
+        return uploaded
+
+    def clean(self):
+        cleaned = super().clean()
+        declaration = cleaned.get("allergy_declaration", "")
+        if not declaration:
+            if self.require_profile_completion:
+                self.add_error("allergy_declaration", _("Indica si l’alumne/a té alguna al·lèrgia."))
+            return cleaned
+
+        has_allergy = declaration == "yes"
+        cleaned["has_allergy"] = has_allergy
+        if not has_allergy:
+            return cleaned
+
+        if not cleaned.get("allergy_title", "").strip():
+            self.add_error("allergy_title", _("Indica un títol de l’al·lèrgia."))
+        if not cleaned.get("allergy_details", "").strip():
+            self.add_error("allergy_details", _("Explica el detall de l’al·lèrgia."))
+        uploaded = cleaned.get("allergy_document")
+        requires_new_document = self._previous_allergy["status"] == AllergyReviewStatus.REJECTED
+        has_existing_document = bool(self._previous_allergy["document"])
+        if uploaded is False or (not uploaded and (not has_existing_document or requires_new_document)):
+            self.add_error("allergy_document", _("Adjunta el document mèdic que acredita l’al·lèrgia."))
+        return cleaned
+
+    def save(self, commit=True):
+        student = super().save(commit=False)
+        declaration = self.cleaned_data.get("allergy_declaration", "")
+        previous = self._previous_allergy
+        previous_document = previous["document"]
+        delete_previous_document = False
+
+        if declaration == "no":
+            student.has_allergy = False
+            student.allergy_title = ""
+            student.allergy_details = ""
+            student.allergy_document = None
+            student.allergy_document_name = ""
+            student.allergy_review_status = ""
+            student.allergy_rejection_reason = ""
+            student.allergy_reviewed_at = None
+            student.allergy_reviewed_by = None
+            delete_previous_document = bool(previous_document)
+        elif declaration == "yes":
+            uploaded = self.cleaned_data.get("allergy_document")
+            if uploaded and uploaded is not False:
+                student.allergy_document_name = Path(uploaded.name).name[:255]
+            changed = (
+                previous["has_allergy"] is not True
+                or previous["title"] != student.allergy_title
+                or previous["details"] != student.allergy_details
+                or bool(uploaded and uploaded is not False)
+            )
+            if changed:
+                student.has_allergy = True
+                student.allergy_review_status = AllergyReviewStatus.PENDING
+                student.allergy_rejection_reason = ""
+                student.allergy_reviewed_at = None
+                student.allergy_reviewed_by = None
+                delete_previous_document = bool(previous_document and uploaded and uploaded is not False)
+
+        if commit:
+            student.save()
+            self.save_m2m()
+            if delete_previous_document and previous_document:
+                student.allergy_document.storage.delete(previous_document)
+        return student
+
+
+class TutorStudentForm(StudentAllergyFormMixin):
     class Meta:
         model = Student
         fields = (
             "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
-            "contact_notes", "default_diet", "dietary_notes", "meal_plan",
+            "contact_notes", "default_diet", "dietary_notes", "meal_plan", "allergy_title",
+            "allergy_details", "allergy_document",
         )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
             "contact_notes": forms.Textarea(attrs={"rows": 3}),
             "dietary_notes": forms.Textarea(attrs={"rows": 3}),
+            "allergy_details": forms.Textarea(attrs={"rows": 4}),
         }
 
 
@@ -102,19 +234,52 @@ class FamilyContactForm(forms.ModelForm):
         }
 
 
-class StaffStudentForm(forms.ModelForm):
+class FamilyOnboardingContactForm(FamilyContactForm):
+    """Initial setup collects a complete shared family contact."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in ("billing_email", "phone", "address"):
+            self.fields[field_name].required = True
+
+
+class StaffStudentForm(StudentAllergyFormMixin):
     class Meta:
         model = Student
         fields = (
             "family", "course_group", "first_name", "last_name", "birth_date", "contact_email",
             "contact_phone", "contact_notes", "default_diet", "dietary_notes", "is_scholarship",
-            "meal_plan", "active",
+            "meal_plan", "active", "allergy_title", "allergy_details", "allergy_document",
         )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
             "contact_notes": forms.Textarea(attrs={"rows": 3}),
             "dietary_notes": forms.Textarea(attrs={"rows": 3}),
+            "allergy_details": forms.Textarea(attrs={"rows": 4}),
         }
+
+
+class AllergyReviewForm(forms.Form):
+    decision = forms.ChoiceField(
+        choices=(
+            ("approve", _("Valida la declaració")),
+            ("reject", _("Rebutja i demana una correcció")),
+        ),
+        label=_("Decisió"),
+        widget=forms.RadioSelect,
+    )
+    rejection_reason = forms.CharField(
+        required=False,
+        label=_("Motiu del rebuig"),
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text=_("Obligatori si rebutges la declaració. La família el veurà a la seva fitxa."),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("decision") == "reject" and not cleaned.get("rejection_reason", "").strip():
+            self.add_error("rejection_reason", _("Explica què cal corregir o aportar."))
+        return cleaned
 
 
 class TeacherMealProfileForm(forms.ModelForm):
