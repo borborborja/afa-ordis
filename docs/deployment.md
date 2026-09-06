@@ -4,7 +4,7 @@ Aquesta versió requereix una migració explícita al xifrat. No sobreescriure e
 
 ## Abans d'arrencar
 
-1. Revisar [l'expedient de privacitat](privacy-governance.md), completar les [plantilles català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md), obtenir contractes i aprovar les bases i terminis.
+1. Revisar [l'expedient de privacitat](privacy-governance.md), la [política catalana](privacy-policy-ca.md) i la [castellana](privacy-policy-es.md), obtenir les evidències de contractes i recuperació, i confirmar les bases i terminis aprovats.
 2. Seguir [claus, conversió i recuperació](privacy-operations.md). Crear claus independents fora del volum. Si hi ha una base SQLite anterior, convertir-ne una còpia amb `convert_legacy_backup`; no canviar el motor directament sobre la base plana.
 3. Validar imatge, volums i còpia de recuperació. El nou procés usa UID/GID 10001; un volum antic creat com a root requereix ajustar-ne els permisos fora de línia, només després d'identificar-lo. No canviar permisos recursivament sobre el host o un directori ampli.
 
@@ -75,7 +75,7 @@ Hi ha una única app amb un procés Gunicorn/quatre fils i un planificador. No e
 
 La imatge genera estàtics versionats, utilitza usuari no root, elimina capabilities, prohibeix core dumps i configura tmpfs per als temporals. El host encara ha de protegir swap, snapshots, còpies, ports SSH i accés Docker. La comprovació `/health/` consulta la base; durant una recuperació pendent respon 503 intencionadament. No es publica Django Admin.
 
-El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i publica la política real validada amb els sis terminis. Fins llavors, el portal bloqueja les altes ordinàries. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
+El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i publica la política real validada amb els sis terminis seguint [l'activació de la política aprovada](privacy-operations.md#activació-de-la-política-aprovada). Fins llavors, el portal bloqueja les altes ordinàries. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
 
 ## Actualització d'una instal·lació existent
 

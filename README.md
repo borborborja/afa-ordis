@@ -4,7 +4,7 @@ Portal autogestionat de l'AFA d'Ordis per a la gestió de reserves de menjador, 
 
 ## Requisits
 
-Abans de desplegar aquesta versió, segueix [operació segura i claus](docs/privacy-operations.md) i completa l'[expedient de privacitat](docs/privacy-governance.md). Producció exigeix SQLCipher, adjunts/còpies xifrats, MFA del personal i validació prèvia de la recollida. No sobreescriguis el `.env` ja configurat al servidor. Les còpies ZIP/SQLite antigues necessiten conversió fora de línia; no canviïs únicament el motor sobre una base existent.
+Abans de desplegar aquesta versió, segueix [operació segura i claus](docs/privacy-operations.md), inclosa l'[activació auditada de la política aprovada](docs/privacy-operations.md#activació-de-la-política-aprovada), i conserva l'[expedient de privacitat](docs/privacy-governance.md). Producció exigeix SQLCipher, adjunts/còpies xifrats, MFA del personal i validació prèvia de la recollida. No sobreescriguis el `.env` ja configurat al servidor. Les còpies ZIP/SQLite antigues necessiten conversió fora de línia; no canviïs únicament el motor sobre una base existent.
 
 Requisits nous obligatoris en producció:
 
@@ -72,7 +72,7 @@ Gestió de menjador pot operar les reserves, preus, llistats, planificació mens
 
 ## Operativa
 
-- El portal es pot instal·lar com una aplicació al mòbil. En Android/Chrome, inicia sessió, toca **Instal·la l'app** a la capçalera i confirma; en iPhone/iPad, obre el portal amb Safari, toca **Comparteix** i escull **Afegeix a la pantalla d’inici**. La icona i el favicon són el logotip de l'Escola Maria Pagès i Texer.
+- El portal es pot instal·lar com una aplicació al mòbil. En Android/Chrome, inicia sessió, toca **Instal·la l'app** a la capçalera i confirma; en iPhone/iPad, obre el portal amb Safari, toca **Comparteix** i escull **Afegeix a la pantalla d’inici**. La icona i el favicon són el logotip de l'Escola Maria Pagès i Trayter.
 - Les persones tutores disposen d’un menú propi amb reserva de menjador, resums, menú escolar, calendari escolar i dades de contacte. Veuen una matriu mensual conjunta amb tots els infants de la família: tocar un dia disponible reserva l’àpat amb la dieta habitual, tocar una reserva l’anul·la i la icona de dieta permet canviar-la només per a aquell dia. Cada canvi es desa automàticament; una reserva nova es pot aplicar ràpidament a la resta d’infants, mantenint la dieta predeterminada de cadascun.
 - Si s'activa l'autogestió d'alumnat, la primera persona tutora d'una família sense fitxes n'ha d'afegir almenys una durant l'alta. Les persones tutores següents només poden editar les dades existents i no repeteixen l'assistent. Les fitxes antigues mostren un avís de dades pendents, però no bloquegen les reserves.
 - Una al·lèrgia declarada amb document mèdic queda pendent de validació. Cuina veu només el llistat operatiu del dia, amb instruccions imprescindibles; no veu diagnòstics, documents, contactes ni beques. Si manca validació, consentiment o instruccions segures, el sistema mostra que cal aturar la preparació individual. Els documents només els poden descarregar la família vinculada o la persona amb permís mèdic exprés.

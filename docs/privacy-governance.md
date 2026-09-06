@@ -1,14 +1,17 @@
-# Expedient de protecció de dades — pendent de validació de l'AFA
+# Expedient de protecció de dades — AFA Escola Maria Pagès i Trayter
 
-Aquest document és una plantilla de treball, no una declaració de compliment ni un dictamen jurídic. No hi ha dades reals en els assajos. Responsable declarat: l'AFA; allotjament declarat: VPS ZAP-Hosting a Alemanya; correu declarat: Fastmail. No s'ha inspeccionat el servidor de producció ni el compte Fastmail.
+Aquest és el registre operatiu que acompanya la política aprovada; no substitueix assessorament jurídic. Responsable: **AFA Escola Maria Pagès i Trayter**, NIF **J17213604**, c/ de les Escoles, 4, 17772 Ordis (Girona). Contacte de privacitat: **privacitat@afaescolaordis.org**. La infraestructura declarada és un VPS de ZAP-Hosting a Alemanya i el correu declarat és Fastmail.
+
+La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'activació tècnica no ha de convertir en certes comprovacions que encara no existeixen: la comanda de publicació obliga a declarar separadament l'aprovació de la política i terminis, contractes i transferències, bases/avaluació i recuperació amb claus.
 
 ## Condicions per obrir la recollida
 
-- [ ] Identificar denominació legal, NIF, domicili i contacte de privacitat de l'AFA; designar titular i substitut dels procediments.
+- [x] Identificar denominació legal, NIF, domicili i contacte de privacitat de l'AFA.
+- [ ] Designar la persona titular i suplent dels procediments de privacitat i incidents, amb una via de contacte interna restringida.
 - [ ] Aclarir amb escola i empresa de menjador qui decideix cada tractament i si actuen com a encarregats, responsables independents o corresponsables. Documentar els accessos reals de cuina i revisió mèdica.
 - [ ] Validar la base de cada finalitat i la necessitat de cada camp. No assumir que tot requereix consentiment, ni que un consentiment general autoritza dades de salut.
 - [ ] Revisar l'excepció de l'article 9 aplicable. La implementació actual exigeix consentiment explícit de la representació familiar per a la declaració mèdica; si no és lliure o la base adequada és una altra, adaptar el flux abans de publicar. No forçar l'acceptació mitjançant la pèrdua automàtica del servei: acordar una alternativa segura.
-- [ ] Aprovar sis terminis separats amb una justificació i el fet inicial del còmput. No hi ha terminis legals universals preomplerts.
+- [x] Aprovar sis terminis separats amb justificació i fet inicial del còmput: salut, operativa i prova de consentiment, cinc anys; comptabilitat, sis anys; auditoria i drets, tres anys; còpies ordinàries, 30 dies. Les excepcions només es documenten per obligació legal, reclamació o retenció concreta.
 - [ ] Obtenir el contracte d'encàrrec de ZAP-Hosting: infraestructura, ubicacions de còpies, assistència, subencarregats, incidents, retorn i supressió. La ubicació alemanya del VPS no prova el xifrat de discos, snapshots o swap de l'hipervisor.
 - [ ] Arxivar el DPA Fastmail aplicable, annexos, subencarregats, garanties de transferència i avaluació de transferències. Confirmar la regió efectiva del compte sense publicar-ne credencials.
 - [ ] Fer i aprovar l'avaluació d'impacte amb qui assumeix la responsabilitat jurídica. Documentar necessitat, proporcionalitat, risc residual i alternatives al document mèdic complet.
@@ -17,9 +20,9 @@ Aquest document és una plantilla de treball, no una declaració de compliment n
 
 El portal exigeix els sis terminis i una política publicada amb les tres validacions (contractes, avaluació i recuperació) abans d'admetre altes ordinàries. Aquestes marques són declaracions de la persona autoritzada, no verificacions automàtiques de contractes.
 
-## Registre d'activitats proposat
+## Registre d'activitats
 
-Completar bases, destinataris, nombre de persones, terminis i responsables de cada fila abans d'aprovar-lo.
+Aquest registre concreta les finalitats, bases, destinataris i terminis de la política. Abans d'activar-lo, l'AFA ha de documentar les identitats de l'escola i de l'empresa de menjador si tenen un accés real a dades o decideixen algun tractament.
 
 | Activitat | Dades/persones | Finalitat i base per validar | Accés | Conservació/execució |
 | --- | --- | --- | --- | --- |
@@ -45,7 +48,7 @@ Infants i informació clínica exigeixen especial prudència. La [llista AEPD d'
 | Còpia antiga | Registre de restriccions autenticat, reaplicació, portal tancat fins a revisió | Cal conservar i aportar de debò l'últim registre extern; el programa no pot endevinar-ne versions perdudes |
 | Conservació excessiva | Regles separades, bloqueig, purga i eina comptable amb confirmació | Baixes completes de famílies/comptes, excepcions fiscals i còpies descarregades necessiten actuació humana |
 
-Acta d'aprovació: [PENDENT: data, persones, decisions, risc residual, assessorament i signatura]. Si queda risc alt no mitigat, determinar amb assessorament si procedeix consulta prèvia a l'autoritat abans del tractament.
+L'acta d'aprovació ha de conservar data, persones signants, decisions, risc residual, assessorament i signatura. Si queda risc alt no mitigat, s'ha de determinar amb assessorament si procedeix una consulta prèvia a l'autoritat abans del tractament.
 
 ## Drets i representació
 
@@ -64,7 +67,7 @@ Períodes, excepcions i eventuals ampliacions motivades s'han de tramitar confor
 - Valorar tipus de dades, persones afectades, possibilitat de lectura i conseqüències; xifrat en repòs no exonera si també s'han exposat les claus.
 - Activar assessorament i responsable de l'AFA immediatament. Avaluar notificació a l'autoritat dins de 72 hores des que es té constància quan correspon, i comunicació als afectats si hi ha alt risc; documentar també la decisió de no notificar.
 - Revocar comptes/tokens, canviar secrets afectats, recuperar en entorn aïllat i executar el procediment de restriccions abans de reobrir.
-- Tancar amb causa, mesures correctores i revisió de l'EIPD. Responsable/contacte d'emergència i substitut: [PENDENT].
+- Tancar amb causa, mesures correctores i revisió de l'EIPD. L'AFA ha de designar en l'acta interna el responsable d'emergència i el seu substitut; no cal publicar les seves dades de contacte personals.
 
 ## Fastmail i ZAP-Hosting
 

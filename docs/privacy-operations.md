@@ -36,6 +36,32 @@ python manage.py convert_legacy_backup \
 
 Aquesta ordre s'executa amb la configuració xifrada, claus i `PRIVATE_TEMP_DIR` sobre tmpfs. Accepta SQLite pla o ZIP v1; converteix i migra una base secundària, xifra documents i crea una còpia v2. No substitueix la base activa ni esborra l'original. Un SQLite sol no conté documents: si en falten, recuperar-los de l'original abans d'obrir. Tractar el llegat com a material sensible, revisar-ne el consentiment i retirar les còpies planes només després de verificar la recuperació i les obligacions de conservació.
 
+## Activació de la política aprovada
+
+Els textos aprovats de l'AFA, la identificació del responsable i els sis terminis estan versionats al codi i documentats a [política en català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). Després de desplegar la imatge que inclou aquests fitxers, una persona autoritzada ha de publicar-los una sola vegada. La publicació registra l'aprovador, fixa la versió i desbloqueja les altes ordinàries.
+
+Abans d'executar-la, l'AFA ha de tenir arxivats i revisats: l'acord de la política i terminis, els contractes o garanties aplicables de ZAP-Hosting i Fastmail, les bases jurídiques i avaluació de riscos, i una prova real de recuperació amb les claus separades. Les cinc confirmacions de la comanda són declaracions auditables: no les marquis per convertir una tasca pendent en aprovada.
+
+Primer identifica el compte actiu que actua com a aprovador. Ha de ser un superusuari o tenir el permís explícit `privacy`; la seva adreça de contacte de privacitat no ha de coincidir necessàriament amb el seu compte d'entrada:
+
+```bash
+sudo docker compose exec app python manage.py shell -c "from django.contrib.auth import get_user_model; print(*get_user_model().objects.filter(is_active=True).values_list('username', 'email'), sep='\\n')"
+```
+
+Substitueix `USUARI_O_CORREU_DEL_COMPTE_AUTORITZAT` i executa:
+
+```bash
+sudo docker compose exec app python manage.py publish_afa_privacy_policy \
+  --approved-by 'USUARI_O_CORREU_DEL_COMPTE_AUTORITZAT' \
+  --confirm-policy-approved-by-afa \
+  --confirm-retention-approved \
+  --confirm-processor-contracts \
+  --confirm-impact-assessment \
+  --confirm-key-recovery
+```
+
+La comanda no sobreescriu una política publicada, cap esborrany amb la mateixa versió ni terminis ja existents. En qualsevol d'aquests casos, cal revisar-los des de **Gestió de privacitat** i publicar una versió nova: les polítiques publicades són immutables. Després comprova `https://afaescolaordis.org/ca/privacitat/` i una alta de prova sense dades reals.
+
 ## Transport, host i límits
 
 - HTTPS a Traefik, port de Django no publicat directament i xarxa proxy d'accés controlat. Validar certificat, redireccions, capçaleres i confiança de `X-Forwarded-Proto` al VPS real.

@@ -1,27 +1,68 @@
-# Plantilla de política — castellano
+# Política de privacidad — AFA Escola Maria Pagès i Trayter
 
-BORRADOR NO PUBLICABLE. Completar y validar todos los marcadores; copiar el cuerpo validado al campo castellano de la política del portal. El consentimiento de salud es un campo separado. No publicar este archivo tal cual.
+Versión 2026-09-06. Texto aprobado por la AFA para publicarlo en el portal después de completar y documentar las verificaciones operativas indicadas en [gobernanza](privacy-governance.md).
 
-## Cuerpo de la política
+## Responsable del tratamiento
 
-Responsable: [PENDENT: denominación legal AFA], NIF [PENDENT], domicilio [PENDENT]. Contacto de privacidad: [PENDENT: correo y vía postal]. Versión/fecha: [PENDENT].
+**AFA Escola Maria Pagès i Trayter** · NIF **J17213604**<br>
+c/ de les Escoles, 4, 17772 Ordis (Girona)<br>
+Contacto de privacidad: [privacitat@afaescolaordis.org](mailto:privacitat@afaescolaordis.org)
 
-Tratamos los datos necesarios para gestionar la cuenta y la representación familiar, las reservas y el servicio de comedor, la relación asociativa voluntaria, las cuotas y justificantes, la seguridad del portal y las solicitudes de derechos. Los datos proceden de las personas representantes y de [PENDENT: otras fuentes efectivas e información facilitada cuando no se obtienen directamente]. No utilizamos el portal para publicidad, perfiles comerciales ni decisiones automatizadas con efectos jurídicos.
+## Finalidades y datos tratados
 
-Bases jurídicas: [PENDENT: base específica de cada finalidad y obligaciones concretas]. La información clínica se tramita con la base y excepción de salud [PENDENT: validar el consentimiento explícito implementado y su libertad]. La inscripción al servicio y la pertenencia al AFA no constituyen un consentimiento general para cualquier uso de datos. Pedimos únicamente la acreditación médica pertinente, sin historia clínica completa ajena a la seguridad alimentaria.
+Tratamos los datos necesarios para dar de alta y gestionar la cuenta, acreditar la representación familiar, organizar las reservas y el servicio de comedor, gestionar la relación asociativa voluntaria, las cuotas, cobros, justificantes y contabilidad, proteger el portal y atender las solicitudes de derechos. Los datos los facilita principalmente la persona usuaria o representante. No realizamos publicidad, perfiles comerciales ni decisiones automatizadas con efectos jurídicos.
 
-La familia accede a su información. Las personas con autorización médica expresa revisan declaraciones y documentos. Cocina consulta únicamente la lista operativa del día con nombre, grupo, dieta e instrucciones imprescindibles; no recibe informes clínicos ni datos de contacto o becas. La administración gestiona los elementos necesarios de cuentas y facturación. Otros destinatarios y relación con escuela/empresa del comedor: [PENDENT]. No vendemos datos.
+La información de salud, alergias y acreditaciones médicas solo se solicita si es pertinente para preparar el servicio de comedor con seguridad. No hace falta aportar una historia clínica completa ajena a esta finalidad.
 
-El portal se aloja en un VPS contratado a ZAP-Hosting en Alemania. Fastmail presta el correo: enviamos avisos individuales con un enlace al portal, no informes médicos ni listas de menores. El correo trata direcciones, metadatos y mensajes de alta/restablecimiento. Fastmail puede tratar datos fuera del EEE, incluidos los EE. UU. aunque se seleccione la región UE. Garantías contractuales y forma de obtener información: [PENDENT: DPA, cláusulas aplicables, evaluación y contacto]. Otros encargados o transferencias efectivos: [PENDENT].
+## Bases jurídicas
 
-La base de datos, los documentos y las copias del portal se almacenan cifrados; el transporte web utiliza HTTPS y el envío SMTP utiliza TLS. No es cifrado de extremo a extremo: el servicio necesita descifrar los datos para prestar las funciones autorizadas.
+- La gestión de la cuenta, de las reservas y del servicio se basa en la ejecución de la relación de servicio o asociativa y en las actuaciones solicitadas por la persona usuaria (artículo 6.1.b RGPD).
+- Las obligaciones contables, fiscales y la atención de derechos se tratan cuando es necesario para cumplir una obligación legal (artículo 6.1.c RGPD).
+- La prevención del fraude, la seguridad, el registro mínimo de accesos y la continuidad del portal se basan en el interés legítimo de la AFA (artículo 6.1.f RGPD), ponderado con las garantías de esta política.
+- Los datos de salud se tratan con el consentimiento explícito de la persona representante y la excepción del artículo 9.2.a RGPD. El consentimiento es independiente, no está premarcado, queda registrado con la versión del texto y se puede retirar en cualquier momento. La retirada no afecta a la licitud previa; la AFA acordará con la familia una alternativa segura y no asignará por defecto una dieta ordinaria.
 
-Conservación: [PENDENT: plazo y hecho inicial para datos operativos, documentos de salud, contabilidad, auditoría, derechos y prueba del consentimiento]. Las copias externas ordinarias se renuevan a diario y se retiran a los 30 días, salvo conservación legal documentada. Los datos bloqueados no se utilizan para la gestión ordinaria y se destruyen al finalizar el plazo aplicable si no existe obligación de preservación.
+## Destinatarios y proveedores
 
-Puedes solicitar acceso, rectificación, supresión, limitación, oposición y portabilidad cuando proceda, y retirar el consentimiento, en «Tus derechos» o en el contacto del responsable, también sin cuenta activa. Verificaremos la identidad y representación de forma proporcionada. La retirada no afecta al tratamiento anterior lícito. Si retiras la declaración de salud, detenemos el uso ordinario de esa información y acordamos contigo cómo continuar el servicio con seguridad; no asignamos una dieta ordinaria por defecto. Reclamaciones: [PENDENT: autoridad competente y enlace].
+Solo acceden las personas autorizadas según su función. La familia ve sus datos; la revisión médica solo la realizan personas con permiso expreso; y cocina recibe únicamente, para el día del servicio, el nombre, grupo, dieta e instrucciones estrictamente imprescindibles. Cocina no recibe informes clínicos, datos de contacto, becas ni información económica.
 
-Utilizamos cookies técnicas de sesión, protección CSRF y preferencia de idioma; no hay analítica publicitaria integrada. Duración efectiva e identificadores: [PENDENT: verificar configuración desplegada]. Los enlaces externos que decidas abrir tienen sus propias políticas.
+El portal se aloja en un VPS de ZAP-Hosting situado en Alemania. Fastmail presta el servicio de correo para invitaciones, recuperaciones y avisos individuales; los correos no incluyen informes médicos, listas de menores ni información económica. Estos proveedores tratan datos por cuenta de la AFA de acuerdo con las instrucciones y las garantías contractuales aplicables.
 
-## Texto separado del consentimiento de salud
+Fastmail puede implicar transferencias internacionales o accesos desde fuera del Espacio Económico Europeo. Las garantías aplicables, incluidas las cláusulas contractuales tipo cuando correspondan, se pueden solicitar al contacto de privacidad. No vendemos datos personales ni los cedemos para fines comerciales.
 
-[PENDENT: validar adecuación y completar identidad/contacto] Autorizo explícitamente a [AFA] a tratar la declaración y acreditación médica estrictamente necesaria del menor que represento para organizar un servicio de comedor seguro, según la política [versión]. Entiendo que el documento solo será accesible a la familia y a las personas con autorización médica, y que cocina únicamente recibirá las instrucciones operativas imprescindibles. He recibido información sobre conservación, retirada y derechos. Puedo retirar esta autorización en el portal o en [contacto], sin afectar a los tratamientos anteriores lícitos, y acordar con el AFA una alternativa segura. Confirmo que tengo la representación legal necesaria. Esta autorización es independiente de otras finalidades y no está premarcada.
+## Seguridad
+
+La base de datos, los documentos privados y las copias del portal se guardan cifrados; las comunicaciones web utilizan HTTPS y el correo SMTP utiliza TLS. El personal con acceso privilegiado debe utilizar autenticación de doble factor y permisos específicos. No es cifrado de extremo a extremo: el sistema autorizado necesita descifrar los datos para prestar el servicio. La AFA limita el acceso, conserva copias cifradas y mantiene procedimientos de recuperación e incidentes.
+
+## Conservación
+
+| Categoría | Plazo e inicio del cómputo |
+| --- | --- |
+| Datos operativos | Cinco años desde la baja o la última actuación. Los datos dietéticos operativos se minimizan antes. |
+| Datos de salud bloqueados | Cinco años desde la retirada del consentimiento, rectificación o baja. No se usan en la gestión ordinaria. |
+| Contabilidad y justificantes | Seis años desde el último asiento contable. |
+| Registros de seguridad | Tres años desde su creación. |
+| Solicitudes de derechos | Tres años desde su resolución. |
+| Prueba del consentimiento | Cinco años desde su retirada o finalización. |
+| Copias ordinarias externas | Se renuevan diariamente y se eliminan a los 30 días. |
+
+Los plazos solo pueden ampliarse si existe una obligación legal, reclamación o retención documentada. Al finalizar, los datos se destruyen o anonimizan de forma segura.
+
+## Derechos y reclamaciones
+
+Puedes solicitar acceso, rectificación, supresión, limitación, oposición y portabilidad cuando proceda, y retirar el consentimiento, desde **Tus derechos** del portal o escribiendo a [privacitat@afaescolaordis.org](mailto:privacitat@afaescolaordis.org). Puedes ejercerlos aunque no tengas una cuenta activa. Verificaremos la identidad y la representación de forma proporcionada.
+
+También puedes presentar una reclamación ante la [Agencia Española de Protección de Datos](https://www.aepd.es/).
+
+## Cookies y navegador
+
+El portal utiliza cookies técnicas de sesión, protección CSRF, preferencia de idioma y almacenamiento local de navegación. No incorpora analítica ni publicidad de terceros. Las páginas privadas no se guardan en la memoria caché de la aplicación. Los enlaces externos tienen sus propias políticas de privacidad.
+
+## Consentimiento explícito de salud
+
+> Autorizo explícitamente a la AFA Escola Maria Pagès i Trayter, NIF J17213604, a tratar la declaración de alergias, intolerancias, dieta y la acreditación médica estrictamente necesaria del menor al que represento para organizar un servicio de comedor seguro. Entiendo que la información solo será accesible por la familia y por las personas con autorización médica expresa, y que cocina solo recibirá las instrucciones operativas imprescindibles.
+>
+> He leído esta política, sé que el consentimiento es independiente de otras finalidades, que no está premarcado y que puedo retirar la autorización desde **Tus derechos** o escribiendo a [privacitat@afaescolaordis.org](mailto:privacitat@afaescolaordis.org). La retirada no afecta al tratamiento anterior lícito; la AFA acordará conmigo una alternativa segura y no asignará por defecto una dieta ordinaria. Confirmo que tengo la representación legal necesaria del menor.
+
+## Publicación en el portal
+
+El texto público que publica el portal procede de `apps/cafeteria/approved_privacy_policy.py`; este documento es su versión legible y aprobada. No se publica automáticamente: una persona autorizada debe ejecutar el comando documentado en [operación segura](privacy-operations.md#activació-de-la-política-aprovada). Así queda registrada la persona aprobadora, se fijan los seis plazos y se impide alterar posteriormente la versión publicada.

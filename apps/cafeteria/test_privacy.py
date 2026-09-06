@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.core import mail
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile
@@ -146,6 +148,54 @@ class CryptoTests(TestCase):
             self.assertEqual(source.execute("SELECT value FROM synthetic").fetchone()[0], "synthetic-rotation")
         finally:
             source.close()
+
+
+@override_settings(PRIVACY_ENFORCED=True)
+class PrivacyPublicationCommandTests(TestCase):
+    def setUp(self):
+        self.approver = User.objects.create_superuser(
+            "privacy.officer", "privacy.officer@example.test", "Synthetic-long-password-6723",
+        )
+
+    def command_args(self):
+        return (
+            "publish_afa_privacy_policy", "--approved-by", self.approver.email,
+            "--confirm-policy-approved-by-afa", "--confirm-retention-approved",
+            "--confirm-processor-contracts", "--confirm-impact-assessment", "--confirm-key-recovery",
+        )
+
+    def test_requires_all_real_world_confirmations(self):
+        with self.assertRaises(CommandError):
+            call_command("publish_afa_privacy_policy", "--approved-by", self.approver.email)
+        self.assertFalse(PrivacyNotice.objects.exists())
+        self.assertFalse(RetentionRule.objects.exists())
+
+    def test_requires_a_privacy_authorised_approver(self):
+        unapproved = User.objects.create_user(
+            "ordinary.account", "ordinary.account@example.test", "Synthetic-long-password-6723",
+        )
+        args = list(self.command_args())
+        args[2] = unapproved.email
+        with self.assertRaises(CommandError):
+            call_command(*args)
+        self.assertFalse(PrivacyNotice.objects.exists())
+
+    def test_publishes_approved_text_and_unlocks_collection(self):
+        call_command(*self.command_args())
+        notice = PrivacyNotice.current()
+        self.assertIsNotNone(notice)
+        self.assertEqual(notice.controller, "AFA Escola Maria Pagès i Trayter")
+        self.assertEqual(notice.contact_email, "privacitat@afaescolaordis.org")
+        self.assertNotIn("[PENDENT", notice.text_ca)
+        self.assertEqual(set(RetentionRule.objects.values_list("category", flat=True)), set(RetentionRule.Category.values))
+        self.assertTrue(privacy_ready())
+
+    def test_never_overwrites_a_published_notice_or_retention_rules(self):
+        call_command(*self.command_args())
+        with self.assertRaises(CommandError):
+            call_command(*self.command_args())
+        self.assertEqual(PrivacyNotice.objects.count(), 1)
+        self.assertEqual(RetentionRule.objects.count(), len(RetentionRule.Category.values))
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", MFA_REQUIRED=False, PRIVACY_ENFORCED=False)
