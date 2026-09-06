@@ -681,7 +681,6 @@ def family_onboarding(request, family_id):
                 saved_student = form.save(commit=False)
                 saved_student.family = family
                 saved_student.save()
-                form.record_consent(saved_student)
                 log_event(request.user, "student.created_by_family", saved_student)
             completed_at = timezone.now()
             FamilyMembership.objects.filter(family=family).update(
@@ -742,7 +741,6 @@ def family_student_create(request, family_id):
         saved = form.save(commit=False)
         saved.family = family
         saved.save()
-        form.record_consent(saved)
         log_event(request.user, "student.created_by_family", saved)
         messages.success(request, _("S'ha afegit la fitxa de l'infant."))
         return redirect("cafeteria:family_profile", family_id=family.id)
@@ -751,6 +749,7 @@ def family_student_create(request, family_id):
         "title": _("Afegeix alumnat a %(family)s") % {"family": family.name},
         "back_url": reverse("cafeteria:family_profile", args=[family.id]),
         "help_text": _("Selecciona el grup actual i completa la fitxa de menjador. L'ajut de menjador el gestiona l'administració."),
+        "student_form": True,
     })
 
 
@@ -2727,6 +2726,7 @@ def management_student_form(request, student_id=None):
         "title": _("Nou alumne") if student is None else _("Edita la fitxa de l'alumne"),
         "back_url": reverse("cafeteria:people"),
         "allergy_document_url": reverse("cafeteria:allergy_document_download", args=[student.id]) if student and student.allergy_document and medical_access(request.user, student) else None,
+        "student_form": True,
     })
 
 

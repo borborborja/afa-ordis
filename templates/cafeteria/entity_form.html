@@ -4,10 +4,14 @@
 {% block content %}
 <section class="page-heading compact"><div><p class="eyebrow">{% translate "Dades" %}</p><h1>{{ title }}</h1>{% if help_text %}<p>{{ help_text }}</p>{% endif %}</div><a class="button secondary" href="{{ back_url }}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Torna" %}</a></section>
 <form method="post" enctype="multipart/form-data" class="card form-card">{% csrf_token %}
-  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-grid">
-    {% for field in form %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endfor %}
-  </div>
+  {% if student_form %}
+    {% include 'cafeteria/components/student_profile_fields.html' with form=form %}
+  {% else %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid">
+      {% for field in form %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endfor %}
+    </div>
+  {% endif %}
   {% if allergy_document_url %}<p class="attachment-link">{% include 'cafeteria/components/icon.html' with name='document' %}<a href="{{ allergy_document_url }}">{% translate "Consulta el document mèdic actual" %}</a></p>{% endif %}
   <div class="form-actions"><a class="button secondary" href="{{ back_url }}">{% translate "Cancel·la" %}</a><button class="button primary" type="submit">{% translate "Desa els canvis" %}</button></div>
 </form>

@@ -1,0 +1,42 @@
+{% load i18n %}
+{% if form.errors %}
+  <div class="form-errors" role="alert" tabindex="-1" data-form-errors>
+    <h2>{% translate "Revisa els camps marcats" %}</h2>
+    <p>{% translate "No s'han desat els canvis. Completa o corregeix els camps següents." %}</p>
+    <ul>
+      {% for field in form.visible_fields %}{% for error in field.errors %}<li><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ error }}</a></li>{% endfor %}{% endfor %}
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+{% if form.non_field_errors and not form.errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+<fieldset class="student-form-section">
+  <legend>{% translate "Dades de l'alumne" %}</legend>
+  <div class="form-grid">
+    {% for field in form %}
+      {% if field.name != "allergy_declaration" and field.name != "allergy_title" and field.name != "allergy_details" and field.name != "allergy_document" and field.name != "kitchen_instructions" and field.name != "DELETE" %}
+        <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</fieldset>
+
+{% if form.allergy_declaration %}
+  <fieldset class="student-form-section allergy-form-section">
+    <legend>{% translate "Al·lèrgies i intoleràncies" %}</legend>
+    <p class="muted">{% translate "Indica si n'hi ha. Si la resposta és sí, cal completar el títol, els detalls, les indicacions per a cuina i adjuntar el document mèdic." %}</p>
+    <div class="form-grid">
+      {% for field in form %}
+        {% if field.name == "allergy_declaration" or field.name == "allergy_title" or field.name == "allergy_details" or field.name == "kitchen_instructions" or field.name == "allergy_document" %}
+          <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </fieldset>
+{% endif %}

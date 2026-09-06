@@ -22,8 +22,7 @@
   <section class="card form-card onboarding-student-card">
     <div class="section-title"><h2>{{ student.full_name }}</h2><span>{{ forloop.counter }}</span></div>
     <p class="muted">{% translate "Completa la fitxa de l’infant i confirma la declaració d’al·lèrgies." %}</p>
-    {{ form.non_field_errors }}
-    <div class="form-grid">{% for field in form %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endfor %}</div>
+    {% include 'cafeteria/components/student_profile_fields.html' with form=form %}
   </section>
   {% endfor %}
   <section class="data-section">
@@ -34,16 +33,14 @@
       {% for form in new_student_forms %}
       <section class="card form-card onboarding-student-card" data-student-form-row>
         <div class="section-title"><h2>{% translate "Fitxa de l'infant" %}</h2><button class="link-button danger-link" type="button" data-remove-student-form>{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></div>
-        {{ form.non_field_errors }}<input type="hidden" name="{{ form.DELETE.html_name }}" value="" data-student-delete>
-        <div class="form-grid">{% for field in form %}{% if field.name != 'DELETE' %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endif %}{% endfor %}</div>
+        <input type="hidden" name="{{ form.DELETE.html_name }}" value="" data-student-delete>{% include 'cafeteria/components/student_profile_fields.html' with form=form %}
       </section>
       {% endfor %}
     </div>
     <template data-student-form-template>
       <section class="card form-card onboarding-student-card" data-student-form-row>
         <div class="section-title"><h2>{% translate "Fitxa de l'infant" %}</h2><button class="link-button danger-link" type="button" data-remove-student-form>{% include 'cafeteria/components/icon.html' with name='trash' %}{% translate "Elimina" %}</button></div>
-        {{ new_student_forms.empty_form.non_field_errors }}<input type="hidden" name="{{ new_student_forms.empty_form.DELETE.html_name }}" value="" data-student-delete>
-        <div class="form-grid">{% for field in new_student_forms.empty_form %}{% if field.name != 'DELETE' %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endif %}{% endfor %}</div>
+        <input type="hidden" name="{{ new_student_forms.empty_form.DELETE.html_name }}" value="" data-student-delete>{% include 'cafeteria/components/student_profile_fields.html' with form=new_student_forms.empty_form %}
       </section>
     </template>
   </section>

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 21:20+0200\n"
+"POT-Creation-Date: 2026-09-06 21:58+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -47,6 +47,36 @@ msgstr "Nombre"
 msgid "Cognoms"
 msgstr "Apellidos"
 
+msgid "Grup del curs"
+msgstr "Grupo del curso"
+
+msgid "Data de naixement"
+msgstr "Fecha de nacimiento"
+
+msgid "Dieta predeterminada"
+msgstr "Dieta predeterminada"
+
+msgid "Modalitat de menjador"
+msgstr "Modalidad de comedor"
+
+msgid "Ajut de menjador"
+msgstr "Ayuda de comedor"
+
+msgid "Actiu"
+msgstr "Activo"
+
+msgid "Títol de l’al·lèrgia"
+msgstr "Título de la alergia"
+
+msgid "Detalls de l’al·lèrgia"
+msgstr "Detalles de la alergia"
+
+msgid "Document mèdic"
+msgstr "Documento médico"
+
+msgid "Indicacions per a cuina"
+msgstr "Indicaciones para cocina"
+
 msgid "Selecciona una opció"
 msgstr "Selecciona una opción"
 
@@ -77,13 +107,6 @@ msgstr ""
 msgid "Obligatori si hi ha al·lèrgia. PDF o imatge, màxim 10 MB."
 msgstr "Obligatorio si hay alergia. PDF o imagen, máximo 10 MB."
 
-msgid "Consento explícitament el tractament de salut descrit"
-msgstr "Consiento explícitamente el tratamiento de salud descrito"
-
-msgid "Confirmo que tinc representació legal per autoritzar aquest tractament"
-msgstr ""
-"Confirmo que tengo representación legal para autorizar este tratamiento"
-
 msgid "El document mèdic ha de ser un PDF o una imatge compatible."
 msgstr "El documento médico debe ser un PDF o una imagen compatible."
 
@@ -92,11 +115,6 @@ msgstr "El documento médico supera los 10 MB."
 
 msgid "Indica si l’alumne/a té alguna al·lèrgia."
 msgstr "Indica si el alumno o la alumna tiene alguna alergia."
-
-msgid "Cal el consentiment explícit d'una persona representant de l'infant."
-msgstr ""
-"Se requiere el consentimiento explícito de una persona representante del "
-"menor."
 
 msgid "Indica únicament les instruccions alimentàries necessàries per a cuina."
 msgstr ""
@@ -110,12 +128,6 @@ msgstr "Explica el detalle de la alergia."
 
 msgid "Adjunta el document mèdic que acredita l’al·lèrgia."
 msgstr "Adjunta el documento médico que acredita la alergia."
-
-msgid "Només una persona representant pot prestar el consentiment."
-msgstr "Solo una persona representante puede prestar el consentimiento."
-
-msgid "Grup del curs"
-msgstr "Grupo del curso"
 
 msgid "Selecciona un grup"
 msgstr "Selecciona un grupo"
@@ -146,14 +158,8 @@ msgstr ""
 msgid "Explica què cal corregir o aportar."
 msgstr "Explica qué hay que corregir o aportar."
 
-msgid "Dieta predeterminada"
-msgstr "Dieta predeterminada"
-
 msgid "Modalitat"
 msgstr "Modalidad"
-
-msgid "Actiu"
-msgstr "Activo"
 
 msgid "Observacions"
 msgstr "Comentarios"
@@ -459,9 +465,6 @@ msgstr "Validada"
 
 msgid "Instruccions alimentàries per a cuina"
 msgstr "Instrucciones alimentarias para cocina"
-
-msgid "Ajut de menjador"
-msgstr "Ayuda de comedor"
 
 msgid "El dia ha de ser dins del curs acadèmic."
 msgstr "El día debe estar dentro del curso académico."
@@ -2088,6 +2091,26 @@ msgstr "Subir archivos"
 
 msgid "Elimina"
 msgstr "Eliminar"
+
+msgid "Revisa els camps marcats"
+msgstr "Revisa los campos marcados"
+
+msgid "No s'han desat els canvis. Completa o corregeix els camps següents."
+msgstr ""
+"No se han guardado los cambios. Completa o corrige los campos siguientes."
+
+msgid "Dades de l'alumne"
+msgstr "Datos del alumno o la alumna"
+
+msgid "Al·lèrgies i intoleràncies"
+msgstr "Alergias e intolerancias"
+
+msgid ""
+"Indica si n'hi ha. Si la resposta és sí, cal completar el títol, els "
+"detalls, les indicacions per a cuina i adjuntar el document mèdic."
+msgstr ""
+"Indica si las hay. Si la respuesta es sí, hay que completar el título, los "
+"detalles, las indicaciones para cocina y adjuntar el documento médico."
 
 msgid "Dades i AFA"
 msgstr "Datos y AFA"
@@ -3787,13 +3810,12 @@ msgid "Fitxa de"
 msgstr "Ficha de"
 
 msgid ""
-"Pots actualitzar les dades de contacte, dieta, modalitat i declaració "
-"d’al·lèrgies. La condició de beca i l'assignació de grup les modifica "
-"l'administració."
+"Actualitza les dades de menjador i, si cal, la declaració d’al·lèrgies. La "
+"condició de beca i l'assignació de grup les modifica l'administració."
 msgstr ""
-"Puedes actualizar los datos de contacto, la dieta, la modalidad y la "
-"declaración de alergias. La condición de beca y la asignación de grupo las "
-"modifica la administración."
+"Actualiza los datos de comedor y, si es necesario, la declaración de "
+"alergias. La condición de beca y la asignación de grupo las modifica la "
+"administración."
 
 msgid "Declaració d’al·lèrgia"
 msgstr "Declaración de alergia"
@@ -3912,3 +3934,19 @@ msgstr "Solicitar enlace"
 
 msgid "Restableix la contrasenya del portal AFA Ordis"
 msgstr "Restablecer la contraseña del portal AFA Ordis"
+
+#~ msgid "Consento explícitament el tractament de salut descrit"
+#~ msgstr "Consiento explícitamente el tratamiento de salud descrito"
+
+#~ msgid ""
+#~ "Confirmo que tinc representació legal per autoritzar aquest tractament"
+#~ msgstr ""
+#~ "Confirmo que tengo representación legal para autorizar este tratamiento"
+
+#~ msgid "Cal el consentiment explícit d'una persona representant de l'infant."
+#~ msgstr ""
+#~ "Se requiere el consentimiento explícito de una persona representante del "
+#~ "menor."
+
+#~ msgid "Només una persona representant pot prestar el consentiment."
+#~ msgstr "Solo una persona representante puede prestar el consentimiento."

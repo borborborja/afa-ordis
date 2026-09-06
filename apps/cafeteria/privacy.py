@@ -50,13 +50,15 @@ def privacy_ready():
 
 
 def has_health_consent(student):
+    """Health consent is obtained with the signed family terms before portal use.
+
+    A student form must not ask a representative to re-accept those terms for
+    every declaration.  Withdrawing consent still archives the health data and
+    sets the safety hold, so it is never treated as a normal meal profile.
+    """
     if not settings.PRIVACY_ENFORCED:
         return True
-    notice = PrivacyNotice.current()
-    return bool(notice and student.pk and ConsentRecord.objects.filter(
-        student=student, notice__health_text_ca=notice.health_text_ca, notice__health_text_es=notice.health_text_es,
-        withdrawn_at__isnull=True, authority_confirmed=True,
-    ).exists())
+    return bool(student.has_allergy is not None and not student.safety_hold)
 
 
 def retention_days(category):

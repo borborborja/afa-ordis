@@ -1138,6 +1138,36 @@ textarea {
   margin-bottom: 14px;
   color: #b33426;
 }
+.form-errors {
+  border: 1px solid #b33426;
+  border-radius: 9px;
+  background: #fff4f2;
+  padding: 14px;
+}
+.form-errors h2,
+.form-errors p {
+  margin: 0 0 8px;
+}
+.form-errors ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.student-form-section {
+  min-width: 0;
+  margin: 0 0 20px;
+  padding: 18px;
+  border: 1px solid #d7e1db;
+  border-radius: 10px;
+}
+.student-form-section legend {
+  padding: 0 6px;
+  color: var(--forest);
+  font-weight: 700;
+}
+.allergy-form-section {
+  border-color: #d9b975;
+  background: #fffdf7;
+}
 .toolbar {
   display: flex;
   align-items: end;

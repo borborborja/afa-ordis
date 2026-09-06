@@ -328,7 +328,7 @@ class PrivacyFlows(TestCase):
         self.assertEqual(event.details, {"status": "pending"})
 
     @override_settings(PRIVACY_ENFORCED=True)
-    def test_health_requires_explicit_representative_consent_and_records_revision(self):
+    def test_health_declaration_uses_previously_authorised_terms(self):
         from .forms import TutorStudentForm
         from .privacy import has_health_consent
         self.publish()
@@ -337,14 +337,11 @@ class PrivacyFlows(TestCase):
             "allergy_title": "Updated synthetic diagnosis", "allergy_details": "Updated synthetic details",
             "kitchen_instructions": "Avoid eggs"}
         form = TutorStudentForm(data, instance=Student.objects.get(pk=self.student.pk), actor=self.tutor)
-        self.assertFalse(form.is_valid())
-        self.assertIn("health_consent", form.errors)
-        data.update(health_consent="on", parental_authority="on")
-        form = TutorStudentForm(data, instance=Student.objects.get(pk=self.student.pk), actor=self.tutor)
         self.assertTrue(form.is_valid(), form.errors)
         with self.captureOnCommitCallbacks(execute=True):
             changed = form.save()
         self.assertTrue(has_health_consent(changed))
+        self.assertFalse(ConsentRecord.objects.filter(student=changed).exists())
         self.assertEqual(changed.allergy_title, "Updated synthetic diagnosis")
         self.assertEqual(len(load_restriction_ledger()), 1)
         self.assertTrue(BlockedData.objects.filter(subject=changed.privacy_id).exists())

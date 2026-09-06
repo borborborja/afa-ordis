@@ -94,6 +94,22 @@ class InvitationAcceptanceForm(SetPasswordForm):
 class StudentAllergyFormMixin(forms.ModelForm):
     """Shared, family-safe allergy declaration fields for a student profile."""
 
+    field_labels = {
+        "family": _("Família"),
+        "course_group": _("Grup del curs"),
+        "first_name": _("Nom"),
+        "last_name": _("Cognoms"),
+        "birth_date": _("Data de naixement"),
+        "default_diet": _("Dieta predeterminada"),
+        "meal_plan": _("Modalitat de menjador"),
+        "is_scholarship": _("Ajut de menjador"),
+        "active": _("Actiu"),
+        "allergy_title": _("Títol de l’al·lèrgia"),
+        "allergy_details": _("Detalls de l’al·lèrgia"),
+        "allergy_document": _("Document mèdic"),
+        "kitchen_instructions": _("Indicacions per a cuina"),
+    }
+
     allergy_declaration = forms.ChoiceField(
         choices=(
             ("", _("Selecciona una opció")),
@@ -112,10 +128,16 @@ class StudentAllergyFormMixin(forms.ModelForm):
         self.actor = actor
         if family is not None:
             self.instance.family = family
+        for name, label in self.field_labels.items():
+            if name in self.fields:
+                self.fields[name].label = label
+        if require_profile_completion:
+            self.fields["birth_date"].required = True
+            self.fields["default_diet"].required = True
         from .privacy import medical_access
         self.medical_allowed = medical_access(actor, self.instance) if actor else not settings.PRIVACY_ENFORCED
         if not self.medical_allowed:
-            for name in ("allergy_declaration", "allergy_title", "allergy_details", "allergy_document", "dietary_notes", "kitchen_instructions"):
+            for name in ("allergy_declaration", "allergy_title", "allergy_details", "allergy_document", "kitchen_instructions"):
                 self.fields.pop(name, None)
             return
         self._previous_allergy = {
@@ -142,15 +164,7 @@ class StudentAllergyFormMixin(forms.ModelForm):
         })
         for field_name in ("allergy_title", "allergy_details", "allergy_document"):
             self.fields[field_name].widget.attrs["data-allergy-field"] = allergy_key
-        if require_profile_completion:
-            self.fields["birth_date"].required = True
-        if settings.PRIVACY_ENFORCED:
-            from .models import PrivacyNotice
-            from django.utils.translation import get_language
-            self.notice = PrivacyNotice.current()
-            notice_text = (self.notice.health_text_es if get_language() == "es" else self.notice.health_text_ca) if self.notice else ""
-            self.fields["health_consent"] = forms.BooleanField(required=False, label=_("Consento explícitament el tractament de salut descrit"), help_text=notice_text)
-            self.fields["parental_authority"] = forms.BooleanField(required=False, label=_("Confirmo que tinc representació legal per autoritzar aquest tractament"))
+        self.fields["kitchen_instructions"].widget.attrs["data-allergy-field"] = allergy_key
 
     def clean_allergy_document(self):
         uploaded = self.cleaned_data.get("allergy_document")
@@ -181,12 +195,6 @@ class StudentAllergyFormMixin(forms.ModelForm):
         if not has_allergy:
             return cleaned
         if settings.PRIVACY_ENFORCED:
-            from .privacy import has_health_consent
-            from .models import FamilyMembership
-            if not has_health_consent(self.instance):
-                is_representative = self.actor and FamilyMembership.objects.filter(user=self.actor, family_id=self.instance.family_id).exists()
-                if not (self.notice and is_representative and cleaned.get("health_consent") and cleaned.get("parental_authority")):
-                    self.add_error("health_consent", _("Cal el consentiment explícit d'una persona representant de l'infant."))
             if not cleaned.get("kitchen_instructions", "").strip():
                 self.add_error("kitchen_instructions", _("Indica únicament les instruccions alimentàries necessàries per a cuina."))
 
@@ -259,35 +267,24 @@ class StudentAllergyFormMixin(forms.ModelForm):
                     file_name=previous_document if delete_previous_document else "",
                     destroy_after=timezone.now() + timedelta(days=retention_days("health")))
             student.save()
-            self.record_consent(student)
             self.save_m2m()
             if delete_previous_document and previous_document and not settings.PRIVACY_ENFORCED:
                 storage = student.allergy_document.storage
                 transaction.on_commit(lambda: storage.delete(previous_document))
         return student
 
-    def record_consent(self, student):
-        if settings.PRIVACY_ENFORCED and self.medical_allowed and self.cleaned_data.get("health_consent") and self.cleaned_data.get("parental_authority"):
-            from .models import ConsentRecord, FamilyMembership, log_event
-            if not self.actor or not FamilyMembership.objects.filter(user=self.actor, family_id=student.family_id).exists():
-                raise ValidationError(_("Només una persona representant pot prestar el consentiment."))
-            ConsentRecord.objects.get_or_create(student=student, representative=self.actor, notice=self.notice, withdrawn_at=None, defaults={"authority_confirmed": True})
-            log_event(self.actor, "privacy.health_consent_granted", student, {"version": self.notice.version})
-
 
 class TutorStudentForm(StudentAllergyFormMixin):
     class Meta:
         model = Student
         fields = (
-            "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
-            "contact_notes", "default_diet", "dietary_notes", "meal_plan", "allergy_title",
+            "first_name", "last_name", "birth_date", "default_diet", "meal_plan", "allergy_title",
             "allergy_details", "allergy_document", "kitchen_instructions",
         )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
-            "contact_notes": forms.Textarea(attrs={"rows": 3}),
-            "dietary_notes": forms.Textarea(attrs={"rows": 3}),
             "allergy_details": forms.Textarea(attrs={"rows": 4}),
+            "kitchen_instructions": forms.Textarea(attrs={"rows": 3}),
         }
 
 
@@ -302,8 +299,7 @@ class FamilyStudentCreateForm(TutorStudentForm):
 
     class Meta(TutorStudentForm.Meta):
         fields = (
-            "course_group", "first_name", "last_name", "birth_date", "contact_email", "contact_phone",
-            "contact_notes", "default_diet", "dietary_notes", "meal_plan", "allergy_title",
+            "course_group", "first_name", "last_name", "birth_date", "default_diet", "meal_plan", "allergy_title",
             "allergy_details", "allergy_document", "kitchen_instructions",
         )
 
@@ -345,15 +341,13 @@ class StaffStudentForm(StudentAllergyFormMixin):
     class Meta:
         model = Student
         fields = (
-            "family", "course_group", "first_name", "last_name", "birth_date", "contact_email",
-            "contact_phone", "contact_notes", "default_diet", "dietary_notes", "is_scholarship",
+            "family", "course_group", "first_name", "last_name", "birth_date", "default_diet", "is_scholarship",
             "meal_plan", "active", "allergy_title", "allergy_details", "allergy_document", "kitchen_instructions",
         )
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
-            "contact_notes": forms.Textarea(attrs={"rows": 3}),
-            "dietary_notes": forms.Textarea(attrs={"rows": 3}),
             "allergy_details": forms.Textarea(attrs={"rows": 4}),
+            "kitchen_instructions": forms.Textarea(attrs={"rows": 3}),
         }
 
 

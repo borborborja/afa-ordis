@@ -81,6 +81,12 @@
   };
   setupAllergyFields();
 
+  const firstFormError = document.querySelector('[data-form-errors]');
+  if (firstFormError) {
+    firstFormError.focus();
+    firstFormError.scrollIntoView({ block: 'center' });
+  }
+
   const studentFormset = document.querySelector('[data-student-formset]');
   if (studentFormset) {
     const totalForms = studentFormset.querySelector('[name="new-students-TOTAL_FORMS"]');

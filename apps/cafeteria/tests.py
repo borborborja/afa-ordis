@@ -18,6 +18,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils import translation
 
+from .forms import TutorStudentForm
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
@@ -253,6 +254,34 @@ class CafeteriaFlowTests(TestCase):
             self.assertTrue(self.student.has_allergy)
             self.assertEqual(self.student.allergy_review_status, AllergyReviewStatus.PENDING)
             self.assertTrue(self.student.allergy_document.storage.exists(self.student.allergy_document.name))
+
+    def test_student_form_is_minimal_localized_and_explains_validation_errors(self):
+        form = TutorStudentForm(instance=self.student, actor=self.user)
+        for field_name in (
+            "contact_email", "contact_phone", "contact_notes", "dietary_notes",
+            "health_consent", "parental_authority",
+        ):
+            self.assertNotIn(field_name, form.fields)
+        self.assertEqual(form.fields["meal_plan"].label, "Modalitat de menjador")
+        self.assertEqual(form.fields["allergy_title"].label, "Títol de l’al·lèrgia")
+        with translation.override("es"):
+            spanish_form = TutorStudentForm(instance=self.student, actor=self.user)
+            self.assertEqual(spanish_form.fields["meal_plan"].label, "Modalidad de comedor")
+            self.assertEqual(spanish_form.fields["allergy_title"].label, "Título de la alergia")
+
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:student_edit", args=[self.student.id]), {
+            "first_name": self.student.first_name,
+            "last_name": self.student.last_name,
+            "default_diet": self.diet.id,
+            "meal_plan": MealPlan.FIXED,
+            "allergy_declaration": "yes",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Revisa els camps marcats")
+        self.assertContains(response, "No s'han desat els canvis")
+        self.assertContains(response, "name=\"allergy_document\"")
+        self.assertNotContains(response, "name=\"contact_email\"")
 
     def test_daily_report_and_email_text_highlight_pending_allergies(self):
         self.student.has_allergy = True
