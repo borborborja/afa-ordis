@@ -50,8 +50,8 @@ class Command(BaseCommand):
         if approvers.count() != 1:
             raise CommandError("Provide the username or email of exactly one active authorised account.")
         approver = approvers.get()
-        if not user_has_role(approver, Role.PRIVACY):
-            raise CommandError("The approver must be a superuser or have the explicit privacy role.")
+        if not user_has_role(approver, Role.ADMIN):
+            raise CommandError("The approver must be an administrator.")
 
         with transaction.atomic():
             if PrivacyNotice.current():

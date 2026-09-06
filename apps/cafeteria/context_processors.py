@@ -2,7 +2,6 @@ from .models import EconomicSettings, Family, PortalSettings, Role, UserProfile,
 
 
 def role_flags(request):
-    from .privacy import explicit_role
     user = request.user
     portal = PortalSettings.objects.first()
     family_options = []
@@ -27,9 +26,8 @@ def role_flags(request):
         except UserProfile.DoesNotExist:
             navigation_state = {}
     return {
-        "can_review_health": explicit_role(user, Role.HEALTH_REVIEWER),
-        "is_kitchen": explicit_role(user, Role.KITCHEN),
-        "is_privacy_officer": explicit_role(user, Role.PRIVACY),
+        "can_review_health": user_has_role(user, Role.ADMIN, Role.MANAGER),
+        "is_kitchen": user_has_role(user, Role.KITCHEN),
         "can_manage_meals": user_has_role(user, Role.ADMIN, Role.MANAGER),
         "can_administer": user_has_role(user, Role.ADMIN),
         "is_management_user": user_has_role(user, Role.ADMIN, Role.MANAGER),

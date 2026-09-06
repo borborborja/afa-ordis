@@ -21,8 +21,6 @@ class Role(models.TextChoices):
     TUTOR = "tutor", _("Persona tutora")
     TEACHER = "teacher", _("Personal docent")
     KITCHEN = "kitchen", _("Cuina")
-    HEALTH_REVIEWER = "health_reviewer", _("Revisió documental de salut")
-    PRIVACY = "privacy", _("Responsable de privacitat")
 
 
 class FamilyBookingView(models.TextChoices):
@@ -959,5 +957,5 @@ def log_event(actor, action: str, target, details: dict | None = None) -> AuditE
 
 from .privacy_models import (  # noqa: E402, F401 -- register split model definitions
     BackupCustody, BlockedData, ConsentRecord, DataRequest, PrivacyNotice,
-    RecoveryCode, RetentionRule, RestrictionEvent,
+    RetentionRule, RestrictionEvent,
 )

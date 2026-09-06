@@ -109,9 +109,3 @@ class BackupCustody(models.Model):
     confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     expires_at = models.DateTimeField()
     deleted_at = models.DateTimeField(null=True, blank=True)
-
-
-class RecoveryCode(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    digest = models.CharField(max_length=128)
-    used_at = models.DateTimeField(null=True, blank=True)

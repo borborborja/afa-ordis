@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 22:15+0200\n"
+"POT-Creation-Date: 2026-09-06 22:42+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -352,12 +352,6 @@ msgstr "Personal docente"
 msgid "Cuina"
 msgstr "Cocina"
 
-msgid "Revisió documental de salut"
-msgstr "Revisión documental de salud"
-
-msgid "Responsable de privacitat"
-msgstr "Responsable de privacidad"
-
 msgid "Una pestanya per infant"
 msgstr "Una pestaña por alumno/a"
 
@@ -602,18 +596,6 @@ msgstr "Bloquea los datos de salud del menor"
 msgid "Dona de baixa i bloqueja les dades de l'infant"
 msgstr "Da de baja y bloquea los datos del menor"
 
-msgid "Permís específic"
-msgstr "Permiso específico"
-
-msgid "Concedeix el permís (desmarca per revocar)"
-msgstr "Concede el permiso (desmarca para revocar)"
-
-msgid "Contrasenya actual"
-msgstr "Contraseña actual"
-
-msgid "Codi de l'autenticador o codi de recuperació"
-msgstr "Código del autenticador o código de recuperación"
-
 msgid "Versió"
 msgstr "Versión"
 
@@ -698,8 +680,8 @@ msgstr "Menor, si procede"
 msgid "Detall de la sol·licitud"
 msgstr "Detalle de la solicitud"
 
-msgid "Cal autorització expressa de privacitat."
-msgstr "Se requiere autorización expresa de privacidad."
+msgid "Només l'administració pot gestionar la privacitat del portal."
+msgstr "Solo la administración puede gestionar la privacidad del portal."
 
 msgid "Massa sol·licituds. Torna-ho a provar més tard."
 msgstr "Demasiadas solicitudes. Vuelve a intentarlo más tarde."
@@ -746,15 +728,6 @@ msgstr ""
 "Indica una referencia de expediente y confirma la finalidad legal del "
 "desbloqueo."
 
-msgid "Només l'administració pot gestionar autoritzacions."
-msgstr "Solo la administración puede gestionar autorizaciones."
-
-msgid "Contrasenya incorrecta."
-msgstr "Contraseña incorrecta."
-
-msgid "Autoritzacions específiques"
-msgstr "Autorizaciones específicas"
-
 msgid "Només l'administració pot custodiar còpies."
 msgstr "Solo la administración puede custodiar copias."
 
@@ -764,20 +737,8 @@ msgstr "Confirma la copia fuera del VPS y la custodia separada de las claves."
 msgid "No tens permís per custodiar el registre de restriccions."
 msgstr "No tienes permiso para custodiar el registro de restricciones."
 
-msgid "Massa intents. Torna-ho a provar més tard."
-msgstr "Demasiados intentos. Vuelve a intentarlo más tarde."
-
-msgid "Codi incorrecte o ja utilitzat."
-msgstr "Código incorrecto o ya utilizado."
-
-msgid "Configura el segon factor"
-msgstr "Configura el segundo factor"
-
-msgid "Verifica el segon factor"
-msgstr "Verifica el segundo factor"
-
-msgid "Cal autorització de cuina."
-msgstr "Se requiere autorización de cocina."
+msgid "No tens permís per consultar el llistat de cuina."
+msgstr "No tienes permiso para consultar el listado de cocina."
 
 #, python-format
 msgid "Llistat de menjador — %(date)s"
@@ -1067,8 +1028,8 @@ msgstr "Se ha enviado el informe."
 msgid "No hi ha configuració de destinataris per a aquest dia."
 msgstr "No hay configuraciones de destinatarios para este día."
 
-msgid "Cal autorització expressa per revisar dades de salut."
-msgstr "Se requiere autorización expresa para revisar datos de salud."
+msgid "No tens permís per revisar dades de salut."
+msgstr "No tienes permiso para revisar datos de salud."
 
 msgid "Cal un consentiment de salut vigent abans de validar la declaració."
 msgstr ""
@@ -1970,18 +1931,6 @@ msgstr "Mis gastos"
 msgid "Cuina: avui"
 msgstr "Cocina: hoy"
 
-msgid "Administració de privacitat"
-msgstr "Administración de privacidad"
-
-msgid "Custòdia de còpies"
-msgstr "Custodia de copias"
-
-msgid "Els teus drets"
-msgstr "Tus derechos"
-
-msgid "Segon factor"
-msgstr "Segundo factor"
-
 msgid "Llistats diaris"
 msgstr "Listados diarios"
 
@@ -2026,6 +1975,18 @@ msgstr "Copias de seguridad"
 
 msgid "Auditoria"
 msgstr "Auditoría"
+
+msgid "Privacitat i dades"
+msgstr "Privacidad y datos"
+
+msgid "Administració de privacitat"
+msgstr "Administración de privacidad"
+
+msgid "Custòdia de còpies"
+msgstr "Custodia de copias"
+
+msgid "Els teus drets"
+msgstr "Tus derechos"
 
 msgid "El meu menjador"
 msgstr "Mi comedor"
@@ -3466,6 +3427,9 @@ msgid "Confirmo que és l’última versió custodiada del registre de restricci
 msgstr ""
 "Confirmo que es la última versión custodiada del registro de restricciones"
 
+msgid "Contrasenya actual"
+msgstr "Contraseña actual"
+
 msgid "Escriu"
 msgstr "Tipo"
 
@@ -3756,29 +3720,6 @@ msgstr "No hay ninguna incidencia registrada."
 
 msgid "La vista anual necessita un curs amb dates d'inici i final."
 msgstr "La vista anual necesita un curso con fechas de inicio y finalización."
-
-msgid ""
-"Afegeix aquest compte a una aplicació autenticadora de confiança. No "
-"comparteixis aquesta clau ni utilitzis generadors de codis QR externs."
-msgstr ""
-"Añade esta cuenta a una aplicación autenticadora de confianza. No compartas "
-"esta clave ni utilices generadores de códigos QR externos."
-
-msgid "Codis de recuperació"
-msgstr "Códigos de recuperación"
-
-msgid ""
-"Es mostren una sola vegada. Guarda'ls fora del servidor, en un lloc segur. "
-"Cada codi només es pot utilitzar una vegada."
-msgstr ""
-"Se muestran una sola vez. Guárdalos fuera del servidor, en un lugar seguro. "
-"Cada código solo se puede utilizar una vez."
-
-msgid "Continua"
-msgstr "Continúa"
-
-msgid "Confirma"
-msgstr "Confirma"
 
 msgid "Resum de"
 msgstr "Resumen de"

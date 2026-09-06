@@ -1636,6 +1636,13 @@ td small {
 .nav-links { display: grid; gap: 2px; padding: 2px 0 3px 27px; }
 .nav-links a { padding: 9px 11px; font-size: .91rem; }
 .nav-links a .icon { width: 16px; height: 16px; }
+.nav-subsection { margin: 4px 0 2px; }
+.nav-subsection summary { display: flex; align-items: center; gap: 8px; padding: 8px 11px; color: rgba(255, 255, 255, .82); cursor: pointer; font-size: .85rem; font-weight: 750; list-style: none; }
+.nav-subsection summary::-webkit-details-marker { display: none; }
+.nav-subsection summary .icon { width: 15px; height: 15px; }
+.nav-subsection summary .nav-chevron { margin-left: auto; transition: transform .16s ease; }
+.nav-subsection[open] .nav-chevron { transform: rotate(90deg); }
+.nav-sub-links { padding-left: 14px; }
 .page-tabs {
   display: flex;
   flex-wrap: wrap;

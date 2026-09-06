@@ -1,7 +1,6 @@
 import calendar
 import io
 import json
-import secrets
 import uuid
 from datetime import timedelta
 from functools import wraps
@@ -9,8 +8,6 @@ from types import SimpleNamespace
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.hashers import check_password, make_password
-from django.contrib.auth.models import Group
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import transaction
@@ -18,30 +15,27 @@ from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidd
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone, translation
 from django.utils.translation import gettext as _
-from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_POST
-from django_otp import login as otp_login
-from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from .auth import consume_attempt
 from .crypto import encrypt_stream
 from .models import (
     BackupCustody, BlockedData, DataRequest, FamilyMembership, PrivacyNotice,
-    RecoveryCode, RetentionRule, Role, Student, log_event, user_has_role,
+    RetentionRule, Role, Student, log_event, user_has_role,
 )
 from .privacy import (
-    backup_overdue, explicit_role, load_restriction_ledger, medical_access,
+    backup_overdue, load_restriction_ledger, medical_access,
     privacy_ready, restrict_student,
 )
-from .privacy_forms import DataRequestForm, MFABeginForm, MFAForm, NoticeForm, RequestReviewForm, RetentionForm, RoleGrantForm
+from .privacy_forms import DataRequestForm, NoticeForm, RequestReviewForm, RetentionForm
 
 
 def privacy_staff(view):
     @login_required
     @wraps(view)
     def wrapped(request, *args, **kwargs):
-        if not explicit_role(request.user, Role.PRIVACY):
-            return HttpResponseForbidden(_("Cal autorització expressa de privacitat."))
+        if not user_has_role(request.user, Role.ADMIN):
+            return HttpResponseForbidden(_("Només l'administració pot gestionar la privacitat del portal."))
         return view(request, *args, **kwargs)
     return wrapped
 
@@ -215,27 +209,6 @@ def reserved_data_access(request, record_id):
 
 
 @login_required
-@sensitive_post_parameters("password")
-def privacy_roles(request):
-    if not user_has_role(request.user, Role.ADMIN):
-        return HttpResponseForbidden(_("Només l'administració pot gestionar autoritzacions."))
-    form = RoleGrantForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        if not request.user.check_password(form.cleaned_data["password"]):
-            form.add_error("password", _("Contrasenya incorrecta."))
-        else:
-            user = form.cleaned_data["user"]
-            group, _created = Group.objects.get_or_create(name=form.cleaned_data["role"])
-            if form.cleaned_data["grant"]:
-                user.groups.add(group)
-            else:
-                user.groups.remove(group)
-            log_event(request.user, "privacy.role_granted" if form.cleaned_data["grant"] else "privacy.role_revoked", user, {"category": group.name})
-            return redirect("cafeteria:privacy_roles")
-    return render(request, "cafeteria/security_form.html", {"form": form, "title": _("Autoritzacions específiques")})
-
-
-@login_required
 def backup_custody(request):
     if not user_has_role(request.user, Role.ADMIN):
         return HttpResponseForbidden(_("Només l'administració pot custodiar còpies."))
@@ -261,7 +234,7 @@ def backup_custody(request):
 @login_required
 @require_POST
 def restriction_ledger_download(request):
-    if not user_has_role(request.user, Role.ADMIN) and not explicit_role(request.user, Role.PRIVACY):
+    if not user_has_role(request.user, Role.ADMIN):
         return HttpResponseForbidden(_("No tens permís per custodiar el registre de restriccions."))
     output = io.BytesIO()
     encrypt_stream(io.BytesIO(json.dumps(load_restriction_ledger()).encode()), output, purpose="backup", context=b"restriction-ledger")
@@ -271,76 +244,9 @@ def restriction_ledger_download(request):
 
 
 @login_required
-@sensitive_post_parameters("password", "token")
-@transaction.atomic
-def mfa_setup(request):
-    if TOTPDevice.objects.filter(user=request.user, confirmed=True).exists():
-        return redirect("cafeteria:mfa_verify")
-    device = TOTPDevice.objects.select_for_update().filter(user=request.user, confirmed=False).first()
-    form = MFAForm(request.POST or None) if device else MFABeginForm(request.POST or None)
-    codes = None
-    if request.method == "POST" and form.is_valid():
-        _key, allowed = consume_attempt("mfa-setup", str(request.user.pk))
-        if not allowed:
-            return HttpResponse(_("Massa intents. Torna-ho a provar més tard."), status=429)
-        if device:
-            if device.verify_token(form.cleaned_data["token"]):
-                device.confirmed = True
-                device.save(update_fields=["confirmed"])
-                codes = [secrets.token_hex(10) for _ in range(8)]
-                RecoveryCode.objects.filter(user=request.user).delete()
-                RecoveryCode.objects.bulk_create([RecoveryCode(user=request.user, digest=make_password(code)) for code in codes])
-                otp_login(request, device)
-                request.session["mfa_verified_at"] = timezone.now().timestamp()
-                log_event(request.user, "security.mfa_enabled", request.user)
-            else:
-                form.add_error("token", _("Codi incorrecte o ja utilitzat."))
-        elif request.user.check_password(form.cleaned_data["password"]):
-            TOTPDevice.objects.create(user=request.user, name="AFA Ordis", confirmed=False)
-            return redirect("cafeteria:mfa_setup")
-        else:
-            form.add_error("password", _("Contrasenya incorrecta."))
-    return render(request, "cafeteria/security_form.html", {
-        "title": _("Configura el segon factor"), "form": form,
-        "otp_uri": device.config_url if device and not codes else None,
-        "recovery_codes": codes,
-    })
-
-
-@login_required
-@sensitive_post_parameters("token")
-@transaction.atomic
-def mfa_verify(request):
-    device = TOTPDevice.objects.select_for_update().filter(user=request.user, confirmed=True).first()
-    if not device:
-        return redirect("cafeteria:mfa_setup")
-    form = MFAForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        _key, allowed = consume_attempt("mfa", str(request.user.pk))
-        if not allowed:
-            return HttpResponse(_("Massa intents. Torna-ho a provar més tard."), status=429)
-        token = form.cleaned_data["token"].strip()
-        verified = device.verify_token(token) if token.isdigit() and len(token) == 6 else False
-        if not verified and len(token) == 20:
-            for code in RecoveryCode.objects.select_for_update().filter(user=request.user, used_at__isnull=True):
-                if check_password(token, code.digest):
-                    code.used_at = timezone.now()
-                    code.save(update_fields=["used_at"])
-                    verified = True
-                    break
-        if verified:
-            otp_login(request, device)
-            request.session["mfa_verified_at"] = timezone.now().timestamp()
-            log_event(request.user, "security.mfa_verified", request.user)
-            return redirect("cafeteria:dashboard")
-        form.add_error("token", _("Codi incorrecte o ja utilitzat."))
-    return render(request, "cafeteria/security_form.html", {"form": form, "title": _("Verifica el segon factor")})
-
-
-@login_required
 def kitchen_report(request):
-    if not explicit_role(request.user, Role.KITCHEN):
-        return HttpResponseForbidden(_("Cal autorització de cuina."))
+    if not user_has_role(request.user, Role.KITCHEN, Role.ADMIN, Role.MANAGER):
+        return HttpResponseForbidden(_("No tens permís per consultar el llistat de cuina."))
     from .services import bookings_for_day, teacher_bookings_for_day
     today = timezone.localdate()
     rows = []

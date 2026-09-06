@@ -54,22 +54,11 @@ class PortalAccessMiddleware(MiddlewareMixin):
         public = {"privacy_notice", "healthcheck", "login", "logout", "password_reset", "password_reset_done", "password_reset_confirm", "password_reset_complete", "set_language", "web_app_manifest", "web_app_service_worker"}
         if name in public:
             return None
-        mfa_required_for_user = (
-            settings.MFA_REQUIRED
-            and request.user.is_authenticated
-            and request.user.is_active
-            and request.user.is_superuser
-        )
-        if mfa_required_for_user and name not in {"mfa_setup", "mfa_verify"}:
-            from django.utils import timezone
-            verified_at = request.session.get("mfa_verified_at", 0)
-            if not request.user.is_verified() or timezone.now().timestamp() - verified_at > 12 * 3600:
-                return redirect("cafeteria:mfa_verify")
         # A privacy notice and its internal approval record are accountability
         # controls, not a feature flag.  Families may already have accepted the
         # applicable terms outside this database; never turn an incomplete
         # back-office record into a blanket 503 for the portal.  Concrete health
-        # consent, role, MFA, encryption and restore safeguards remain enforced
+        # consent, role, encryption and restore safeguards remain enforced
         # where the data is actually processed.
 
 

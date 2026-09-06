@@ -19,14 +19,12 @@ from django.core.files.base import ContentFile
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django_otp.oath import totp
-from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from .crypto import EncryptedStorage, decrypt_stream, encrypt_stream, keyring
 from .models import (
     AcademicYear, BlockedData, ConsentRecord, CourseGroup, DataRequest,
     DailyReportRecipient, Diet, Family, FamilyMembership, MealBooking, MealSettings,
-    PrivacyNotice, RecoveryCode, RetentionRule, Role, ServiceDay, Student,
+    PrivacyNotice, RetentionRule, Role, ServiceDay, Student,
 )
 from .privacy import load_restriction_ledger, privacy_ready, replay_restrictions, restrict_student
 
@@ -170,7 +168,7 @@ class PrivacyPublicationCommandTests(TestCase):
         self.assertFalse(PrivacyNotice.objects.exists())
         self.assertFalse(RetentionRule.objects.exists())
 
-    def test_requires_a_privacy_authorised_approver(self):
+    def test_requires_an_administrator_approver(self):
         unapproved = User.objects.create_user(
             "ordinary.account", "ordinary.account@example.test", "Synthetic-long-password-6723",
         )
@@ -198,7 +196,7 @@ class PrivacyPublicationCommandTests(TestCase):
         self.assertEqual(RetentionRule.objects.count(), len(RetentionRule.Category.values))
 
 
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", MFA_REQUIRED=False, PRIVACY_ENFORCED=False)
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", PRIVACY_ENFORCED=False)
 class PrivacyFlows(TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -218,9 +216,9 @@ class PrivacyFlows(TestCase):
         self.other = User.objects.create_user("other@example.test", "other@example.test", "Synthetic-long-password-6723")
         self.admin = User.objects.create_superuser("admin@example.test", "admin@example.test", "Synthetic-long-password-6723")
         self.cook = User.objects.create_user("cook@example.test", "cook@example.test", "Synthetic-long-password-6723")
-        self.reviewer = User.objects.create_user("reviewer@example.test", "reviewer@example.test", "Synthetic-long-password-6723")
+        self.manager = User.objects.create_user("manager@example.test", "manager@example.test", "Synthetic-long-password-6723")
         self.cook.groups.add(Group.objects.get_or_create(name=Role.KITCHEN)[0])
-        self.reviewer.groups.add(Group.objects.get_or_create(name=Role.HEALTH_REVIEWER)[0], Group.objects.get_or_create(name=Role.PRIVACY)[0])
+        self.manager.groups.add(Group.objects.get_or_create(name=Role.MANAGER)[0])
         FamilyMembership.objects.create(family=self.family, user=self.tutor)
         self.student = Student.objects.create(family=self.family, default_diet=self.diet, course_group=self.group,
             first_name="SyntheticChild", last_name="Example", has_allergy=True, allergy_title="PRIVATE DIAGNOSIS",
@@ -229,7 +227,7 @@ class PrivacyFlows(TestCase):
         ServiceDay.objects.create(academic_year=self.year, date=self.today, is_service_day=True)
         MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
         for category in RetentionRule.Category.values:
-            RetentionRule.objects.create(category=category, days=30, justification="Synthetic test policy", approved_by=self.reviewer)
+            RetentionRule.objects.create(category=category, days=30, justification="Synthetic test policy", approved_by=self.admin)
 
     def publish(self):
         return PrivacyNotice.objects.create(version="v1", controller="Synthetic AFA", tax_id="TEST", address="Synthetic", contact_email="privacy@example.test",
@@ -237,17 +235,17 @@ class PrivacyFlows(TestCase):
             health_text_ca="Synthetic reviewed health consent " * 10, health_text_es="Synthetic reviewed health consent " * 10,
             contracts_verified=True, assessment_approved=True, recovery_verified=True, published_at=timezone.now())
 
-    def test_medical_document_requires_explicit_permission_not_admin_status(self):
-        for user, expected in ((self.admin, 403), (self.cook, 403), (self.other, 403), (self.reviewer, 200), (self.tutor, 200)):
+    def test_medical_document_is_available_to_management_without_individual_grants(self):
+        for user, expected in ((self.admin, 200), (self.manager, 200), (self.cook, 403), (self.other, 403), (self.tutor, 200)):
             self.client.force_login(user)
             response = self.client.get(reverse("cafeteria:allergy_document_download", args=[self.student.pk]))
             self.assertEqual(response.status_code, expected)
 
-    def test_clinical_forms_hidden_from_ordinary_admin(self):
+    def test_clinical_forms_are_visible_to_administration(self):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("cafeteria:management_student_edit", args=[self.student.pk]))
-        self.assertNotContains(response, "PRIVATE CLINICAL HISTORY")
-        self.assertNotContains(response, 'name="allergy_document"')
+        self.assertContains(response, "PRIVATE CLINICAL HISTORY")
+        self.assertContains(response, 'name="allergy_document"')
 
     def test_kitchen_has_only_today_operational_information(self):
         self.client.force_login(self.cook)
@@ -348,7 +346,7 @@ class PrivacyFlows(TestCase):
 
     def test_invalid_rights_export_does_not_apply_restriction(self):
         item = DataRequest.objects.create(requester=self.tutor, student=self.student, kind="erase", message="Synthetic", due_at=timezone.now())
-        self.client.force_login(self.reviewer)
+        self.client.force_login(self.admin)
         response = self.client.post(reverse("cafeteria:privacy_request_review", args=[item.pk]), {
             "response": "Synthetic response", "export_text": "not json", "reviewed": "on", "action": "restrict_student",
         })
@@ -445,40 +443,7 @@ class PrivacyFlows(TestCase):
         self.assertNotIn("diagnosis", record.getMessage())
         self.assertIsNone(record.exc_info)
 
-    @override_settings(MFA_REQUIRED=True)
-    def test_only_superuser_access_requires_second_factor(self):
-        self.client.force_login(self.admin)
-        response = self.client.get(reverse("cafeteria:people"))
-        self.assertRedirects(response, reverse("cafeteria:mfa_verify"), fetch_redirect_response=False)
-        self.assertEqual(self.client.get(reverse("cafeteria:privacy_notice")).status_code, 200)
-
-    @override_settings(MFA_REQUIRED=True)
-    def test_staff_role_access_does_not_require_second_factor(self):
-        self.client.force_login(self.cook)
-        response = self.client.get(reverse("cafeteria:kitchen_report"))
-        self.assertEqual(response.status_code, 200)
-
-    @override_settings(MFA_REQUIRED=True)
-    def test_totp_and_recovery_codes_cannot_be_replayed(self):
-        from django.contrib.auth.hashers import make_password
-        device = TOTPDevice.objects.create(user=self.admin, confirmed=True)
-        self.client.force_login(self.admin)
-        token = str(totp(device.bin_key)).zfill(6)
-        response = self.client.post(reverse("cafeteria:mfa_verify"), {"token": token})
-        self.assertEqual(response.status_code, 302)
-        self.client.logout()
-        self.client.force_login(self.admin)
-        response = self.client.post(reverse("cafeteria:mfa_verify"), {"token": token})
-        self.assertContains(response, "Codi incorrecte")
-        code = "abcd1234abcd1234abcd"
-        RecoveryCode.objects.create(user=self.admin, digest=make_password(code))
-        self.assertEqual(self.client.post(reverse("cafeteria:mfa_verify"), {"token": code}).status_code, 302)
-        self.client.logout()
-        self.client.force_login(self.admin)
-        self.assertContains(self.client.post(reverse("cafeteria:mfa_verify"), {"token": code}), "Codi incorrecte")
-
-
-@override_settings(MFA_REQUIRED=False, PRIVACY_ENFORCED=False)
+@override_settings(PRIVACY_ENFORCED=False)
 class EncryptedBackupTests(TransactionTestCase):
     def test_full_encrypted_backup_and_restore(self):
         if settings.DATABASE_ENGINE != "config.sqlcipher":

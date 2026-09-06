@@ -30,8 +30,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_otp",
-    "django_otp.plugins.otp_totp",
     "apps.cafeteria",
 ]
 
@@ -41,7 +39,6 @@ MIDDLEWARE = [
     "apps.cafeteria.middleware.PortalMaintenanceMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django_otp.middleware.OTPMiddleware",
     "apps.cafeteria.middleware.PortalPrivacyMiddleware",
     "apps.cafeteria.middleware.PortalLocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -146,9 +143,7 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 20
 AUTH_RATE_LIMIT = 10
 AUTH_RATE_WINDOW = 300
 FILE_UPLOAD_TEMP_DIR = PRIVATE_TEMP_DIR
-MFA_REQUIRED = not DEBUG
 PRIVACY_ENFORCED = not DEBUG
-OTP_TOTP_THROTTLE_FACTOR = 2
 BACKUP_CUSTODY_DAYS = 1
 BACKUP_RETENTION_DAYS = 30
 DEFAULT_EXCEPTION_REPORTER_FILTER = "apps.cafeteria.logging.PrivacyExceptionReporterFilter"

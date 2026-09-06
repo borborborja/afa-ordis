@@ -1,8 +1,7 @@
 from django import forms
-from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
-from .models import DataRequest, PrivacyNotice, RetentionRule, Role, Student
+from .models import DataRequest, PrivacyNotice, RetentionRule, Student
 
 
 class NoticeForm(forms.ModelForm):
@@ -46,18 +45,3 @@ class RequestReviewForm(forms.Form):
         ("restrict_health", _("Bloqueja les dades de salut de l'infant")),
         ("restrict_student", _("Dona de baixa i bloqueja les dades de l'infant")),
     ))
-
-
-class RoleGrantForm(forms.Form):
-    user = forms.ModelChoiceField(queryset=User.objects.filter(is_active=True), label=_("Persona autoritzada"))
-    role = forms.ChoiceField(choices=[(role.value, role.label) for role in (Role.KITCHEN, Role.HEALTH_REVIEWER, Role.PRIVACY)], label=_("Permís específic"))
-    grant = forms.BooleanField(required=False, label=_("Concedeix el permís (desmarca per revocar)"))
-    password = forms.CharField(widget=forms.PasswordInput, label=_("Contrasenya actual"))
-
-
-class MFAForm(forms.Form):
-    token = forms.CharField(max_length=64, label=_("Codi de l'autenticador o codi de recuperació"), widget=forms.TextInput(attrs={"autocomplete": "one-time-code", "autofocus": True}))
-
-
-class MFABeginForm(forms.Form):
-    password = forms.CharField(widget=forms.PasswordInput, label=_("Contrasenya actual"))

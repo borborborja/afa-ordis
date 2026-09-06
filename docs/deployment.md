@@ -75,7 +75,7 @@ Hi ha una única app amb un procés Gunicorn/quatre fils i un planificador. No e
 
 La imatge genera estàtics versionats, utilitza usuari no root, elimina capabilities, prohibeix core dumps i configura tmpfs per als temporals. El host encara ha de protegir swap, snapshots, còpies, ports SSH i accés Docker. La comprovació `/health/` consulta la base; durant una recuperació pendent respon 503 intencionadament. No es publica Django Admin.
 
-El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i registra la política real validada amb els sis terminis seguint [l'activació de la política aprovada](privacy-operations.md#activació-de-la-política-aprovada). Aquest registre és auditable, però no bloqueja les altes ni l'ús ordinari del portal. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
+L'administració registra la política real validada amb els sis terminis seguint [l'activació de la política aprovada](privacy-operations.md#activació-de-la-política-aprovada). Els comptes d'administració i de gestió de menjador poden consultar les dades necessàries de la plataforma; cuina només rep la informació operativa del dia. Aquest registre és auditable, però no bloqueja les altes ni l'ús ordinari del portal. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
 
 ## Actualització d'una instal·lació existent
 
@@ -100,16 +100,16 @@ Després de verificar l'arrencada i la recuperació, l'operador pot decidir si t
 
 ## Recuperació
 
-La [guia operativa](privacy-operations.md) és el procediment únic de còpia, restauració, rotació, MFA i conservació. La restauració web/CLI exigeix el registre més recent i deixa el portal tancat fins a revisar fora de línia els accessos recuperats i executar `complete_privacy_restore --confirm-access-review`.
+La [guia operativa](privacy-operations.md) és el procediment únic de còpia, restauració, rotació de claus i conservació. La restauració web/CLI exigeix el registre més recent i deixa el portal tancat fins a revisar fora de línia els accessos recuperats i executar `complete_privacy_restore --confirm-access-review`.
 
 Una descàrrega no acredita custòdia externa. Fer i confirmar còpia diària fora del VPS, retirar les còpies ordinàries als 30 dies i mantenir el registre de restriccions actualitzat després de cada canvi corresponent. No substituir la base amb una còpia plana ni servir directament fitxers de `MEDIA_ROOT`.
 
 ## Verificacions de l'operador
 
 - HTTPS/certificat, redirecció, cookies Secure/HttpOnly/SameSite, no-cache de dades privades i descàrregues autoritzades.
-- TOTP i codis d'un sol ús; baixa d'accessos; cuina sense clínica/contactes/beques; administrador sense permís mèdic amb resposta 403.
+- Baixa d'accessos; cuina sense clínica/contactes/beques; administració i gestió de menjador amb accés a les dades de la plataforma segons la seva funció.
 - Correu sintètic individual sense informació d'infants; lliurament real i cap destinatari aliè.
 - Còpia i recuperació en volum nou amb claus i registre extern; prova d'un infant restringit després d'una còpia antiga.
-- Rellotge sincronitzat per TOTP i venciments; espai de disc/tmpfs, límits de còpia, salut del planificador i custòdia diària.
+- Espai de disc/tmpfs, límits de còpia, salut del planificador i custòdia diària.
 - Rotació/retenció de logs del host i proxy. Els logs de l'app minimitzen el contingut, però això no configura els del VPS.
 - Dependències i imatge base actualitzades. CI comprova tests plans de desenvolupament i xifrats, llengües, migracions, noms Python i vulnerabilitats Python conegudes. No és una auditoria completa del sistema operatiu ni de la cadena de subministrament.

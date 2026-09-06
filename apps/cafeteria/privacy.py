@@ -16,7 +16,7 @@ from .crypto import decrypt_stream
 from .models import (
     AuditEvent, BackupCustody, BlockedData, ConsentRecord, DataRequest,
     FamilyMembership, PrivacyNotice, RestrictionEvent, RetentionRule, Role, Student,
-    log_event,
+    log_event, user_has_role,
 )
 
 CLINICAL_FIELDS = (
@@ -34,13 +34,11 @@ def medical_access(user, student=None):
         return False
     if student is not None and FamilyMembership.objects.filter(user=user, family_id=student.family_id).exists():
         return True
-    return explicit_role(user, Role.HEALTH_REVIEWER)
+    return user_has_role(user, Role.ADMIN, Role.MANAGER)
 
 
 def privileged(user):
-    return user.is_authenticated and (user.is_superuser or explicit_role(
-        user, Role.ADMIN, Role.MANAGER, Role.KITCHEN, Role.HEALTH_REVIEWER, Role.PRIVACY,
-    ))
+    return user_has_role(user, Role.ADMIN, Role.MANAGER, Role.KITCHEN)
 
 
 def privacy_ready():

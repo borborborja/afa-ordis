@@ -4,6 +4,8 @@ Aquest és el registre operatiu que acompanya la política aprovada; no substitu
 
 La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'[acta d'aprovació del 6 de setembre de 2026](privacy-approval-record-2026-09-06.md) recull les decisions, els terminis, les evidències declarades i l'autorització d'activació. La comanda de publicació deixa l'aprovació tècnica auditada amb el compte concret que l'executa.
 
+La configuració operativa actual no fa servir segon factor ni autoritzacions personals addicionals: administració i gestió de menjador poden consultar les dades necessàries per a les seves funcions, mentre que cuina conserva només la vista operativa del dia. Aquest canvi tècnic no altera per si mateix la versió de política ja publicada ni l'acta històrica; abans d'actualitzar el text públic o el consentiment, l'AFA n'ha d'aprovar una nova versió.
+
 ## Controls i evidències
 
 - [x] Identificar denominació legal, NIF, domicili i contacte de privacitat de l'AFA.
@@ -15,7 +17,7 @@ La política pública i el consentiment explícit de salut estan finalitzats a [
 - [x] Conservar el contracte d'encàrrec de ZAP-Hosting, amb la infraestructura, ubicacions de còpies, assistència, subencarregats, incidents, retorn i supressió que apliquin al servei contractat. La ubicació alemanya del VPS no prova el xifrat de discos, snapshots o swap de l'hipervisor.
 - [x] Arxivar el DPA Fastmail aplicable, annexos, subencarregats i garanties de transferència. La regió del compte i les credencials no es publiquen en aquest repositori.
 - [x] Fer i aprovar l'avaluació de riscos amb qui assumeix la responsabilitat jurídica, documentant necessitat, proporcionalitat, risc residual i alternatives al document mèdic complet.
-- [x] Verificar recuperació amb claus separades, registre de restriccions més recent, MFA i permisos actuals. L'acta registra la confirmació; una prova local automatitzada no substitueix les comprovacions reals del VPS.
+- [x] Verificar recuperació amb claus separades, registre de restriccions més recent i controls de rol actuals. L'acta registra la confirmació; una prova local automatitzada no substitueix les comprovacions reals del VPS.
 - [ ] Formar el personal: no copiar informes clínics al correu, missatgeria, observacions de contacte o factures; evitar documents sencers quan només cal un extracte mèdic pertinent.
 
 El portal no deixa que una comprovació administrativa incompleta interrompi les altes ordinàries. Els sis terminis i la política publicada continuen sent evidències de responsabilitat, i les seves marques són declaracions de la persona autoritzada, no verificacions automàtiques de contractes.
@@ -28,9 +30,9 @@ Aquest registre concreta les finalitats, bases, destinataris i terminis de la po
 | --- | --- | --- | --- | --- |
 | Comptes i representació familiar | Identitat, contacte, família, credencials; representants i infants | Prestació del portal i representació acreditada | Família pròpia; gestió autoritzada | Baixa de compte/família amb revisió humana de vincles i obligacions pendents |
 | Menjador | Infant/docent, grup, dies, dieta, instruccions mínimes | Organització del servei; base ordinària i, si revela salut, excepció específica | Família; gestió; cuina només el dia actual | Regla operativa; neteja diària d'inferències antigues i gestió de baixes |
-| Declaració mèdica | Acreditació pertinent, declaració, representant, versió del consentiment | Seguretat alimentària; consentiment explícit implementat subjecte a validació | Família pròpia i revisió mèdica expressa | Bloqueig en retirada/rectificació/baixa; regla de salut; destrucció llevat de retenció legal |
+| Declaració mèdica | Acreditació pertinent, declaració, representant, versió del consentiment | Seguretat alimentària; consentiment explícit implementat subjecte a validació | Família pròpia; administració i gestió de menjador segons funció; cuina només la informació operativa del dia | Bloqueig en retirada/rectificació/baixa; regla de salut; destrucció llevat de retenció legal |
 | Quotes, resums i justificants | Imports, pagaments, identitat necessària, justificants | Relació associativa/servei i obligacions que resultin aplicables | Família pròpia i administració econòmica | Regla comptable; tancament i revisió jurídica abans d'executar `privacy_retention` |
-| Drets | Identitat, petició, comprovació de representació, resposta | Atendre els drets | Sol·licitant; responsable de privacitat; revisió mèdica si cal contingut clínic | Regla de drets després de resolució; descàrrega revisada caduca als 7 dies |
+| Drets | Identitat, petició, comprovació de representació, resposta | Atendre els drets | Sol·licitant i administració del portal, amb la informació clínica necessària per resoldre-la | Regla de drets després de resolució; descàrrega revisada caduca als 7 dies |
 | Seguretat, correus i còpies | Esdeveniments mínims, adreça del destinatari, avisos, còpies xifrades | Seguretat, continuïtat i avisos de servei | Personal estrictament autoritzat i proveïdors delimitats | Auditoria segons regla; còpies externes diàries/30 dies; registre de restriccions separat |
 
 Les dades en bloqueig no formen part de consultes ni exportacions ordinàries. L'accés excepcional exigeix finalitat davant autoritat competent i referència d'expedient; queda auditat. El mecanisme implementa la separació operativa prevista per al bloqueig de l'article 32 de la [LOPDGDD](https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673); cal validar-ne l'aplicació concreta i els terminis de responsabilitat.
@@ -42,7 +44,7 @@ Infants i informació clínica exigeixen especial prudència. La [llista AEPD d'
 | Escenari | Mesures implementades | Risc residual / evidència necessària |
 | --- | --- | --- |
 | Robatori del volum o d'una còpia | SQLCipher, adjunts i còpies autenticats, claus fora del volum | Accés root o al procés viu pot llegir dades i claus; verificar VPS, swap i snapshots |
-| Compte superadministrador compromès | MFA TOTP, recuperació d'un sol ús, permisos expressos, revisió de restauració | Revisar altes/baixes i dispositius; MFA no neutralitza una sessió ja robada |
+| Compte d'administració compromès | Contrasenyes robustes, limitació d'intents, control de rols i revisió de restauració | Revisar altes/baixes, dispositius i sessions; una contrasenya no neutralitza una sessió ja robada |
 | Confusió després de retirar el consentiment | Bloqueig clínic i avís d'aturar preparació, sense dieta ordinària implícita | Procediment presencial amb família i cuina abans de reprendre el servei |
 | Correu indegut | Avisos individuals sense informes/infants/dietes/imports | SMTP continua tractant adreces, metadades i tokens d'accés inicial/restabliment |
 | Còpia antiga | Registre de restriccions autenticat, reaplicació, portal tancat fins a revisió | Cal conservar i aportar de debò l'últim registre extern; el programa no pot endevinar-ne versions perdudes |
@@ -54,7 +56,7 @@ L'acta d'aprovació ha de conservar data, persones signants, decisions, risc res
 
 1. La persona presenta una petició al portal o al contacte de la política, també si ja no pot iniciar sessió. Registrar l'entrada externa al procediment de l'AFA i confirmar recepció.
 2. Revisar el venciment (el portal calcula un mes natural), identitat i representació; no demanar DNI de manera rutinària ni acceptar que compartir cognom acredita la representació. Documentar incidències de custòdia/representació per un canal restringit.
-3. L'esborrany JSON no és una exportació exhaustiva: revisar família, reserves, consentiments, quotes, justificants aportats i informació clínica/documental pertinent. No lliurar dades de l'altre representant o de tercers indiscriminadament. La persona de privacitat necessita també autorització mèdica si ha d'incloure contingut clínic.
+3. L'esborrany JSON no és una exportació exhaustiva: revisar família, reserves, consentiments, quotes, justificants aportats i informació clínica/documental pertinent. No lliurar dades de l'altre representant o de tercers indiscriminadament. L'administració ha d'incloure només el contingut necessari per resoldre la petició.
 4. Revisar el resultat abans de publicar-lo; lliurar documents complementaris únicament per un canal autenticat segur, mai en un avís SMTP. La descàrrega JSON queda vinculada només al sol·licitant i caduca als 7 dies.
 5. Supressió/limitació de l'infant: el portal permet bloquejar salut o donar de baixa i restringir identitat. Per a una baixa de compte o de tota la família, revisar primer representants compartits, reserves, obligacions i dades de tercers; l'operador ha de executar la baixa, revocar vincles/sessions i documentar cada element retirat. No es presenta la resposta automàtica com una supressió completa.
 6. Després de qualsevol restricció, rectificació clínica, retenció legal o purga comptable, exportar el registre extern actualitzat i substituir la còpia custodiada anterior. Després d'una restauració, revisar també les baixes de comptes/famílies i els permisos que no es poden reconstruir només amb el registre dels infants.

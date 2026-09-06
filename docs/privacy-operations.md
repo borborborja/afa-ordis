@@ -42,7 +42,7 @@ Els textos aprovats de l'AFA, la identificació del responsable i els sis termin
 
 Abans d'executar-la, l'AFA ha de tenir arxivats i revisats: l'acord de la política i terminis, els contractes o garanties aplicables de ZAP-Hosting i Fastmail, les bases jurídiques i avaluació de riscos, i una prova real de recuperació amb les claus separades. Les cinc confirmacions de la comanda són declaracions auditables: no les marquis per convertir una tasca pendent en aprovada.
 
-Primer identifica el compte actiu que actua com a aprovador. Ha de ser un superusuari o tenir el permís explícit `privacy`; la seva adreça de contacte de privacitat no ha de coincidir necessàriament amb el seu compte d'entrada:
+Primer identifica el compte actiu que actua com a aprovador. Ha de ser un superusuari o tenir el rol d'administració; la seva adreça de contacte de privacitat no ha de coincidir necessàriament amb el seu compte d'entrada:
 
 ```bash
 sudo docker compose exec app python manage.py shell -c "from django.contrib.auth import get_user_model; print(*get_user_model().objects.filter(is_active=True).values_list('username', 'email'), sep='\\n')"
@@ -60,7 +60,7 @@ sudo docker compose exec app python manage.py publish_afa_privacy_policy \
   --confirm-key-recovery
 ```
 
-La comanda no sobreescriu una política publicada, cap esborrany amb la mateixa versió ni terminis ja existents. En qualsevol d'aquests casos, cal revisar-los des de **Gestió de privacitat** i publicar una versió nova: les polítiques publicades són immutables. Després comprova `https://afaescolaordis.org/ca/privacitat/` i una alta de prova sense dades reals.
+La comanda no sobreescriu una política publicada, cap esborrany amb la mateixa versió ni terminis ja existents. En qualsevol d'aquests casos, cal revisar-los des d'**Administració del portal → Privacitat i dades → Administració de privacitat** i publicar una versió nova: les polítiques publicades són immutables. Després comprova `https://afaescolaordis.org/ca/privacitat/` i una alta de prova sense dades reals.
 
 ## Transport, host i límits
 
@@ -107,7 +107,7 @@ python manage.py restore_encrypted_backup \
 python manage.py complete_privacy_restore --confirm-access-review
 ```
 
-7. Arrencar i comprovar MFA del superadministrador, salut de servei, un document sintètic, una còpia nova, capçaleres/no-cache i que un infant restringit continua sense dades clíniques accessibles ni dieta ordinària implícita. Registrar acta, dates, còpia usada, claus (només identificadors), temps de recuperació i revisor.
+7. Arrencar i comprovar el control d'accés per rols, la salut de servei, un document sintètic, una còpia nova, capçaleres/no-cache i que un infant restringit continua sense dades clíniques accessibles ni dieta ordinària implícita. Registrar acta, dates, còpia usada, claus (només identificadors), temps de recuperació i revisor.
 
 La restauració web fa les mateixes comprovacions i també deixa pendent la revisió fora de línia. Cal una descàrrega de seguretat prèvia de menys de 15 minuts, contrasenya, `RESTAURA`, còpia xifrada i registre actual. Rebutja ZIP/SQLite plans en producció. Requereix migracions compatibles; per còpies xifrades d'una altra versió, recuperar amb la imatge corresponent en un entorn aïllat i després migrar.
 
@@ -123,17 +123,9 @@ No substituir les claus actives sobre una base existent sense convertir-la. `PRA
 4. Executar `rotate_media_encryption` fora de línia per reescriure tots els documents amb la clau activa. Crear una còpia i registre nous, revisar accessos i completar la restauració. Verificar abans de canviar el trànsit al nou volum.
 5. Mantenir les claus anteriors mentre hi hagi còpies, registres o documents que les necessitin. Arxivar claus de recuperació separades; retirar només claus/volums explícitament identificats i després d'aprovar la destrucció. Una clau compromesa no es torna segura perquè es conservi per llegir còpies antigues: restringir-ne la custòdia i tractar l'incident.
 
-## MFA i permisos
+## Accés i permisos
 
-El compte superadministrador configura TOTP i desa els vuit codis de recuperació d'un sol ús fora del navegador. La resta de comptes no requereixen segon factor; l'administració assigna expressament `privacy`, `health_reviewer` i `kitchen` només a qui pertoqui. Ser administrador/superusuari no concedeix consulta mèdica per la vista de documents. El responsable d'administrar claus/servidor té capacitat tècnica més àmplia i necessita deure de confidencialitat.
-
-El segon factor del compte superadministrador es renova com a màxim cada 12 hores. Per pèrdua de l'autenticador s'utilitza un codi de recuperació. Sense cap codi, després de verificar identitat per un canal independent:
-
-```bash
-python manage.py reset_portal_mfa --user-id 123 --confirm-identity-verified
-```
-
-`123` és un exemple: resoldre i comprovar l'usuari real abans d'executar. Invalida contrasenya antiga/sessions/factors; no envia correu. La persona verificada ha de restablir la contrasenya i enrolar un factor nou. No facilitar enllaços de recuperació a un tercer ni acceptar només un correu com a verificació de l'operador.
+No s'utilitza segon factor. Els comptes d'administració i de gestió de menjador poden consultar les dades de la plataforma necessàries per a les seves funcions, sense autoritzacions personals addicionals. Cuina continua limitada al llistat operatiu del dia, sense informes clínics, contactes, beques ni informació econòmica. La baixa d'un compte retira immediatament l'accés; la persona responsable d'administrar claus o servidor té capacitat tècnica més àmplia i necessita deure de confidencialitat.
 
 ## Conservació i retencions legals
 

@@ -334,7 +334,6 @@ class CafeteriaFlowTests(TestCase):
             self.student.save(update_fields=["allergy_document_name", "updated_at"])
 
             admin = User.objects.create_superuser("reviewer@example.com", "reviewer@example.com", "correct-horse-battery-staple")
-            admin.groups.add(Group.objects.get_or_create(name="health_reviewer")[0])
             self.client.force_login(admin)
             response = self.client.post(reverse("cafeteria:allergy_review", args=[self.student.id]), {
                 "decision": "reject", "rejection_reason": "Cal un informe vigent signat.",

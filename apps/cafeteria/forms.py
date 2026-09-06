@@ -159,6 +159,10 @@ class StudentAllergyFormMixin(forms.ModelForm):
         self.fields["allergy_title"].help_text = _("Exemple: Al·lèrgia a fruits secs.")
         self.fields["allergy_details"].help_text = _("Indica la informació necessària perquè el menjador pugui actuar amb seguretat.")
         self.fields["allergy_document"].help_text = _("Obligatori si hi ha al·lèrgia. PDF o imatge, màxim 10 MB.")
+        # Medical files are served only through the authorised download view.
+        # ClearableFileInput tries to resolve the existing file's public URL,
+        # which private encrypted storage deliberately does not provide.
+        self.fields["allergy_document"].widget = forms.FileInput()
         self.fields["allergy_document"].widget.attrs.update({
             "accept": ".pdf,image/jpeg,image/png,image/webp,image/heic",
         })

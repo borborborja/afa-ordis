@@ -434,10 +434,6 @@ def healthcheck(request):
 def dashboard(request):
     today = timezone.localdate()
     if not _is_staff(request.user):
-        if explicit_role(request.user, Role.PRIVACY):
-            return redirect("cafeteria:privacy_administration")
-        if explicit_role(request.user, Role.HEALTH_REVIEWER):
-            return redirect("cafeteria:allergy_review_queue")
         if explicit_role(request.user, Role.KITCHEN):
             return redirect("cafeteria:kitchen_report")
     if _is_staff(request.user):
@@ -1411,8 +1407,8 @@ def daily_report_send(request, service_date):
 
 @login_required
 def allergy_review_queue(request):
-    if not explicit_role(request.user, Role.HEALTH_REVIEWER):
-        return HttpResponseForbidden(_("Cal autorització expressa per revisar dades de salut."))
+    if not _is_staff(request.user):
+        return HttpResponseForbidden(_("No tens permís per revisar dades de salut."))
     selected_status = request.GET.get("status", AllergyReviewStatus.PENDING)
     valid_statuses = set(AllergyReviewStatus.values)
     if selected_status not in valid_statuses:
@@ -1436,8 +1432,8 @@ def allergy_review_queue(request):
 
 @login_required
 def allergy_review(request, student_id):
-    if not explicit_role(request.user, Role.HEALTH_REVIEWER):
-        return HttpResponseForbidden(_("Cal autorització expressa per revisar dades de salut."))
+    if not _is_staff(request.user):
+        return HttpResponseForbidden(_("No tens permís per revisar dades de salut."))
     student = get_object_or_404(
         Student.objects.select_related("family", "course_group", "allergy_reviewed_by").filter(
             Q(has_allergy=True, allergy_review_status=AllergyReviewStatus.PENDING) | Q(safety_hold=True)),
