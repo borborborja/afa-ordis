@@ -10,6 +10,7 @@ from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.template.loader import get_template
 from django.templatetags.static import static
@@ -709,6 +710,40 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("/ca/comptes/contrasenya/", mail.outbox[0].body)
+
+    @override_settings(EMAIL_HOST="mail.example.test")
+    def test_account_email_is_case_insensitive_for_login_and_password_reset(self):
+        account = User.objects.create_user(
+            "legacy-account-name", "Case.Login@Example.COM", "correct-horse-battery-staple",
+        )
+
+        response = self.client.post(reverse("cafeteria:login"), {
+            "username": "CASE.LOGIN@example.com",
+            "password": "correct-horse-battery-staple",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(int(self.client.session["_auth_user_id"]), account.pk)
+
+        self.client.post(reverse("cafeteria:password_reset"), {"email": "case.login@EXAMPLE.com"})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [account.email])
+
+    def test_account_email_cannot_be_reused_with_different_casing(self):
+        User.objects.create_user("first-account", "case-unique@example.com", "correct-horse-battery-staple")
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                User.objects.create_user("second-account", "CASE-UNIQUE@example.com", "correct-horse-battery-staple")
+
+    def test_report_recipient_email_cannot_be_reused_with_different_casing(self):
+        meal_settings = MealSettings.objects.create(academic_year=self.year)
+        DailyReportRecipient.objects.create(settings=meal_settings, email="Kitchen@Example.COM")
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                DailyReportRecipient.objects.create(settings=meal_settings, email="KITCHEN@example.com")
+
+    def test_invitation_email_is_canonicalized(self):
+        invitation = Invitation.objects.create(email="New.Tutor@Example.COM", role="teacher")
+        self.assertEqual(invitation.email, "new.tutor@example.com")
 
     @override_settings(EMAIL_HOST="", DEBUG=True)
     def test_administration_can_copy_a_reset_link_without_smtp(self):

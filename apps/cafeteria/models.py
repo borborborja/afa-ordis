@@ -652,6 +652,14 @@ class DailyReportRecipient(models.Model):
     def __str__(self) -> str:
         return self.email
 
+    def save(self, *args, **kwargs):
+        from .identity import normalize_email
+        previous_email = self.email
+        self.email = normalize_email(previous_email)
+        if self.email != previous_email and kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = {*kwargs["update_fields"], "email"}
+        return super().save(*args, **kwargs)
+
 
 class PriceRule(models.Model):
     scholarship = models.BooleanField(default=False)
@@ -869,6 +877,11 @@ class Invitation(models.Model):
             raise ValidationError(_("Només les persones tutores es vinculen a una família."))
 
     def save(self, *args, **kwargs):
+        from .identity import normalize_email
+        previous_email = self.email
+        self.email = normalize_email(previous_email)
+        if self.email != previous_email and kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = {*kwargs["update_fields"], "email"}
         if not self.token:
             self.token = secrets.token_urlsafe(32)
         if not self.expires_at:

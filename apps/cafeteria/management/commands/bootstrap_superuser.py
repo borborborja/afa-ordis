@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.core.management.base import BaseCommand, CommandError
 
+from apps.cafeteria.identity import normalize_email
 from apps.cafeteria.models import ensure_role_groups
 
 
@@ -19,7 +20,7 @@ class Command(BaseCommand):
             self.stdout.write("Ja hi ha usuaris; no s'ha modificat cap compte inicial.")
             return
 
-        email = os.getenv("SUPERUSER_EMAIL", "").strip().lower()
+        email = normalize_email(os.getenv("SUPERUSER_EMAIL"))
         password = os.getenv("SUPERUSER_PASSWORD", "")
         name = os.getenv("SUPERUSER_NAME", "").strip()
         if not email or not password or email.endswith("@example.com"):

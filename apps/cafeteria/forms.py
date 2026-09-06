@@ -9,6 +9,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
+from .identity import normalize_email
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
@@ -61,6 +62,9 @@ class InvitationForm(forms.ModelForm):
         fields = ("email", "role", "family")
         labels = {"email": _("Correu electrònic"), "role": _("Tipus d'accés"), "family": _("Família")}
 
+    def clean_email(self):
+        return normalize_email(self.cleaned_data["email"])
+
     def clean(self):
         cleaned = super().clean()
         role = cleaned.get("role")
@@ -80,7 +84,7 @@ class InvitationAcceptanceForm(SetPasswordForm):
         user = super().save(commit=False)
         user.first_name = self.cleaned_data["first_name"]
         user.last_name = self.cleaned_data["last_name"]
-        user.email = user.email.lower()
+        user.email = normalize_email(user.email)
         user.username = user.email
         if commit:
             user.save()
@@ -642,12 +646,12 @@ class DailyReportRecipientForm(forms.ModelForm):
         if data.get("user"):
             if not data["user"].email:
                 self.add_error("user", _("El compte ha de tenir un correu electrònic verificat."))
-            data["email"] = data["user"].email.lower()
+            data["email"] = normalize_email(data["user"].email)
             data["name"] = data["user"].get_full_name()
         return data
 
     def clean_email(self):
-        email = self.cleaned_data["email"].lower()
+        email = normalize_email(self.cleaned_data["email"])
         if self.instance.settings_id and DailyReportRecipient.objects.filter(settings_id=self.instance.settings_id, email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise ValidationError(_("Aquest correu ja és destinatari dels informes."))
         return email

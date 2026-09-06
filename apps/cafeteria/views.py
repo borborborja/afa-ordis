@@ -73,6 +73,7 @@ from .forms import (
     PortalFamilyRegistrationSettingsForm,
     TeacherMealProfileForm,
 )
+from .identity import normalize_email
 from .models import (
     AcademicHoliday,
     AcademicIntensivePeriod,
@@ -1346,7 +1347,7 @@ def invitation_accept(request, token):
             return redirect("cafeteria:family_onboarding", family_id=membership.family_id)
         return redirect("cafeteria:dashboard")
 
-    user = User(username=invitation.email.lower(), email=invitation.email.lower())
+    user = User(username=normalize_email(invitation.email), email=normalize_email(invitation.email))
     form = InvitationAcceptanceForm(user, request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()

@@ -87,6 +87,8 @@ Si s'ha confirmat que no hi ha dades que calgui conservar, la persona administra
 
 Abans d'actualitzar una instal·lació ja xifrada: còpia completa `.afaenc`, registre de restriccions més recent i claus de recuperació sota custòdia separada. Provar les migracions sobre una còpia en un entorn aïllat; utilitzar una versió d'imatge identificable. `git pull --ff-only` només amb el treball local revisat i preservat. No eliminar còpies, volums o imatges necessàries per recuperar.
 
+La migració d'identitats normalitza els correus dels comptes i dels destinataris d'informes, i impedeix que dos d'ells difereixin només per majúscules/minúscules. Si ja hi ha aquesta duplicació, s'aturarà abans de crear l'índex i no modificarà els registres: resoldre-la de forma controlada amb l'administració abans de repetir l'arrencada.
+
 Per immobilitzar l'actualització a la imatge comprovada, assignar temporalment a `.env`:
 
 ```dotenv

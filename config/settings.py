@@ -88,6 +88,8 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+AUTHENTICATION_BACKENDS = ["apps.cafeteria.auth.CaseInsensitiveEmailBackend"]
+
 LANGUAGE_CODE = "ca"
 LANGUAGES = [("ca", "Català"), ("es", "Castellà")]
 LOCALE_PATHS = [BASE_DIR / "locale"]
