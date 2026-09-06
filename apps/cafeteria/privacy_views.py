@@ -5,6 +5,7 @@ import secrets
 import uuid
 from datetime import timedelta
 from functools import wraps
+from types import SimpleNamespace
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -47,9 +48,21 @@ def privacy_staff(view):
 
 def privacy_notice(request):
     notice = PrivacyNotice.current()
+    if notice is None:
+        # The public notice is approved policy content.  Its database publication
+        # is an audit record, not a prerequisite for families to read the terms.
+        from .approved_privacy_policy import (
+            CONTROLLER, POLICY_EFFECTIVE_DATE, POLICY_VERSION, TEXT_CA, TEXT_ES,
+        )
+        notice = SimpleNamespace(
+            **CONTROLLER, version=POLICY_VERSION, published_at=POLICY_EFFECTIVE_DATE,
+        )
+        policy_text = TEXT_ES if translation.get_language() == "es" else TEXT_CA
+    else:
+        policy_text = notice.text_es if translation.get_language() == "es" else notice.text_ca
     return render(request, "cafeteria/privacy_notice.html", {
         "notice": notice,
-        "policy_text": (notice.text_es if translation.get_language() == "es" else notice.text_ca) if notice else "",
+        "policy_text": policy_text,
     })
 
 

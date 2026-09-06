@@ -75,7 +75,7 @@ Hi ha una única app amb un procés Gunicorn/quatre fils i un planificador. No e
 
 La imatge genera estàtics versionats, utilitza usuari no root, elimina capabilities, prohibeix core dumps i configura tmpfs per als temporals. El host encara ha de protegir swap, snapshots, còpies, ports SSH i accés Docker. La comprovació `/health/` consulta la base; durant una recuperació pendent respon 503 intencionadament. No es publica Django Admin.
 
-El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i publica la política real validada amb els sis terminis seguint [l'activació de la política aprovada](privacy-operations.md#activació-de-la-política-aprovada). Fins llavors, el portal bloqueja les altes ordinàries. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
+El superusuari configura MFA, concedeix expressament els permisos de privacitat/revisió mèdica/cuina i registra la política real validada amb els sis terminis seguint [l'activació de la política aprovada](privacy-operations.md#activació-de-la-política-aprovada). Aquest registre és auditable, però no bloqueja les altes ni l'ús ordinari del portal. Després es configuren curs, grups, calendaris, dietes, tarifes i destinataris vinculats a comptes autoritzats.
 
 ## Actualització d'una instal·lació existent
 

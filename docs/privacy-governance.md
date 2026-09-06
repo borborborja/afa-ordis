@@ -4,7 +4,7 @@ Aquest és el registre operatiu que acompanya la política aprovada; no substitu
 
 La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'[acta d'aprovació del 6 de setembre de 2026](privacy-approval-record-2026-09-06.md) recull les decisions, els terminis, les evidències declarades i l'autorització d'activació. La comanda de publicació deixa l'aprovació tècnica auditada amb el compte concret que l'executa.
 
-## Condicions per obrir la recollida
+## Controls i evidències
 
 - [x] Identificar denominació legal, NIF, domicili i contacte de privacitat de l'AFA.
 - [ ] Designar la persona titular i suplent dels procediments de privacitat i incidents, amb una via de contacte interna restringida.
@@ -18,7 +18,7 @@ La política pública i el consentiment explícit de salut estan finalitzats a [
 - [x] Verificar recuperació amb claus separades, registre de restriccions més recent, MFA i permisos actuals. L'acta registra la confirmació; una prova local automatitzada no substitueix les comprovacions reals del VPS.
 - [ ] Formar el personal: no copiar informes clínics al correu, missatgeria, observacions de contacte o factures; evitar documents sencers quan només cal un extracte mèdic pertinent.
 
-El portal exigeix els sis terminis i una política publicada amb les tres validacions (contractes, avaluació i recuperació) abans d'admetre altes ordinàries. Aquestes marques són declaracions de la persona autoritzada, no verificacions automàtiques de contractes.
+El portal no deixa que una comprovació administrativa incompleta interrompi les altes ordinàries. Els sis terminis i la política publicada continuen sent evidències de responsabilitat, i les seves marques són declaracions de la persona autoritzada, no verificacions automàtiques de contractes.
 
 ## Registre d'activitats
 

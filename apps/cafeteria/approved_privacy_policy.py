@@ -5,10 +5,12 @@ operation performed by a named authorised account.  It must never run from a
 migration or during container start-up.
 """
 from dataclasses import dataclass
+from datetime import date
 from textwrap import dedent
 
 
 POLICY_VERSION = "2026-09-06"
+POLICY_EFFECTIVE_DATE = date(2026, 9, 6)
 
 CONTROLLER = {
     "controller": "AFA Escola Maria Pagès i Trayter",

@@ -180,7 +180,7 @@ class PrivacyPublicationCommandTests(TestCase):
             call_command(*args)
         self.assertFalse(PrivacyNotice.objects.exists())
 
-    def test_publishes_approved_text_and_unlocks_collection(self):
+    def test_publishes_approved_text_and_creates_internal_audit_record(self):
         call_command(*self.command_args())
         notice = PrivacyNotice.current()
         self.assertIsNotNone(notice)
@@ -271,12 +271,22 @@ class PrivacyFlows(TestCase):
                 self.assertNotIn(private, message.body)
 
     @override_settings(PRIVACY_ENFORCED=True)
-    def test_collection_is_blocked_until_validation(self):
+    def test_collection_is_not_blocked_by_an_internal_policy_record(self):
         self.client.force_login(self.admin)
         self.assertFalse(privacy_ready())
-        self.assertEqual(self.client.post(reverse("cafeteria:invitation_create"), {}).status_code, 503)
+        self.assertNotEqual(self.client.post(reverse("cafeteria:invitation_create"), {}).status_code, 503)
         self.publish()
         self.assertTrue(privacy_ready())
+
+    @override_settings(PRIVACY_ENFORCED=True)
+    def test_public_policy_and_generic_notification_work_before_internal_publication(self):
+        from .tasks import send_daily_report
+        response = self.client.get(reverse("cafeteria:privacy_notice"))
+        self.assertContains(response, "AFA Escola Maria Pagès i Trayter")
+        self.assertNotContains(response, "pendent de validació")
+        meal_settings = MealSettings.objects.create(academic_year=self.year)
+        DailyReportRecipient.objects.create(settings=meal_settings, email=self.cook.email, user=self.cook)
+        self.assertTrue(send_daily_report(self.today.isoformat()))
 
     def test_published_notices_are_immutable(self):
         from django.core.exceptions import ValidationError

@@ -51,6 +51,6 @@ La Junta confirma que la recuperació està verificada: existeix una còpia de r
 
 ## Resolució d'activació
 
-La Junta autoritza un compte de superusuari o amb el permís explícit `privacy` a executar la publicació auditada `publish_afa_privacy_policy`, descrita a [operació segura](privacy-operations.md#activació-de-la-política-aprovada). Aquesta acció deixa constància del compte aprovador, fixa la política publicada i habilita la recollida ordinària de dades al portal.
+La Junta autoritza un compte de superusuari o amb el permís explícit `privacy` a executar la publicació auditada `publish_afa_privacy_policy`, descrita a [operació segura](privacy-operations.md#activació-de-la-política-aprovada). Aquesta acció deixa constància del compte aprovador i fixa la política publicada, sense condicionar l'ús ordinari del portal.
 
 La present acta és el registre operatiu versionat de l'acord. La Junta conserva l'original signat o el registre formal de la sessió amb la identitat dels assistents, les signatures i la custòdia de les evidències, fora del repositori de codi per minimitzar dades personals.

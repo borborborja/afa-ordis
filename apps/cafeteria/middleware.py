@@ -44,8 +44,8 @@ class PortalPrivacyMiddleware:
 
 class PortalAccessMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
-        from django.shortcuts import redirect, render
-        from .privacy import privileged, privacy_ready, restore_marker
+        from django.shortcuts import redirect
+        from .privacy import privileged, restore_marker
         name = request.resolver_match.url_name if request.resolver_match else ""
         if settings.DATA_ENCRYPTION_ENABLED and restore_marker().exists():
             response = HttpResponse(translation.gettext("Restauració pendent de completar amb el registre de restriccions actual. Contacta amb l'administració."), status=503)
@@ -59,9 +59,12 @@ class PortalAccessMiddleware(MiddlewareMixin):
             verified_at = request.session.get("mfa_verified_at", 0)
             if not request.user.is_verified() or timezone.now().timestamp() - verified_at > 12 * 3600:
                 return redirect("cafeteria:mfa_verify")
-        setup = {"mfa_setup", "mfa_verify", "privacy_roles", "privacy_administration", "privacy_center", "privacy_request_review", "withdraw_health_consent", "reserved_data_access", "backup_custody", "restriction_ledger_download", "portal_backup_download", "portal_restore", "navigation_preferences", "dashboard_preferences"}
-        if settings.PRIVACY_ENFORCED and request.method == "POST" and name not in setup and not privacy_ready():
-            return render(request, "cafeteria/privacy_pending.html", status=503)
+        # A privacy notice and its internal approval record are accountability
+        # controls, not a feature flag.  Families may already have accepted the
+        # applicable terms outside this database; never turn an incomplete
+        # back-office record into a blanket 503 for the portal.  Concrete health
+        # consent, role, MFA, encryption and restore safeguards remain enforced
+        # where the data is actually processed.
 
 
 class PortalLocaleMiddleware(LocaleMiddleware):

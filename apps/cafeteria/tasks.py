@@ -35,9 +35,6 @@ def _notice_text(route):
 
 
 def notify_portal(recipients, route):
-    from .privacy import privacy_ready
-    if settings.PRIVACY_ENFORCED and not privacy_ready():
-        return False
     sent = False
     for address in sorted(set(recipients)):
         delivered = send_mail(

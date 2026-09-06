@@ -65,4 +65,4 @@ El portal utilitza galetes tècniques de sessió, protecció CSRF, preferència 
 
 ## Publicació al portal
 
-El text públic que publica el portal prové de `apps/cafeteria/approved_privacy_policy.py`; aquest document n'és la versió llegible i aprovada. No es publica automàticament: una persona autoritzada ha de executar la comanda documentada a [operació segura](privacy-operations.md#activació-de-la-política-aprovada). Això deixa registrada la persona aprovadora, fixa els sis terminis i impedeix alterar posteriorment la versió publicada.
+El text públic que mostra el portal prové de `apps/cafeteria/approved_privacy_policy.py`; aquest document n'és la versió llegible i aprovada. Una persona autoritzada pot executar la comanda documentada a [operació segura](privacy-operations.md#activació-de-la-política-aprovada) per registrar l'aprovador i fixar els sis terminis a la base de dades. Aquest registre no condiciona l'ús ordinari del portal.

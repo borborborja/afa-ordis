@@ -86,5 +86,5 @@ class Command(BaseCommand):
             log_event(approver, "privacy.notice_published", notice, {"version": notice.version})
 
         self.stdout.write(self.style.SUCCESS(
-            f"Published privacy notice {POLICY_VERSION} with all retention rules. Ordinary collection is now enabled."
+            f"Published privacy notice {POLICY_VERSION} with all retention rules and its internal audit record."
         ))

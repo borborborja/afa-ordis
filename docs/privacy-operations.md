@@ -38,7 +38,7 @@ Aquesta ordre s'executa amb la configuració xifrada, claus i `PRIVATE_TEMP_DIR`
 
 ## Activació de la política aprovada
 
-Els textos aprovats de l'AFA, la identificació del responsable i els sis terminis estan versionats al codi i documentats a [política en català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). Després de desplegar la imatge que inclou aquests fitxers, una persona autoritzada ha de publicar-los una sola vegada. La publicació registra l'aprovador, fixa la versió i desbloqueja les altes ordinàries.
+Els textos aprovats de l'AFA, la identificació del responsable i els sis terminis estan versionats al codi i documentats a [política en català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). El portal mostra aquests textos encara que el registre administratiu intern no s'hagi creat. Una persona autoritzada pot publicar-los una sola vegada per registrar l'aprovador i fixar la versió a la base de dades; això no és un requisit per donar servei a les famílies.
 
 Abans d'executar-la, l'AFA ha de tenir arxivats i revisats: l'acord de la política i terminis, els contractes o garanties aplicables de ZAP-Hosting i Fastmail, les bases jurídiques i avaluació de riscos, i una prova real de recuperació amb les claus separades. Les cinc confirmacions de la comanda són declaracions auditables: no les marquis per convertir una tasca pendent en aprovada.
 

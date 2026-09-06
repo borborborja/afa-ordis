@@ -65,4 +65,4 @@ El portal utiliza cookies técnicas de sesión, protección CSRF, preferencia de
 
 ## Publicación en el portal
 
-El texto público que publica el portal procede de `apps/cafeteria/approved_privacy_policy.py`; este documento es su versión legible y aprobada. No se publica automáticamente: una persona autorizada debe ejecutar el comando documentado en [operación segura](privacy-operations.md#activació-de-la-política-aprovada). Así queda registrada la persona aprobadora, se fijan los seis plazos y se impide alterar posteriormente la versión publicada.
+El texto público que muestra el portal procede de `apps/cafeteria/approved_privacy_policy.py`; este documento es su versión legible y aprobada. Una persona autorizada puede ejecutar el comando documentado en [operación segura](privacy-operations.md#activació-de-la-política-aprovada) para registrar a la persona aprobadora y fijar los seis plazos en la base de datos. Este registro no condiciona el uso ordinario del portal.
