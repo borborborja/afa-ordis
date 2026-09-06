@@ -31,7 +31,7 @@ Fastmail puede implicar transferencias internacionales o accesos desde fuera del
 
 ## Seguridad
 
-La base de datos, los documentos privados y las copias del portal se guardan cifrados; las comunicaciones web utilizan HTTPS y el correo SMTP utiliza TLS. El personal con acceso privilegiado debe utilizar autenticación de doble factor y permisos específicos. No es cifrado de extremo a extremo: el sistema autorizado necesita descifrar los datos para prestar el servicio. La AFA limita el acceso, conserva copias cifradas y mantiene procedimientos de recuperación e incidentes.
+La base de datos, los documentos privados y las copias del portal se guardan cifrados; las comunicaciones web utilizan HTTPS y el correo SMTP utiliza TLS. La cuenta superadministradora debe utilizar autenticación de doble factor; el resto de permisos se asignan específicamente según la función. No es cifrado de extremo a extremo: el sistema autorizado necesita descifrar los datos para prestar el servicio. La AFA limita el acceso, conserva copias cifradas y mantiene procedimientos de recuperación e incidentes.
 
 ## Conservación
 

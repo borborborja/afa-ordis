@@ -4,7 +4,7 @@ Portal autogestionat de l'AFA d'Ordis per a la gestió de reserves de menjador, 
 
 ## Requisits
 
-Abans de desplegar aquesta versió, segueix [operació segura i claus](docs/privacy-operations.md), inclòs el registre auditable de la política aprovada, i conserva l'[expedient de privacitat](docs/privacy-governance.md). Producció exigeix SQLCipher, adjunts/còpies xifrats, MFA del personal i controls de dades de salut en el punt on es recullen. La manca d'un registre administratiu intern no interromp l'ús normal del portal. No sobreescriguis el `.env` ja configurat al servidor. Les còpies ZIP/SQLite antigues necessiten conversió fora de línia; no canviïs únicament el motor sobre una base existent.
+Abans de desplegar aquesta versió, segueix [operació segura i claus](docs/privacy-operations.md), inclòs el registre auditable de la política aprovada, i conserva l'[expedient de privacitat](docs/privacy-governance.md). Producció exigeix SQLCipher, adjunts/còpies xifrats, MFA del superadministrador i controls de dades de salut en el punt on es recullen. La manca d'un registre administratiu intern no interromp l'ús normal del portal. No sobreescriguis el `.env` ja configurat al servidor. Les còpies ZIP/SQLite antigues necessiten conversió fora de línia; no canviïs únicament el motor sobre una base existent.
 
 Requisits nous obligatoris en producció:
 

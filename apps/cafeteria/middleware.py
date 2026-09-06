@@ -45,7 +45,7 @@ class PortalPrivacyMiddleware:
 class PortalAccessMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         from django.shortcuts import redirect
-        from .privacy import privileged, restore_marker
+        from .privacy import restore_marker
         name = request.resolver_match.url_name if request.resolver_match else ""
         if settings.DATA_ENCRYPTION_ENABLED and restore_marker().exists():
             response = HttpResponse(translation.gettext("Restauració pendent de completar amb el registre de restriccions actual. Contacta amb l'administració."), status=503)
@@ -54,7 +54,13 @@ class PortalAccessMiddleware(MiddlewareMixin):
         public = {"privacy_notice", "healthcheck", "login", "logout", "password_reset", "password_reset_done", "password_reset_confirm", "password_reset_complete", "set_language", "web_app_manifest", "web_app_service_worker"}
         if name in public:
             return None
-        if settings.MFA_REQUIRED and privileged(request.user) and name not in {"mfa_setup", "mfa_verify"}:
+        mfa_required_for_user = (
+            settings.MFA_REQUIRED
+            and request.user.is_authenticated
+            and request.user.is_active
+            and request.user.is_superuser
+        )
+        if mfa_required_for_user and name not in {"mfa_setup", "mfa_verify"}:
             from django.utils import timezone
             verified_at = request.session.get("mfa_verified_at", 0)
             if not request.user.is_verified() or timezone.now().timestamp() - verified_at > 12 * 3600:

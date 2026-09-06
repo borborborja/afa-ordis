@@ -9,7 +9,7 @@ Implementació al workspace `/opt/projects/afa-ordis`, preservant els canvis de 
 | Base de dades | SQLCipher obligatori en producció; base i WAL xifrats, temporals SQL en memòria; clau absent/errònia no activa cap alternativa plana |
 | Documents i còpies | secretstream XChaCha20-Poly1305 autenticat; claus independents/versionades; fitxers vinculats al camí; còpia completa v2 `.afaenc` |
 | Autoritzacions | Cuina limitada al dia actual; informes clínics només família pròpia o revisió mèdica expressa; administració ordinària sense descàrrega clínica |
-| Autenticació | TOTP per a personal privilegiat, codis de recuperació d'un sol ús, renovació en 12 hores, recuperació fora de línia i sessions invalidades |
+| Autenticació | TOTP per al compte superadministrador, codis de recuperació d'un sol ús, renovació en 12 hores, recuperació fora de línia i sessions invalidades |
 | Correu | Avisos individuals amb enllaç al portal; sense noms d'infants, dietes, dades clíniques, imports ni informes adjunts |
 | Transparència i salut | Política versionada ca/es, proves de consentiment explícit/representació, retirada sense convertir una al·lèrgia en dieta ordinària, CSV sense importació alimentària en producció |
 | Drets | Petició autenticada, venciment d'un mes natural, revisió humana, JSON restringit al sol·licitant amb caducitat; baixes completes de comptes/famílies documentades com a procediment humà |

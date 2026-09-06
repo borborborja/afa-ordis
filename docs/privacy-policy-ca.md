@@ -31,7 +31,7 @@ Fastmail pot implicar transferències internacionals o accessos des de fora de l
 
 ## Seguretat
 
-La base de dades, els documents privats i les còpies del portal es guarden xifrats; les comunicacions web utilitzen HTTPS i el correu SMTP utilitza TLS. El personal amb accés privilegiat ha d'utilitzar autenticació de doble factor i permisos específics. No és xifrat d'extrem a extrem: el sistema autoritzat necessita desxifrar les dades per prestar el servei. L'AFA limita l'accés, conserva còpies xifrades i manté procediments de recuperació i d'incidents.
+La base de dades, els documents privats i les còpies del portal es guarden xifrats; les comunicacions web utilitzen HTTPS i el correu SMTP utilitza TLS. El compte superadministrador ha d'utilitzar autenticació de doble factor; la resta de permisos s'assignen específicament segons la funció. No és xifrat d'extrem a extrem: el sistema autoritzat necessita desxifrar les dades per prestar el servei. L'AFA limita l'accés, conserva còpies xifrades i manté procediments de recuperació i d'incidents.
 
 ## Conservació
 

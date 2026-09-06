@@ -38,7 +38,7 @@ La Junta valida les bases jurídiques i l'avaluació de riscos descrites a l'[ex
 
 - consentiment explícit, separat i revocable per a dades de salut;
 - accés de la família a les seves dades, revisió mèdica només amb permís exprés i informació operativa mínima per a cuina;
-- autenticació de doble factor i permisos específics per al personal amb accés privilegiat;
+- autenticació de doble factor per al compte superadministrador i permisos específics per a la resta de funcions;
 - xifrat de la base de dades, fitxers i còpies, i registre d'auditoria minimitzat;
 - bloqueig i registre separat quan es retira el consentiment o es restringeixen dades;
 - correus individuals sense contingut sensible.

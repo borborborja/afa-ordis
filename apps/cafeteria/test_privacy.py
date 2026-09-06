@@ -449,11 +449,17 @@ class PrivacyFlows(TestCase):
         self.assertIsNone(record.exc_info)
 
     @override_settings(MFA_REQUIRED=True)
-    def test_privileged_access_requires_second_factor(self):
+    def test_only_superuser_access_requires_second_factor(self):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("cafeteria:people"))
         self.assertRedirects(response, reverse("cafeteria:mfa_verify"), fetch_redirect_response=False)
         self.assertEqual(self.client.get(reverse("cafeteria:privacy_notice")).status_code, 200)
+
+    @override_settings(MFA_REQUIRED=True)
+    def test_staff_role_access_does_not_require_second_factor(self):
+        self.client.force_login(self.cook)
+        response = self.client.get(reverse("cafeteria:kitchen_report"))
+        self.assertEqual(response.status_code, 200)
 
     @override_settings(MFA_REQUIRED=True)
     def test_totp_and_recovery_codes_cannot_be_replayed(self):

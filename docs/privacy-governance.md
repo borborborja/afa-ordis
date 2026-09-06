@@ -42,7 +42,7 @@ Infants i informació clínica exigeixen especial prudència. La [llista AEPD d'
 | Escenari | Mesures implementades | Risc residual / evidència necessària |
 | --- | --- | --- |
 | Robatori del volum o d'una còpia | SQLCipher, adjunts i còpies autenticats, claus fora del volum | Accés root o al procés viu pot llegir dades i claus; verificar VPS, swap i snapshots |
-| Compte de personal compromès | MFA TOTP, recuperació d'un sol ús, permisos expressos, revisió de restauració | Revisar altes/baixes i dispositius; MFA no neutralitza una sessió ja robada |
+| Compte superadministrador compromès | MFA TOTP, recuperació d'un sol ús, permisos expressos, revisió de restauració | Revisar altes/baixes i dispositius; MFA no neutralitza una sessió ja robada |
 | Confusió després de retirar el consentiment | Bloqueig clínic i avís d'aturar preparació, sense dieta ordinària implícita | Procediment presencial amb família i cuina abans de reprendre el servei |
 | Correu indegut | Avisos individuals sense informes/infants/dietes/imports | SMTP continua tractant adreces, metadades i tokens d'accés inicial/restabliment |
 | Còpia antiga | Registre de restriccions autenticat, reaplicació, portal tancat fins a revisió | Cal conservar i aportar de debò l'últim registre extern; el programa no pot endevinar-ne versions perdudes |

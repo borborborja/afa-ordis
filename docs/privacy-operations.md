@@ -107,7 +107,7 @@ python manage.py restore_encrypted_backup \
 python manage.py complete_privacy_restore --confirm-access-review
 ```
 
-7. Arrencar i comprovar MFA, salut de servei, un document sintètic, una còpia nova, capçaleres/no-cache i que un infant restringit continua sense dades clíniques accessibles ni dieta ordinària implícita. Registrar acta, dates, còpia usada, claus (només identificadors), temps de recuperació i revisor.
+7. Arrencar i comprovar MFA del superadministrador, salut de servei, un document sintètic, una còpia nova, capçaleres/no-cache i que un infant restringit continua sense dades clíniques accessibles ni dieta ordinària implícita. Registrar acta, dates, còpia usada, claus (només identificadors), temps de recuperació i revisor.
 
 La restauració web fa les mateixes comprovacions i també deixa pendent la revisió fora de línia. Cal una descàrrega de seguretat prèvia de menys de 15 minuts, contrasenya, `RESTAURA`, còpia xifrada i registre actual. Rebutja ZIP/SQLite plans en producció. Requereix migracions compatibles; per còpies xifrades d'una altra versió, recuperar amb la imatge corresponent en un entorn aïllat i després migrar.
 
@@ -125,9 +125,9 @@ No substituir les claus actives sobre una base existent sense convertir-la. `PRA
 
 ## MFA i permisos
 
-L'administració inicial configura TOTP, desa els vuit codis de recuperació d'un sol ús fora del navegador i assigna expressament `privacy`, `health_reviewer` i `kitchen` només a qui pertoqui. Ser administrador/superusuari no concedeix consulta mèdica per la vista de documents. El responsable d'administrar claus/servidor té capacitat tècnica més àmplia i necessita deure de confidencialitat.
+El compte superadministrador configura TOTP i desa els vuit codis de recuperació d'un sol ús fora del navegador. La resta de comptes no requereixen segon factor; l'administració assigna expressament `privacy`, `health_reviewer` i `kitchen` només a qui pertoqui. Ser administrador/superusuari no concedeix consulta mèdica per la vista de documents. El responsable d'administrar claus/servidor té capacitat tècnica més àmplia i necessita deure de confidencialitat.
 
-El segon factor es renova com a màxim cada 12 hores d'ús privilegiat. Per pèrdua de l'autenticador s'utilitza un codi de recuperació. Sense cap codi, després de verificar identitat per un canal independent:
+El segon factor del compte superadministrador es renova com a màxim cada 12 hores. Per pèrdua de l'autenticador s'utilitza un codi de recuperació. Sense cap codi, després de verificar identitat per un canal independent:
 
 ```bash
 python manage.py reset_portal_mfa --user-id 123 --confirm-identity-verified
