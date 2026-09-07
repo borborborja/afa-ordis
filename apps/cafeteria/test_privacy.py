@@ -195,6 +195,37 @@ class PrivacyPublicationCommandTests(TestCase):
         self.assertEqual(PrivacyNotice.objects.count(), 1)
         self.assertEqual(RetentionRule.objects.count(), len(RetentionRule.Category.values))
 
+    def test_publishes_a_newer_approved_version_without_replacing_retention_rules(self):
+        PrivacyNotice.objects.create(
+            version="2026-09-06",
+            controller="Synthetic AFA",
+            tax_id="TEST",
+            address="Synthetic address",
+            contact_email="privacy@example.test",
+            text_ca="Synthetic policy",
+            text_es="Synthetic policy",
+            health_text_ca="Synthetic health policy",
+            health_text_es="Synthetic health policy",
+            contracts_verified=True,
+            assessment_approved=True,
+            recovery_verified=True,
+            approved_by=self.approver,
+            published_at=timezone.now(),
+        )
+        for category in RetentionRule.Category.values:
+            RetentionRule.objects.create(
+                category=category,
+                days=30,
+                justification="Synthetic approved retention rule",
+                approved_by=self.approver,
+            )
+
+        call_command(*self.command_args())
+
+        self.assertEqual(PrivacyNotice.objects.count(), 2)
+        self.assertEqual(PrivacyNotice.current().version, "2026-09-07")
+        self.assertEqual(RetentionRule.objects.count(), len(RetentionRule.Category.values))
+
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", PRIVACY_ENFORCED=False)
 class PrivacyFlows(TestCase):

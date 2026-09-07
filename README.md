@@ -63,12 +63,13 @@ Per a un servidor públic, consulta la [guia de desplegament](docs/deployment.md
 2. A **Menjador → Configuració del menjador** crea el catàleg de dietes, l'hora límit de canvis, l'hora d'enviament dels informes diaris i els correus destinataris de cuina. Les dues hores són independents. Les pestanyes de **Tarifes** i **Menú** completen la configuració; crea les quatre combinacions de preu: amb/sense ajut de menjador × fix/esporàdic.
 3. A **Contactes i AFA → Famílies, alumnat i docents**, afegeix les fitxes manualment o baixa la plantilla i valida una importació a **Importa CSV**. La importació no envia invitacions ni aplica canvis fins que es confirma la previsualització.
    - A cada fitxa d'alumnat indica si hi ha al·lèrgies. Si n'hi ha, la família ha d'explicar-les i adjuntar el document mèdic; gestió de menjador o administració les valida des de **Menjador → Alertes d’al·lèrgies**.
+   - Completa també **Menjador → Inscripcions de menjador** amb el telèfon, la persona representant, DNI/NIE, IBAN i autorització. Les famílies creades a partir d'aquesta versió han de completar-la abans de reservar; les ja existents no queden bloquejades. La decisió de drets d'imatge es demana independentment per a cada infant.
 4. A **Contactes i AFA → Quotes AFA**, fixa una única quota anual per curs i registra manualment cada família sòcia (pendent, pagada o exempta). Una família pot utilitzar el menjador sense ser sòcia; el personal docent no té quotes AFA.
 5. Des d'**Administració del portal** l'administració pot convidar persones tutores, gestió de menjador, personal docent o administració. Cada invitació crea un enllaç d’un sol ús; en producció cal SMTP amb TLS per lliurar-lo. A **Comptes** es poden consultar les persones registrades; els enllaços de restauració només s'envien al correu del compte i no es mostren a l'administració. A **Configuració** es pot activar que les famílies afegeixin el seu alumnat; abans cal tenir un curs actiu amb els seus grups creats.
 6. A **Gestió econòmica → Configuració**, revisa els comptes i categories inicials, fixa el saldo inicial real i decideix si qualsevol persona registrada, o només persones concretes, pot presentar despeses amb tiquet.
 7. Revisa els **Llistats diaris**, la **Planificació mensual** i els **Informes mensuals** dins de Menjador abans de tancar-los o enviar-los per correu.
 
-Gestió de menjador pot operar les reserves, preus, llistats, planificació mensual, resums i l'enllaç del menú; no pot crear famílies, alumnat ni invitacions. Les persones tutores poden editar la fitxa dels infants vinculats, menys la condició d'ajut de menjador.
+Gestió de menjador pot operar les reserves, preus, llistats, planificació mensual, resums, inscripcions de menjador i l'enllaç del menú; no pot crear famílies, alumnat ni invitacions. Les persones tutores poden editar la fitxa dels infants vinculats, menys la condició d'ajut de menjador.
 
 ## Operativa
 

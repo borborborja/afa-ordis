@@ -2,7 +2,7 @@
 
 Aquest és el registre operatiu que acompanya la política aprovada; no substitueix assessorament jurídic. Responsable: **AFA Escola Maria Pagès i Trayter**, NIF **J17213604**, c/ de les Escoles, 4, 17772 Ordis (Girona). Contacte de privacitat: **privacitat@afaescolaordis.org**. La infraestructura declarada és un VPS de ZAP-Hosting a Alemanya i el correu declarat és Fastmail.
 
-La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'[acta d'aprovació del 6 de setembre de 2026](privacy-approval-record-2026-09-06.md) recull les decisions, els terminis, les evidències declarades i l'autorització d'activació. La comanda de publicació deixa l'aprovació tècnica auditada amb el compte concret que l'executa.
+La política pública i el consentiment explícit de salut estan finalitzats a [català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). L'[acta inicial del 6 de setembre de 2026](privacy-approval-record-2026-09-06.md) i l'[actualització del 7 de setembre](privacy-approval-record-2026-09-07.md) recullen les decisions, els terminis, les evidències declarades i l'autorització d'activació. La comanda de publicació deixa l'aprovació tècnica auditada amb el compte concret que l'executa.
 
 La configuració operativa actual no fa servir segon factor ni autoritzacions personals addicionals: administració i gestió de menjador poden consultar les dades necessàries per a les seves funcions, mentre que cuina conserva només la vista operativa del dia. Aquest canvi tècnic no altera per si mateix la versió de política ja publicada ni l'acta històrica; abans d'actualitzar el text públic o el consentiment, l'AFA n'ha d'aprovar una nova versió.
 

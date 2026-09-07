@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-06 22:40+0000\n"
+"POT-Creation-Date: 2026-09-07 21:49+0000\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -94,6 +94,15 @@ msgid ""
 msgstr ""
 "Si hay una alergia, hay que aportar un documento médico que la justifique."
 
+msgid "No autoritzo la publicació d'imatges"
+msgstr "No autorizo la publicación de imágenes"
+
+msgid "Autoritzo la publicació d'imatges"
+msgstr "Autorizo la publicación de imágenes"
+
+msgid "Drets d'imatge"
+msgstr "Derechos de imagen"
+
 msgid "Exemple: Al·lèrgia a fruits secs."
 msgstr "Ejemplo: alergia a frutos secos."
 
@@ -137,6 +146,28 @@ msgstr "Teléfono de contacto"
 
 msgid "Rebre els resums mensuals per correu"
 msgstr "Recibir resúmenes mensuales por correo"
+
+msgid ""
+"He llegit el text i autoritzo la inscripció de menjador i la domiciliació "
+"indicada."
+msgstr ""
+"He leído el texto y autorizo la inscripción de comedor y la domiciliación "
+"indicada."
+
+msgid "Nom i cognoms del pare, mare o tutor/a legal"
+msgstr "Nombre y apellidos del padre, madre o tutor/a legal"
+
+msgid "DNI o NIE del pare, mare o tutor/a legal"
+msgstr "DNI o NIE del padre, madre o tutor/a legal"
+
+msgid "Número de compte bancari (IBAN)"
+msgstr "Número de cuenta bancaria (IBAN)"
+
+msgid "Indica un DNI o NIE vàlid."
+msgstr "Indica un DNI o NIE válido."
+
+msgid "Indica un IBAN vàlid."
+msgstr "Indica un IBAN válido."
 
 msgid "Valida la declaració"
 msgstr "Valida la declaración"
@@ -381,6 +412,9 @@ msgstr "Nombre identificativo de la familia"
 
 msgid "Exemple: persona tutora o contacte principal"
 msgstr "Ejemplo: persona tutora o contacto principal"
+
+msgid "Inscripció de menjador"
+msgstr "Inscripción de comedor"
 
 msgid "Pendent de cobrament"
 msgstr "Pago pendiente"
@@ -880,6 +914,9 @@ msgstr "La configuración inicial de la familia ya está completada."
 msgid "S'han actualitzat les dades de contacte de la família."
 msgstr "Se han actualizado los datos de contacto de la familia."
 
+msgid "S'ha desat la inscripció de menjador."
+msgstr "Se ha guardado la inscripción de comedor."
+
 msgid "L'autogestió d'alumnat no està disponible."
 msgstr "La autogestión del alumnado no está disponible."
 
@@ -903,6 +940,9 @@ msgid ""
 msgstr ""
 "Selecciona el grupo actual y completa la ficha de comedor. La ayuda de "
 "comedor la gestiona la administración."
+
+msgid "Completa la inscripció de menjador abans de fer reserves."
+msgstr "Completa la inscripción de comedor antes de hacer reservas."
 
 msgid "El termini de canvis per a aquest dia ha acabat."
 msgstr "El periodo de cambio para este día ha terminado."
@@ -1956,6 +1996,9 @@ msgstr "Cocina: hoy"
 msgid "Llistats diaris"
 msgstr "Listados diarios"
 
+msgid "Inscripcions de menjador"
+msgstr "Inscripciones de comedor"
+
 msgid "Planificació mensual"
 msgstr "Planificación mensual"
 
@@ -2080,6 +2123,15 @@ msgid ""
 msgstr ""
 "Indica si las hay. Si la respuesta es sí, hay que completar el título, los "
 "detalles, las indicaciones para cocina y adjuntar el documento médico."
+
+msgid ""
+"Pots autoritzar o denegar separadament la publicació d'imatges d'aquest "
+"infant en activitats de menjador. No donar l'autorització no afecta el "
+"servei."
+msgstr ""
+"Puedes autorizar o denegar por separado la publicación de imágenes de este "
+"menor en actividades de comedor. No dar la autorización no afecta al "
+"servicio."
 
 msgid "Dades i AFA"
 msgstr "Datos y AFA"
@@ -2362,6 +2414,57 @@ msgstr "Actualiza la página del menú que verán las familias."
 msgid "Dietes, horaris de tancament i enviaments automàtics."
 msgstr "Dietas, horarios de cierre y envíos automáticos."
 
+msgid ""
+"Indica el contacte, la persona titular i el compte per gestionar els rebuts "
+"del servei."
+msgstr ""
+"Indica el contacto, la persona titular y la cuenta para gestionar los "
+"recibos del servicio."
+
+msgid "Dades de cobrament"
+msgstr "Datos de cobro"
+
+msgid "Autorització de menjador"
+msgstr "Autorización de comedor"
+
+msgid ""
+"L'autorització de menjador ja consta registrada. Pots actualitzar les dades "
+"de contacte o cobrament si cal."
+msgstr ""
+"La autorización de comedor ya consta registrada. Puedes actualizar los datos "
+"de contacto o cobro si es necesario."
+
+msgid ""
+"Les dades es guarden xifrades i només les poden consultar les persones "
+"tutores vinculades a la família, administració i gestió de menjador."
+msgstr ""
+"Los datos se guardan cifrados y solo pueden consultarlos las personas "
+"tutoras vinculadas a la familia, administración y gestión de comedor."
+
+msgid "Cancel·la"
+msgstr "Cancelar"
+
+msgid "Desa la inscripció"
+msgstr "Guarda la inscripción"
+
+msgid "Consulta i completa les dades necessàries per facturar el servei."
+msgstr "Consulta y completa los datos necesarios para facturar el servicio."
+
+msgid "Contacte"
+msgstr "Contacto"
+
+msgid "Completa"
+msgstr "Completa"
+
+msgid "No requerida"
+msgstr "No requerida"
+
+msgid "Consulta o edita"
+msgstr "Consulta o edita"
+
+msgid "No hi ha famílies actives."
+msgstr "No hay familias activas."
+
 msgid "Configuració econòmica"
 msgstr "Configuración económica"
 
@@ -2520,9 +2623,6 @@ msgstr "Añadir un ingreso o gasto. Se debe conservar al menos un recibo."
 
 msgid "Justificants ja adjuntats"
 msgstr "Comprobantes ya adjuntos"
-
-msgid "Cancel·la"
-msgstr "Cancelar"
 
 msgid "Desa el moviment"
 msgstr "Guardar movimiento"
@@ -2920,6 +3020,18 @@ msgstr ""
 "Revisa los datos de contacto, la fecha de nacimiento y la declaración de "
 "alergias de cada menor. Si hay alergia, hay que adjuntar el documento médico "
 "que la acredita."
+
+msgid "Les dades de cobrament i l'autorització del servei consten registrades."
+msgstr "Los datos de cobro y la autorización del servicio constan registrados."
+
+msgid "Cal completar-la abans de poder fer reserves de menjador."
+msgstr "Hay que completarla antes de poder hacer reservas de comedor."
+
+msgid "Pots completar-la ara per tenir les dades de cobrament preparades."
+msgstr "Puedes completarla ahora para tener preparados los datos de cobro."
+
+msgid "Completa la inscripció"
+msgstr "Completa la inscripción"
 
 msgid "Desa les dades"
 msgstr "Guardar detalles"
@@ -3330,9 +3442,6 @@ msgstr ""
 
 msgid "Cerca per família, alumne o docent"
 msgstr "Buscar por familia, estudiante o maestro"
-
-msgid "Contacte"
-msgstr "Contacto"
 
 msgid "Quota AFA"
 msgstr "Tarifa AFA"

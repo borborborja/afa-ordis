@@ -1,0 +1,7 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Gestió de menjador" %}{% endblock %}
+{% block content %}
+<section class="page-heading compact"><div><p class="eyebrow">{% translate "Menjador" %}</p><h1>{% translate "Inscripcions de menjador" %}</h1><p>{% translate "Consulta i completa les dades necessàries per facturar el servei." %}</p></div></section>
+<section class="table-card"><table><thead><tr><th>{% translate "Família" %}</th><th>{% translate "Contacte" %}</th><th>{% translate "Estat" %}</th><th></th></tr></thead><tbody>{% for family in families %}<tr><td><strong>{{ family.name }}</strong></td><td>{{ family.phone|default:"—" }}</td><td>{% if family.dining_enrollment_complete %}<span class="status paid">{% translate "Completa" %}</span>{% elif family.dining_enrollment_required %}<span class="status pending">{% translate "Pendent" %}</span>{% else %}<span class="status neutral">{% translate "No requerida" %}</span>{% endif %}</td><td class="table-actions"><a href="{% url 'cafeteria:dining_enrollment' family.id %}">{% translate "Consulta o edita" %}</a></td></tr>{% empty %}<tr><td colspan="4" class="empty-cell">{% translate "No hi ha famílies actives." %}</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}

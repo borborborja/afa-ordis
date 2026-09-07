@@ -16,7 +16,7 @@
   <legend>{% translate "Dades de l'alumne" %}</legend>
   <div class="form-grid">
     {% for field in form %}
-      {% if field.name != "allergy_declaration" and field.name != "allergy_title" and field.name != "allergy_details" and field.name != "allergy_document" and field.name != "kitchen_instructions" and field.name != "DELETE" %}
+      {% if field.name != "allergy_declaration" and field.name != "allergy_title" and field.name != "allergy_details" and field.name != "allergy_document" and field.name != "kitchen_instructions" and field.name != "image_consent" and field.name != "DELETE" %}
         <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
         </div>
@@ -38,5 +38,13 @@
         {% endif %}
       {% endfor %}
     </div>
+  </fieldset>
+{% endif %}
+
+{% if form.image_consent %}
+  <fieldset class="student-form-section image-consent-section">
+    <legend>{% translate "Drets d'imatge" %}</legend>
+    <p class="muted">{% translate "Pots autoritzar o denegar separadament la publicació d'imatges d'aquest infant en activitats de menjador. No donar l'autorització no afecta el servei." %}</p>
+    <div class="field field-radio"><label for="{{ form.image_consent.id_for_label }}">{{ form.image_consent.label }}</label>{{ form.image_consent }}{% if form.image_consent.help_text %}<small>{{ form.image_consent.help_text }}</small>{% endif %}{% for error in form.image_consent.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>
   </fieldset>
 {% endif %}

@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 from django import forms
 from django.conf import settings
@@ -7,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Q
+from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 
 from .identity import normalize_email
@@ -22,6 +24,7 @@ from .models import (
     CourseGroup,
     DailyReportRecipient,
     Diet,
+    DiningEnrollment,
     EconomicCategory,
     EconomicEntry,
     EconomicEntryType,
@@ -31,6 +34,7 @@ from .models import (
     Family,
     FamilyBookingView,
     FinancialAccount,
+    ImageConsent,
     Invitation,
     MealSettings,
     PortalSettings,
@@ -39,6 +43,7 @@ from .models import (
     Student,
     TeacherMealProfile,
 )
+from .approved_privacy_policy import IMAGE_CONSENT_TEXT_CA, IMAGE_CONSENT_TEXT_ES, IMAGE_CONSENT_VERSION
 
 
 MEDICAL_DOCUMENT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"}
@@ -121,6 +126,16 @@ class StudentAllergyFormMixin(forms.ModelForm):
         widget=forms.RadioSelect,
         help_text=_("Si hi ha una al·lèrgia, cal aportar un document mèdic que la justifiqui."),
     )
+    image_consent = forms.ChoiceField(
+        choices=(
+            ("", _("Selecciona una opció")),
+            ("no", _("No autoritzo la publicació d'imatges")),
+            ("yes", _("Autoritzo la publicació d'imatges")),
+        ),
+        required=False,
+        label=_("Drets d'imatge"),
+        widget=forms.RadioSelect,
+    )
 
     def __init__(self, *args, require_profile_completion=False, actor=None, family=None, **kwargs):
         self.require_profile_completion = require_profile_completion
@@ -134,6 +149,18 @@ class StudentAllergyFormMixin(forms.ModelForm):
         if require_profile_completion:
             self.fields["birth_date"].required = True
             self.fields["default_diet"].required = True
+        latest_image_consent = (
+            ImageConsent.objects.filter(student=self.instance).first() if self.instance.pk else None
+        )
+        self._previous_image_consent = latest_image_consent
+        if latest_image_consent:
+            self.fields["image_consent"].initial = "yes" if latest_image_consent.granted else "no"
+        elif not self.instance.pk:
+            self.fields["image_consent"].required = True
+        self.fields["image_consent"].widget.attrs["data-image-consent"] = self.prefix or "student"
+        self.fields["image_consent"].help_text = (
+            IMAGE_CONSENT_TEXT_ES if translation.get_language() == "es" else IMAGE_CONSENT_TEXT_CA
+        )
         from .privacy import medical_access
         self.medical_allowed = medical_access(actor, self.instance) if actor else not settings.PRIVACY_ENFORCED
         if not self.medical_allowed:
@@ -220,6 +247,7 @@ class StudentAllergyFormMixin(forms.ModelForm):
             if commit:
                 student.save()
                 self.save_m2m()
+                self.save_image_consent(student)
             return student
         declaration = self.cleaned_data.get("allergy_declaration", "")
         previous = self._previous_allergy
@@ -272,10 +300,27 @@ class StudentAllergyFormMixin(forms.ModelForm):
                     destroy_after=timezone.now() + timedelta(days=retention_days("health")))
             student.save()
             self.save_m2m()
+            self.save_image_consent(student)
             if delete_previous_document and previous_document and not settings.PRIVACY_ENFORCED:
                 storage = student.allergy_document.storage
                 transaction.on_commit(lambda: storage.delete(previous_document))
         return student
+
+    def save_image_consent(self, student):
+        """Record a deliberate per-child image decision without ever assuming one."""
+        decision = self.cleaned_data.get("image_consent", "")
+        previous = self._previous_image_consent
+        if not decision:
+            return
+        granted = decision == "yes"
+        if previous and previous.granted == granted and previous.version == IMAGE_CONSENT_VERSION:
+            return
+        ImageConsent.objects.create(
+            student=student,
+            representative=self.actor if getattr(self.actor, "is_authenticated", False) else None,
+            granted=granted,
+            version=IMAGE_CONSENT_VERSION,
+        )
 
 
 class TutorStudentForm(StudentAllergyFormMixin):
@@ -320,6 +365,15 @@ class FamilyForm(forms.ModelForm):
         model = Family
         fields = ("name", "phone", "monthly_email_enabled", "active")
 
+    def save(self, commit=True):
+        family = super().save(commit=False)
+        if family._state.adding:
+            family.dining_enrollment_required = True
+        if commit:
+            family.save()
+            self.save_m2m()
+        return family
+
 
 class FamilyContactForm(forms.ModelForm):
     """Safe shared-contact editing for people linked to a family."""
@@ -339,6 +393,62 @@ class FamilyOnboardingContactForm(FamilyContactForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["phone"].required = True
+
+
+class DiningEnrollmentForm(forms.ModelForm):
+    """Billing registration, without a payment-provider or banking integration."""
+
+    phone = forms.CharField(max_length=32, label=_("Telèfon de contacte"))
+    accept_service_terms = forms.BooleanField(
+        required=True,
+        label=_("He llegit el text i autoritzo la inscripció de menjador i la domiciliació indicada."),
+    )
+
+    class Meta:
+        model = DiningEnrollment
+        fields = ("representative_name", "representative_document_id", "iban")
+        labels = {
+            "representative_name": _("Nom i cognoms del pare, mare o tutor/a legal"),
+            "representative_document_id": _("DNI o NIE del pare, mare o tutor/a legal"),
+            "iban": _("Número de compte bancari (IBAN)"),
+        }
+
+    def __init__(self, *args, family, require_terms_acceptance=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.family = family
+        self.require_terms_acceptance = require_terms_acceptance
+        if not require_terms_acceptance:
+            self.fields.pop("accept_service_terms")
+        self.fields["representative_document_id"].widget.attrs["autocomplete"] = "off"
+        self.fields["iban"].widget.attrs["autocomplete"] = "off"
+        self.fields["phone"].initial = family.phone
+
+    def clean_representative_document_id(self):
+        value = re.sub(r"[\s-]", "", self.cleaned_data["representative_document_id"]).upper()
+        letters = "TRWAGMYFPDXBNJZSQVHLCKE"
+        if re.fullmatch(r"\d{8}[A-Z]", value):
+            number = int(value[:8])
+        elif re.fullmatch(r"[XYZ]\d{7}[A-Z]", value):
+            number = int({"X": "0", "Y": "1", "Z": "2"}[value[0]] + value[1:8])
+        else:
+            raise ValidationError(_("Indica un DNI o NIE vàlid."))
+        if value[-1] != letters[number % 23]:
+            raise ValidationError(_("Indica un DNI o NIE vàlid."))
+        return value
+
+    def clean_iban(self):
+        value = re.sub(r"\s+", "", self.cleaned_data["iban"]).upper()
+        if not re.fullmatch(r"[A-Z]{2}\d{2}[A-Z0-9]{11,30}", value):
+            raise ValidationError(_("Indica un IBAN vàlid."))
+        rearranged = value[4:] + value[:4]
+        remainder = 0
+        for character in rearranged:
+            digits = character if character.isdigit() else str(ord(character) - 55)
+            for digit in digits:
+                remainder = (remainder * 10 + int(digit)) % 97
+        if remainder != 1:
+            raise ValidationError(_("Indica un IBAN vàlid."))
+        return value
 
 
 class StaffStudentForm(StudentAllergyFormMixin):

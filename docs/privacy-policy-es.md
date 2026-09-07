@@ -1,6 +1,6 @@
 # Política de privacidad — AFA Escola Maria Pagès i Trayter
 
-Versión 2026-09-06. Texto aprobado por la AFA para publicarlo en el portal después de completar y documentar las verificaciones operativas indicadas en [gobernanza](privacy-governance.md).
+Versión 2026-09-07. Texto aprobado por la AFA para publicarlo en el portal después de completar y documentar las verificaciones operativas indicadas en [gobernanza](privacy-governance.md).
 
 ## Responsable del tratamiento
 
@@ -10,7 +10,7 @@ Contacto de privacidad: [privacitat@afaescolaordis.org](mailto:privacitat@afaesc
 
 ## Finalidades y datos tratados
 
-Tratamos los datos necesarios para dar de alta y gestionar la cuenta, acreditar la representación familiar, organizar las reservas y el servicio de comedor, gestionar la relación asociativa voluntaria, las cuotas, cobros, justificantes y contabilidad, proteger el portal y atender las solicitudes de derechos. Los datos los facilita principalmente la persona usuaria o representante. No realizamos publicidad, perfiles comerciales ni decisiones automatizadas con efectos jurídicos.
+Tratamos los datos necesarios para dar de alta y gestionar la cuenta, acreditar la representación familiar, organizar las reservas y el servicio de comedor, y gestionar cobros, justificantes y contabilidad. Para la domiciliación solicitamos el nombre, DNI o NIE e IBAN de la persona representante que autoriza el cargo. Los datos los facilita principalmente la persona usuaria o representante. No realizamos publicidad, perfiles comerciales ni decisiones automatizadas con efectos jurídicos.
 
 La información de salud, alergias y acreditaciones médicas solo se solicita si es pertinente para preparar el servicio de comedor con seguridad. No hace falta aportar una historia clínica completa ajena a esta finalidad.
 
@@ -20,18 +20,19 @@ La información de salud, alergias y acreditaciones médicas solo se solicita si
 - Las obligaciones contables, fiscales y la atención de derechos se tratan cuando es necesario para cumplir una obligación legal (artículo 6.1.c RGPD).
 - La prevención del fraude, la seguridad, el registro mínimo de accesos y la continuidad del portal se basan en el interés legítimo de la AFA (artículo 6.1.f RGPD), ponderado con las garantías de esta política.
 - Los datos de salud se tratan con el consentimiento explícito de la persona representante y la excepción del artículo 9.2.a RGPD. El consentimiento es independiente, no está premarcado, queda registrado con la versión del texto y se puede retirar en cualquier momento. La retirada no afecta a la licitud previa; la AFA acordará con la familia una alternativa segura y no asignará por defecto una dieta ordinaria.
+- La publicación de imágenes es opcional, se decide por menor con un sí o un no explícito y no afecta al servicio de comedor. La decisión se puede modificar en cualquier momento.
 
 ## Destinatarios y proveedores
 
-Solo acceden las personas autorizadas según su función. La familia ve sus datos; la revisión médica solo la realizan personas con permiso expreso; y cocina recibe únicamente, para el día del servicio, el nombre, grupo, dieta e instrucciones estrictamente imprescindibles. Cocina no recibe informes clínicos, datos de contacto, becas ni información económica.
+Solo acceden las personas autorizadas según su función. Las personas tutoras vinculadas a una familia, administración y gestión de comedor pueden consultar los datos necesarios para gestionar el servicio; cocina recibe únicamente, para el día del servicio, el nombre, grupo, dieta e instrucciones estrictamente imprescindibles. Cocina no recibe informes clínicos, datos de contacto, becas ni información económica.
 
-El portal se aloja en un VPS de ZAP-Hosting situado en Alemania. Fastmail presta el servicio de correo para invitaciones, recuperaciones y avisos individuales; los correos no incluyen informes médicos, listas de menores ni información económica. Estos proveedores tratan datos por cuenta de la AFA de acuerdo con las instrucciones y las garantías contractuales aplicables.
+El portal se aloja en un VPS de ZAP-Hosting situado en Alemania. ARAM Empordà Lleure i Esports presta el servicio de comedor como encargada del tratamiento, bajo contrato e instrucciones de la AFA, con el acceso de gestión necesario. Fastmail presta el servicio de correo para invitaciones, recuperaciones y avisos individuales; los correos no incluyen informes médicos, listas de menores ni información económica. Estos proveedores tratan datos por cuenta de la AFA de acuerdo con las instrucciones y las garantías contractuales aplicables.
 
 Fastmail puede implicar transferencias internacionales o accesos desde fuera del Espacio Económico Europeo. Las garantías aplicables, incluidas las cláusulas contractuales tipo cuando correspondan, se pueden solicitar al contacto de privacidad. No vendemos datos personales ni los cedemos para fines comerciales.
 
 ## Seguridad
 
-La base de datos, los documentos privados y las copias del portal se guardan cifrados; las comunicaciones web utilizan HTTPS y el correo SMTP utiliza TLS. La cuenta superadministradora debe utilizar autenticación de doble factor; el resto de permisos se asignan específicamente según la función. No es cifrado de extremo a extremo: el sistema autorizado necesita descifrar los datos para prestar el servicio. La AFA limita el acceso, conserva copias cifradas y mantiene procedimientos de recuperación e incidentes.
+La base de datos, los documentos privados y las copias del portal se guardan cifrados; las comunicaciones web utilizan HTTPS y el correo SMTP utiliza TLS. Los permisos se asignan según la función. No es cifrado de extremo a extremo: el sistema autorizado necesita descifrar los datos para prestar el servicio. La AFA limita el acceso, conserva copias cifradas y mantiene procedimientos de recuperación e incidentes.
 
 ## Conservación
 
@@ -59,9 +60,15 @@ El portal utiliza cookies técnicas de sesión, protección CSRF, preferencia de
 
 ## Consentimiento explícito de salud
 
-> Autorizo explícitamente a la AFA Escola Maria Pagès i Trayter, NIF J17213604, a tratar la declaración de alergias, intolerancias, dieta y la acreditación médica estrictamente necesaria del menor al que represento para organizar un servicio de comedor seguro. Entiendo que la información solo será accesible por la familia y por las personas con autorización médica expresa, y que cocina solo recibirá las instrucciones operativas imprescindibles.
+> Autorizo explícitamente a la AFA Escola Maria Pagès i Trayter, NIF J17213604, a tratar la declaración de alergias, intolerancias, dieta y la acreditación médica estrictamente necesaria del menor al que represento para organizar un servicio de comedor seguro. Entiendo que la información será accesible por la familia y por administración y gestión de comedor según su función, y que cocina solo recibirá las instrucciones operativas imprescindibles.
 >
 > He leído esta política, sé que el consentimiento es independiente de otras finalidades, que no está premarcado y que puedo retirar la autorización desde **Tus derechos** o escribiendo a [privacitat@afaescolaordis.org](mailto:privacitat@afaescolaordis.org). La retirada no afecta al tratamiento anterior lícito; la AFA acordará conmigo una alternativa segura y no asignará por defecto una dieta ordinaria. Confirmo que tengo la representación legal necesaria del menor.
+
+## Inscripción de comedor y derechos de imagen
+
+La inscripción de comedor identifica a la persona representante, su DNI o NIE, el teléfono y el IBAN para gestionar los recibos. La confirmación digital declara la representación legal, autoriza el uso del servicio, la domiciliación indicada, la normativa aplicable y las decisiones médico-quirúrgicas de extrema urgencia bajo dirección facultativa.
+
+La decisión de imagen es independiente: la persona representante puede autorizar o denegar por separado, para cada menor, la captación y publicación de imágenes en actividades de comedor de la AFA o de su encargada ARAM Empordà Lleure i Esports. La negativa o retirada no afecta al servicio.
 
 ## Publicación en el portal
 

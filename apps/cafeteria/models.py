@@ -139,6 +139,7 @@ class Diet(models.Model):
 class Family(models.Model):
     name = models.CharField(max_length=160, help_text=_("Nom identificatiu de la família"))
     phone = models.CharField(max_length=32, blank=True)
+    dining_enrollment_required = models.BooleanField(default=False)
     monthly_email_enabled = models.BooleanField(default=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -157,6 +158,17 @@ class Family(models.Model):
         ).exclude(user__email="").values_list("user__email", flat=True)
         return sorted(set(emails))
 
+    @property
+    def dining_enrollment_complete(self):
+        try:
+            return self.dining_enrollment.is_complete
+        except DiningEnrollment.DoesNotExist:
+            return False
+
+    @property
+    def needs_dining_enrollment(self):
+        return self.dining_enrollment_required and not self.dining_enrollment_complete
+
 
 class FamilyMembership(models.Model):
     family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="memberships")
@@ -171,6 +183,38 @@ class FamilyMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.email} · {self.family.name}"
+
+
+class DiningEnrollment(models.Model):
+    """Family billing details and the durable proof of the meal-service agreement."""
+
+    family = models.OneToOneField(Family, on_delete=models.CASCADE, related_name="dining_enrollment")
+    representative_name = models.CharField(max_length=160)
+    representative_document_id = models.CharField(max_length=16)
+    iban = models.CharField(max_length=34)
+    service_terms_version = models.CharField(max_length=40)
+    service_terms_accepted_at = models.DateTimeField()
+    service_terms_accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
+        related_name="accepted_dining_enrollments",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Inscripció de menjador")
+
+    @property
+    def is_complete(self):
+        return bool(
+            self.representative_name
+            and self.representative_document_id
+            and self.iban
+            and self.service_terms_version
+            and self.service_terms_accepted_at
+        )
+
+    def __str__(self):
+        return f"{self.family} · {self.representative_name}"
 
 
 class AfaMembershipStatus(models.TextChoices):
@@ -455,6 +499,25 @@ class Student(models.Model):
 
     def __str__(self) -> str:
         return self.full_name
+
+
+class ImageConsent(models.Model):
+    """Append-only record of the choice made for one child’s image rights."""
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="image_consents")
+    representative = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
+        related_name="recorded_image_consents",
+    )
+    granted = models.BooleanField()
+    version = models.CharField(max_length=40)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-recorded_at", "-pk"]
+
+    def __str__(self):
+        return f"{self.student} · {'sí' if self.granted else 'no'} · {self.version}"
 
 
 class TeacherMealProfile(models.Model):

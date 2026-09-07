@@ -33,6 +33,7 @@ from .models import (
     CourseGroup,
     DailyReportRecipient,
     Diet,
+    DiningEnrollment,
     EconomicAttachment,
     EconomicCategory,
     EconomicEntry,
@@ -44,11 +45,13 @@ from .models import (
     FamilyMembership,
     FamilyImportBatch,
     Invitation,
+    ImageConsent,
     MealBooking,
     MealPlan,
     MealSettings,
     PortalSettings,
     PriceRule,
+    Role,
     ServiceDay,
     StatementStatus,
     Student,
@@ -422,6 +425,7 @@ class CafeteriaFlowTests(TestCase):
             "new-students-0-allergy_declaration": "no",
             "new-students-0-allergy_title": "",
             "new-students-0-allergy_details": "",
+            "new-students-0-image_consent": "no",
         })
         self.assertRedirects(response, reverse("cafeteria:family_home"))
         membership = FamilyMembership.objects.get(family=new_family, user__email="onboarding@example.com")
@@ -455,11 +459,88 @@ class CafeteriaFlowTests(TestCase):
             "contact_email": "", "contact_phone": "", "contact_notes": "",
             "default_diet": self.diet.id, "dietary_notes": "", "meal_plan": MealPlan.SPORADIC,
             "allergy_declaration": "no", "allergy_title": "", "allergy_details": "",
+            "image_consent": "no",
         })
         self.assertRedirects(response, reverse("cafeteria:family_profile", args=[self.family.id]))
         student = Student.objects.get(family=self.family, first_name="Biel")
         self.assertEqual(student.course_group, self.group)
         self.assertFalse(student.is_scholarship)
+
+    def test_new_family_must_complete_dining_enrollment_before_booking(self):
+        self.family.dining_enrollment_required = True
+        self.family.save(update_fields=["dining_enrollment_required"])
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        self.assertRedirects(response, reverse("cafeteria:dining_enrollment", args=[self.family.id]))
+
+        response = self.client.post(reverse("cafeteria:dining_enrollment", args=[self.family.id]), {
+            "phone": "600111222",
+            "representative_name": "Joana Puig",
+            "representative_document_id": "12345678Z",
+            "iban": "ES9121000418450200051332",
+            "accept_service_terms": "on",
+        })
+        self.assertRedirects(response, reverse("cafeteria:family_profile", args=[self.family.id]))
+        enrollment = DiningEnrollment.objects.get(family=self.family)
+        self.assertEqual(enrollment.representative_name, "Joana Puig")
+        self.assertEqual(enrollment.representative_document_id, "12345678Z")
+        self.assertEqual(enrollment.iban, "ES9121000418450200051332")
+        self.assertEqual(enrollment.service_terms_version, "2026-09-07")
+        self.assertTrue(enrollment.service_terms_accepted_at)
+        self.assertEqual(self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id])).status_code, 200)
+
+    def test_dining_enrollment_rejects_invalid_identity_or_iban(self):
+        self.family.dining_enrollment_required = True
+        self.family.save(update_fields=["dining_enrollment_required"])
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("cafeteria:dining_enrollment", args=[self.family.id]), {
+            "phone": "600111222",
+            "representative_name": "Joana Puig",
+            "representative_document_id": "12345678A",
+            "iban": "ES0000000000000000000000",
+            "accept_service_terms": "on",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Indica un DNI o NIE vàlid")
+        self.assertContains(response, "Indica un IBAN vàlid")
+        self.assertFalse(DiningEnrollment.objects.filter(family=self.family).exists())
+
+    def test_image_consent_is_per_student_and_keeps_its_history(self):
+        self.client.force_login(self.user)
+        common_fields = {
+            "first_name": self.student.first_name,
+            "last_name": self.student.last_name,
+            "birth_date": "",
+            "default_diet": self.diet.id,
+            "meal_plan": MealPlan.FIXED,
+            "allergy_declaration": "no",
+        }
+        response = self.client.post(
+            reverse("cafeteria:student_edit", args=[self.student.id]),
+            {**common_fields, "image_consent": "no"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ImageConsent.objects.get(student=self.student).granted)
+        response = self.client.post(
+            reverse("cafeteria:student_edit", args=[self.student.id]),
+            {**common_fields, "image_consent": "yes"},
+        )
+        self.assertEqual(response.status_code, 302)
+        records = list(ImageConsent.objects.filter(student=self.student))
+        self.assertEqual(len(records), 2)
+        self.assertTrue(records[0].granted)
+        self.assertFalse(records[1].granted)
+
+    def test_manager_can_manage_dining_enrollment_but_kitchen_cannot(self):
+        manager = User.objects.create_user("manager-enrollment@example.com", "manager-enrollment@example.com", "correct-horse-battery-staple")
+        manager.groups.add(Group.objects.get_or_create(name=Role.MANAGER)[0])
+        self.client.force_login(manager)
+        self.assertEqual(self.client.get(reverse("cafeteria:dining_enrollment", args=[self.family.id])).status_code, 200)
+        kitchen = User.objects.create_user("kitchen-enrollment@example.com", "kitchen-enrollment@example.com", "correct-horse-battery-staple")
+        kitchen.groups.add(Group.objects.get_or_create(name=Role.KITCHEN)[0])
+        self.client.force_login(kitchen)
+        self.assertEqual(self.client.get(reverse("cafeteria:dining_enrollment", args=[self.family.id])).status_code, 404)
 
     def test_portal_administration_requires_an_active_group_before_enabling_family_student_creation(self):
         admin = User.objects.create_superuser("family-settings@example.com", "family-settings@example.com", "correct-horse-battery-staple")
@@ -1177,6 +1258,7 @@ class CafeteriaFlowTests(TestCase):
             "cafeteria/statement_detail.html", "cafeteria/invitation_form.html", "cafeteria/student_form.html",
             "cafeteria/audit_log.html", "cafeteria/family_import_preview.html", "cafeteria/family_home.html",
             "cafeteria/family_profile.html", "cafeteria/family_onboarding.html", "cafeteria/family_school_calendar.html",
+            "cafeteria/dining_enrollment.html", "cafeteria/dining_enrollments.html",
             "cafeteria/allergy_review_queue.html", "cafeteria/allergy_review.html",
             "cafeteria/economic_dashboard.html", "cafeteria/economic_entries.html",
             "cafeteria/economic_reports.html",

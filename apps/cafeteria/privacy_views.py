@@ -142,6 +142,29 @@ def export_candidate(item, actor):
     data = {"request": str(item.id)}
     if item.requester:
         data["account"] = {"name": item.requester.get_full_name(), "email": item.requester.email}
+        families = FamilyMembership.objects.filter(user=item.requester, family__active=True).select_related(
+            "family", "family__dining_enrollment"
+        )
+        data["families"] = []
+        for membership in families:
+            family = membership.family
+            enrollment = getattr(family, "dining_enrollment", None)
+            family_data = {"name": family.name, "phone": family.phone}
+            if enrollment:
+                family_data["dining_enrollment"] = {
+                    "representative_name": enrollment.representative_name,
+                    "representative_document_id": enrollment.representative_document_id,
+                    "iban": enrollment.iban,
+                    "terms_version": enrollment.service_terms_version,
+                    "accepted_at": str(enrollment.service_terms_accepted_at),
+                }
+            family_data["image_consents"] = list(
+                Student.objects.filter(family=family).values(
+                    "id", "first_name", "last_name", "image_consents__granted",
+                    "image_consents__version", "image_consents__recorded_at",
+                )
+            )
+            data["families"].append(family_data)
     if item.student and item.requester and FamilyMembership.objects.filter(user=item.requester, family_id=item.student.family_id).exists():
         student = item.student
         data["student"] = {key: str(getattr(student, key) or "") for key in (

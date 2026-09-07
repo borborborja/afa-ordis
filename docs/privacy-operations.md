@@ -38,7 +38,7 @@ Aquesta ordre s'executa amb la configuració xifrada, claus i `PRIVATE_TEMP_DIR`
 
 ## Activació de la política aprovada
 
-Els textos aprovats de l'AFA, la identificació del responsable i els sis terminis estan versionats al codi i documentats a [política en català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). El portal mostra aquests textos encara que el registre administratiu intern no s'hagi creat. Una persona autoritzada pot publicar-los una sola vegada per registrar l'aprovador i fixar la versió a la base de dades; això no és un requisit per donar servei a les famílies.
+Els textos aprovats de l'AFA, la identificació del responsable i els sis terminis estan versionats al codi i documentats a [política en català](privacy-policy-ca.md) i [castellà](privacy-policy-es.md). El portal mostra aquests textos encara que el registre administratiu intern no s'hagi creat. Una persona autoritzada pot publicar cada versió nova aprovada per registrar-ne l'aprovador; una versió publicada no es modifica ni se substitueix. Això no és un requisit per donar servei a les famílies.
 
 Abans d'executar-la, l'AFA ha de tenir arxivats i revisats: l'acord de la política i terminis, els contractes o garanties aplicables de ZAP-Hosting i Fastmail, les bases jurídiques i avaluació de riscos, i una prova real de recuperació amb les claus separades. Les cinc confirmacions de la comanda són declaracions auditables: no les marquis per convertir una tasca pendent en aprovada.
 
@@ -60,7 +60,7 @@ sudo docker compose exec app python manage.py publish_afa_privacy_policy \
   --confirm-key-recovery
 ```
 
-La comanda no sobreescriu una política publicada, cap esborrany amb la mateixa versió ni terminis ja existents. En qualsevol d'aquests casos, cal revisar-los des d'**Administració del portal → Privacitat i dades → Administració de privacitat** i publicar una versió nova: les polítiques publicades són immutables. Després comprova `https://afaescolaordis.org/ca/privacitat/` i una alta de prova sense dades reals.
+La comanda no sobreescriu una política publicada, cap esborrany amb la mateixa versió ni terminis ja existents. Si hi ha una política anterior, registra la nova versió però conserva els terminis ja aprovats; si hi ha un esborrany amb la mateixa versió o una versió més nova publicada, cal revisar-ho des d'**Administració del portal → Privacitat i dades → Administració de privacitat**. Les polítiques publicades són immutables. Després comprova `https://afaescolaordis.org/ca/privacitat/` i una alta de prova sense dades reals.
 
 ## Transport, host i límits
 

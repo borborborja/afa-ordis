@@ -53,6 +53,7 @@ from .forms import (
     CSVImportForm,
     DailyReportRecipientForm,
     DietForm,
+    DiningEnrollmentForm,
     EconomicCategoryForm,
     EconomicEntryForm,
     EconomicSettingsForm,
@@ -72,6 +73,11 @@ from .forms import (
     PortalSettingsForm,
     PortalFamilyRegistrationSettingsForm,
     TeacherMealProfileForm,
+)
+from .approved_privacy_policy import (
+    DINING_ENROLLMENT_TERMS_CA,
+    DINING_ENROLLMENT_TERMS_ES,
+    DINING_ENROLLMENT_TERMS_VERSION,
 )
 from .identity import normalize_email
 from .interface_mode import (
@@ -98,6 +104,7 @@ from .models import (
     CourseGroup,
     DailyReport,
     Diet,
+    DiningEnrollment,
     EconomicAttachment,
     EconomicCategory,
     EconomicEntry,
@@ -256,6 +263,8 @@ def _update_student_booking(*, actor, student, service_date, action, diet, reaso
     """Apply one requested meal without silently changing dates outside the service."""
     if _pending_family_onboarding(actor, student.family_id):
         return False, "profile_required"
+    if _dining_enrollment_required(student.family):
+        return False, "dining_enrollment_required"
     if action not in {"add", "cancel"}:
         return False, "invalid"
     if action == "add" and student.meal_safety_hold:
@@ -344,6 +353,24 @@ def _pending_family_onboarding(user, family_id=None):
         if not membership.family.students.filter(active=True).exists():
             return membership
     return None
+
+
+def _family_dining_enrollment(family):
+    """Return the current record without creating a partial registration."""
+    try:
+        return family.dining_enrollment
+    except DiningEnrollment.DoesNotExist:
+        return None
+
+
+def _family_for_dining_enrollment(user, family_id):
+    if _is_staff(user):
+        return get_object_or_404(Family, pk=family_id, active=True)
+    return get_object_or_404(Family, pk=family_id, active=True, memberships__user=user)
+
+
+def _dining_enrollment_required(family):
+    return family.dining_enrollment_required and not family.dining_enrollment_complete
 
 
 def _student_profile_needs_completion(student):
@@ -693,6 +720,7 @@ def family_onboarding(request, family_id):
                 saved_student = form.save(commit=False)
                 saved_student.family = family
                 saved_student.save()
+                form.save_image_consent(saved_student)
                 log_event(request.user, "student.created_by_family", saved_student)
             completed_at = timezone.now()
             FamilyMembership.objects.filter(family=family).update(
@@ -726,10 +754,61 @@ def family_profile(request, family_id):
     return render(request, "cafeteria/family_profile.html", {
         "family": family,
         "form": form,
+        "dining_enrollment": _family_dining_enrollment(family),
+        "dining_enrollment_complete": family.dining_enrollment_complete,
+        "dining_enrollment_required": _dining_enrollment_required(family),
         "students": family.students.filter(active=True).select_related("course_group", "default_diet"),
         "profile_needs_completion": _family_profile_needs_completion(family),
         "can_add_students": bool(PortalSettings.objects.filter(allow_family_student_creation=True).exists()),
     })
+
+
+@login_required
+@atomic_write
+def dining_enrollment(request, family_id):
+    """Register the meal-service agreement and direct-debit details for one family."""
+    family = _family_for_dining_enrollment(request.user, family_id)
+    enrollment = _family_dining_enrollment(family)
+    requires_terms = not enrollment or not enrollment.is_complete
+    form = DiningEnrollmentForm(
+        request.POST or None,
+        instance=enrollment,
+        family=family,
+        require_terms_acceptance=requires_terms,
+    )
+    if request.method == "POST" and form.is_valid():
+        saved = form.save(commit=False)
+        saved.family = family
+        if requires_terms:
+            saved.service_terms_version = DINING_ENROLLMENT_TERMS_VERSION
+            saved.service_terms_accepted_at = timezone.now()
+            saved.service_terms_accepted_by = request.user
+        family.phone = form.cleaned_data["phone"]
+        family.save(update_fields=["phone", "updated_at"])
+        saved.save()
+        log_event(
+            request.user,
+            "dining_enrollment.created" if enrollment is None else "dining_enrollment.updated",
+            saved,
+            {"field_names": ["phone", "representative_name", "representative_document_id", "iban"], "version": saved.service_terms_version},
+        )
+        messages.success(request, _("S'ha desat la inscripció de menjador."))
+        return redirect("cafeteria:family_profile", family_id=family.id)
+    is_staff_view = _is_staff(request.user)
+    return render(request, "cafeteria/dining_enrollment.html", {
+        "family": family,
+        "form": form,
+        "requires_terms": requires_terms,
+        "terms_text": DINING_ENROLLMENT_TERMS_ES if translation.get_language() == "es" else DINING_ENROLLMENT_TERMS_CA,
+        "back_url": reverse("cafeteria:dining_enrollments") if is_staff_view else reverse("cafeteria:family_profile", args=[family.id]),
+        "is_staff_view": is_staff_view,
+    })
+
+
+@staff_required
+def dining_enrollments(request):
+    families = Family.objects.filter(active=True).select_related("dining_enrollment").order_by("name")
+    return render(request, "cafeteria/dining_enrollments.html", {"families": families[:250]})
 
 
 @login_required
@@ -753,6 +832,7 @@ def family_student_create(request, family_id):
         saved = form.save(commit=False)
         saved.family = family
         saved.save()
+        form.save_image_consent(saved)
         log_event(request.user, "student.created_by_family", saved)
         messages.success(request, _("S'ha afegit la fitxa de l'infant."))
         return redirect("cafeteria:family_profile", family_id=family.id)
@@ -809,6 +889,9 @@ def family_calendar(request, family_id):
     pending_onboarding = _pending_family_onboarding(request.user, family.id)
     if pending_onboarding:
         return redirect("cafeteria:family_onboarding", family_id=family.id)
+    if _dining_enrollment_required(family):
+        messages.info(request, _("Completa la inscripció de menjador abans de fer reserves."))
+        return redirect("cafeteria:dining_enrollment", family_id=family.id)
     try:
         month_start = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date().replace(day=1)
     except ValueError:
@@ -925,6 +1008,7 @@ def _booking_json_error(result):
         "unavailable": _("Aquest dia no té servei de menjador."),
         "reason_required": _("Cal indicar el motiu del canvi fora de termini."),
         "profile_required": _("Completa primer la configuració inicial de la família."),
+        "dining_enrollment_required": _("Completa la inscripció de menjador abans de fer reserves."),
     }
     return JsonResponse({"ok": False, "message": messages_by_result.get(result, _("No s'ha pogut actualitzar la reserva."))}, status=409)
 
@@ -3481,7 +3565,7 @@ def family_import_confirm(request, batch_id):
                 family = family_cache.get(key)
                 if family is None:
                     family = Family.objects.create(
-                        name=row["family_name"], phone=row["family_phone"],
+                        name=row["family_name"], phone=row["family_phone"], dining_enrollment_required=True,
                     )
                     family_cache[key] = family
                     created_families += 1

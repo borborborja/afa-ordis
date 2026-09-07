@@ -1,0 +1,33 @@
+{% extends 'cafeteria/base.html' %}
+{% load i18n %}
+{% block page_context %}{% translate "Inscripció de menjador" %}{% endblock %}
+{% block content %}
+<section class="page-heading compact">
+  <div>
+    <p class="eyebrow">{{ family.name }}</p>
+    <h1>{% translate "Inscripció de menjador" %}</h1>
+    <p>{% translate "Indica el contacte, la persona titular i el compte per gestionar els rebuts del servei." %}</p>
+  </div>
+  <a class="button secondary" href="{{ back_url }}">{% include 'cafeteria/components/icon.html' with name='arrow-left' %}{% translate "Torna" %}</a>
+</section>
+<form method="post" class="card form-card dining-enrollment-form">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <fieldset class="student-form-section">
+    <legend>{% translate "Dades de cobrament" %}</legend>
+    <div class="form-grid">
+      {% for field in form %}{% if field.name != 'accept_service_terms' %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>{% endif %}{% endfor %}
+    </div>
+  </fieldset>
+  {% if requires_terms %}
+  <fieldset class="student-form-section">
+    <legend>{% translate "Autorització de menjador" %}</legend>
+    <p class="legal-text">{{ terms_text|linebreaksbr }}</p>
+    <div class="field field-checkbox"><label for="{{ form.accept_service_terms.id_for_label }}">{{ form.accept_service_terms }}{{ form.accept_service_terms.label }}</label>{% for error in form.accept_service_terms.errors %}<small class="error">{{ error }}</small>{% endfor %}</div>
+  </fieldset>
+  {% else %}
+  <p class="muted">{% translate "L'autorització de menjador ja consta registrada. Pots actualitzar les dades de contacte o cobrament si cal." %}</p>
+  {% endif %}
+  <p class="muted">{% translate "Les dades es guarden xifrades i només les poden consultar les persones tutores vinculades a la família, administració i gestió de menjador." %}</p>
+  <div class="form-actions"><a class="button secondary" href="{{ back_url }}">{% translate "Cancel·la" %}</a><button class="button primary" type="submit">{% include 'cafeteria/components/icon.html' with name='check' %}{% translate "Desa la inscripció" %}</button></div>
+</form>
+{% endblock %}

@@ -54,21 +54,23 @@ class Command(BaseCommand):
             raise CommandError("The approver must be an administrator.")
 
         with transaction.atomic():
-            if PrivacyNotice.current():
-                raise CommandError("A published privacy notice already exists. Published versions are immutable; use the privacy administration screen to publish a reviewed new version.")
             if PrivacyNotice.objects.filter(version=POLICY_VERSION).exists():
                 raise CommandError(f"The unpublished version {POLICY_VERSION} already exists. Review or remove it through the authorised privacy process; it will not be overwritten.")
-            if RetentionRule.objects.exists():
-                raise CommandError("Retention rules already exist. They will not be overwritten; review them in Privacy Administration before publishing a notice.")
+            current = PrivacyNotice.current()
+            if current and current.version > POLICY_VERSION:
+                raise CommandError("A newer privacy policy is already published; this command will not replace it.")
+            if current is None and RetentionRule.objects.exists():
+                raise CommandError("Retention rules already exist. They will not be overwritten; review them in Privacy Administration before publishing a first notice.")
 
-            for item in RETENTION_SCHEDULE:
-                rule = RetentionRule.objects.create(
-                    category=item.category,
-                    days=item.days,
-                    justification=item.justification,
-                    approved_by=approver,
-                )
-                log_event(approver, "privacy.retention_approved", rule, {"category": rule.category})
+            if current is None:
+                for item in RETENTION_SCHEDULE:
+                    rule = RetentionRule.objects.create(
+                        category=item.category,
+                        days=item.days,
+                        justification=item.justification,
+                        approved_by=approver,
+                    )
+                    log_event(approver, "privacy.retention_approved", rule, {"category": rule.category})
 
             notice = PrivacyNotice.objects.create(
                 version=POLICY_VERSION,
