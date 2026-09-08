@@ -38,6 +38,7 @@ from .models import (
     Invitation,
     MealSettings,
     PortalSettings,
+    PriceAudience,
     PriceRule,
     Role,
     Student,
@@ -791,16 +792,52 @@ class CSVImportForm(forms.Form):
 
 
 class PriceRuleForm(forms.ModelForm):
+    audience = forms.ChoiceField(
+        choices=(
+            ("student_standard", _("Alumnat sense ajut de menjador")),
+            ("student_scholarship", _("Alumnat amb ajut de menjador")),
+            ("teacher", _("Personal docent")),
+        ),
+        label=_("Aplicable a"),
+    )
+
     class Meta:
         model = PriceRule
-        fields = ("scholarship", "meal_plan", "effective_from", "amount")
+        fields = ("meal_plan", "effective_from", "amount")
         labels = {
-            "scholarship": _("Amb ajut de menjador"),
             "meal_plan": _("Modalitat"),
             "effective_from": _("Vàlida des de"),
             "amount": _("Preu per àpat (€)"),
         }
         widgets = {"effective_from": forms.DateInput(attrs={"type": "date"})}
+
+    def clean(self):
+        cleaned = super().clean()
+        selected = cleaned.get("audience")
+        meal_plan = cleaned.get("meal_plan")
+        effective_from = cleaned.get("effective_from")
+        if not selected or not meal_plan or not effective_from:
+            return cleaned
+        audience = PriceAudience.TEACHER if selected == "teacher" else PriceAudience.STUDENT
+        scholarship = selected == "student_scholarship"
+        if PriceRule.objects.filter(
+            audience=audience,
+            scholarship=scholarship,
+            meal_plan=meal_plan,
+            effective_from=effective_from,
+        ).exists():
+            raise ValidationError(_("Ja hi ha una tarifa amb aquesta aplicació, modalitat i data."))
+        return cleaned
+
+    def save(self, commit=True):
+        rule = super().save(commit=False)
+        selected = self.cleaned_data["audience"]
+        rule.audience = PriceAudience.TEACHER if selected == "teacher" else PriceAudience.STUDENT
+        rule.scholarship = selected == "student_scholarship"
+        if commit:
+            rule.save()
+            self.save_m2m()
+        return rule
 
 
 class BookingBulkForm(forms.Form):

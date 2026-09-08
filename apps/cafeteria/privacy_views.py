@@ -174,7 +174,9 @@ def export_candidate(item, actor):
             data["health"] = {key: str(getattr(student, key) or "") for key in (
                 "allergy_title", "allergy_details", "kitchen_instructions", "allergy_review_status",
             )}
-        data["bookings"] = list(student.bookings.values("date", "diet_name", "unit_price", "status"))
+        data["bookings"] = list(student.bookings.values(
+            "date", "diet_name", "unit_price", "status", "regularized_after_service",
+        ))
     return json.dumps(data, ensure_ascii=False, indent=2, default=str)
 
 

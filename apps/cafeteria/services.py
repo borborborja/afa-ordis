@@ -13,6 +13,7 @@ from .models import (
     BookingStatus,
     MealBooking,
     MonthlyStatement,
+    PriceAudience,
     PriceRule,
     StatementLine,
     StatementStatus,
@@ -186,12 +187,14 @@ def reprice_open_bookings(student=None, rule=None) -> int:
     bookings = MealBooking.objects.filter(status=BookingStatus.ACTIVE).select_related("student")
     if student is not None:
         bookings = bookings.filter(student=student)
-    if rule is not None:
+    if rule is not None and rule.audience == PriceAudience.STUDENT:
         bookings = bookings.filter(
             student__is_scholarship=rule.scholarship,
             student__meal_plan=rule.meal_plan,
             date__gte=rule.effective_from,
         )
+    elif rule is not None:
+        bookings = bookings.none()
     closed_periods = set(
         MonthlyStatement.objects.filter(status__in=["closed", "sent"]).values_list("family_id", "year", "month")
     )
@@ -208,7 +211,7 @@ def reprice_open_bookings(student=None, rule=None) -> int:
         return changed
     teacher_bookings = TeacherMealBooking.objects.filter(status=BookingStatus.ACTIVE).select_related("teacher")
     if rule is not None:
-        if rule.scholarship:
+        if rule.audience != PriceAudience.TEACHER:
             return changed
         teacher_bookings = teacher_bookings.filter(teacher__meal_plan=rule.meal_plan, date__gte=rule.effective_from)
     closed_teacher_periods = set(
@@ -217,7 +220,7 @@ def reprice_open_bookings(student=None, rule=None) -> int:
     for booking in teacher_bookings:
         if (booking.teacher_id, booking.date.year, booking.date.month) in closed_teacher_periods:
             continue
-        amount = PriceRule.amount_for_category(False, booking.teacher.meal_plan, booking.date)
+        amount = PriceRule.amount_for_teacher(booking.teacher, booking.date)
         if booking.unit_price != amount:
             booking.unit_price = amount
             booking.save(update_fields=["unit_price", "updated_at"])

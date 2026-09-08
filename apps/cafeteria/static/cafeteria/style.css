@@ -2298,6 +2298,34 @@ td small {
   color: var(--muted);
   font-size: .88rem;
 }
+.booking-regularization-note {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+  gap: 16px;
+  align-items: start;
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid #e6bb73;
+  border-radius: 12px;
+  background: #fff8e9;
+}
+.booking-regularization-note p { margin: 4px 0 0; color: #685124; font-size: .86rem; }
+.booking-regularization-note label { display: grid; gap: 5px; color: var(--ink); font-size: .82rem; font-weight: 750; }
+.booking-regularization-note small { color: var(--muted); font-size: .74rem; font-weight: 500; }
+.booking-regularization-marker {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  z-index: 4;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff2c9;
+  color: #9b5d00;
+}
+.booking-regularization-marker .icon { width: 11px; height: 11px; }
 .booking-guide-icon {
   display: inline-grid;
   width: 16px;
@@ -2722,6 +2750,8 @@ td small {
 }
 .matrix-excursion-marker { right: -2px; }
 .matrix-lock-marker { left: 11px; background: #e6ebe8; color: #718078; }
+.matrix-student-control .booking-regularization-marker { top: -2px; left: -2px; width: 13px; height: 13px; }
+.matrix-student-control .booking-regularization-marker .icon { width: 8px; height: 8px; }
 .matrix-excursion-marker .icon,
 .matrix-lock-marker .icon { width: 8px; height: 8px; }
 .booking-calendar-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -2738,6 +2768,7 @@ td small {
 @media (max-width: 640px) {
   .monthly-booking-workspace,
   .teacher-monthly-workspace { padding: 14px 7px; }
+  .booking-regularization-note { grid-template-columns: 1fr; gap: 10px; margin-inline: 3px; }
   .student-month-calendar,
   .teacher-month-calendar,
   .family-matrix-calendar { padding: 8px 3px; border-width: 0; border-radius: 0; }

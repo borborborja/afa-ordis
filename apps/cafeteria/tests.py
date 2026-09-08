@@ -50,6 +50,7 @@ from .models import (
     MealPlan,
     MealSettings,
     PortalSettings,
+    PriceAudience,
     PriceRule,
     Role,
     ServiceDay,
@@ -143,6 +144,74 @@ class CafeteriaFlowTests(TestCase):
         self.assertEqual(booking.status, BookingStatus.ACTIVE)
         self.assertEqual(booking.unit_price, Decimal("6.50"))
         self.assertEqual(booking.diet_name, "Ordinària")
+
+    def test_only_staff_can_regularize_a_past_meal_without_a_previous_booking(self):
+        past_day = self.today - timedelta(days=1)
+        ServiceDay.objects.create(academic_year=self.year, date=past_day, is_service_day=True)
+        update_url = reverse("cafeteria:family_booking_update", args=[self.family.id])
+
+        self.client.force_login(self.user)
+        response = self.client.post(update_url, {
+            "student_id": self.student.id,
+            "service_date": past_day.isoformat(),
+            "operation": "reserve",
+            "override_reason": "S'ha quedat a dinar sense reserva.",
+        })
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(MealBooking.objects.filter(student=self.student, date=past_day).exists())
+
+        manager = User.objects.create_user("regularitza@example.com", "regularitza@example.com", "correct-horse-battery-staple")
+        manager.groups.add(Group.objects.get_or_create(name=Role.MANAGER)[0])
+        self.client.force_login(manager)
+        calendar = self.client.get(reverse("cafeteria:family_calendar", args=[self.family.id]))
+        self.assertEqual(calendar.status_code, 200)
+        self.assertContains(calendar, "Regularització de dies passats")
+
+        response = self.client.post(update_url, {
+            "student_id": self.student.id, "service_date": past_day.isoformat(), "operation": "reserve",
+        })
+        self.assertEqual(response.status_code, 409)
+
+        response = self.client.post(update_url, {
+            "student_id": self.student.id,
+            "service_date": past_day.isoformat(),
+            "operation": "reserve",
+            "override_reason": "S'ha quedat a dinar sense reserva.",
+        })
+        self.assertEqual(response.status_code, 200)
+        booking = MealBooking.objects.get(student=self.student, date=past_day)
+        self.assertEqual(booking.status, BookingStatus.ACTIVE)
+        self.assertTrue(booking.regularized_after_service)
+        self.assertEqual(booking.unit_price, Decimal("6.50"))
+
+        response = self.client.post(update_url, {
+            "student_id": self.student.id,
+            "service_date": past_day.isoformat(),
+            "operation": "cancel",
+            "override_reason": "Anotació duplicada.",
+        })
+        self.assertEqual(response.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+
+    def test_teacher_price_is_configured_separately_from_student_prices(self):
+        admin = User.objects.create_superuser("teacher-price@example.com", "teacher-price@example.com", "correct-horse-battery-staple")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("cafeteria:meal_configuration"), {
+            "tab": "tarifes",
+            "intent": "price",
+            "price-audience": "teacher",
+            "price-meal_plan": MealPlan.SPORADIC,
+            "price-effective_from": (self.today - timedelta(days=1)).isoformat(),
+            "price-amount": "5.75",
+        })
+        self.assertRedirects(response, f"{reverse('cafeteria:meal_configuration')}?tab=tarifes")
+        teacher_rule = PriceRule.objects.get(audience=PriceAudience.TEACHER, meal_plan=MealPlan.SPORADIC)
+        self.assertEqual(teacher_rule.amount, Decimal("5.75"))
+        teacher_user = User.objects.create_user("teacher-price-user@example.com", "teacher-price-user@example.com", "correct-horse-battery-staple")
+        teacher = TeacherMealProfile.objects.create(user=teacher_user, default_diet=self.diet, meal_plan=MealPlan.SPORADIC)
+        booking = TeacherMealBooking.objects.create(teacher=teacher, date=self.today, diet=self.diet)
+        self.assertEqual(booking.unit_price, Decimal("5.75"))
 
     def test_operational_report_and_csv_follow_the_selected_language(self):
         booking = MealBooking.objects.create(student=self.student, date=self.today, diet=self.diet)
@@ -959,7 +1028,7 @@ class CafeteriaFlowTests(TestCase):
             "new_password2": "another-correct-horse-battery-staple",
         })
         profile = TeacherMealProfile.objects.get(user__email="teacher@example.com")
-        PriceRule.objects.create(scholarship=False, meal_plan=MealPlan.SPORADIC, effective_from=self.today - timedelta(days=1), amount=Decimal("7.00"))
+        PriceRule.objects.create(audience=PriceAudience.TEACHER, scholarship=False, meal_plan=MealPlan.SPORADIC, effective_from=self.today - timedelta(days=1), amount=Decimal("7.00"))
         response = self.client.get(f"{reverse('cafeteria:teacher_calendar')}?month={self.today:%Y-%m}")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Calendari mensual de reserves")

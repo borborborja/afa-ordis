@@ -263,7 +263,9 @@ def _update_student_booking(*, actor, student, service_date, action, diet, reaso
     """Apply one requested meal without silently changing dates outside the service."""
     if _pending_family_onboarding(actor, student.family_id):
         return False, "profile_required"
-    if _dining_enrollment_required(student.family):
+    is_staff_actor = _is_staff(actor)
+    regularized_after_service = is_staff_actor and service_date < timezone.localdate()
+    if _dining_enrollment_required(student.family) and not regularized_after_service:
         return False, "dining_enrollment_required"
     if action not in {"add", "cancel"}:
         return False, "invalid"
@@ -272,9 +274,9 @@ def _update_student_booking(*, actor, student, service_date, action, diet, reaso
     if MonthlyStatement.objects.filter(family_id=student.family_id, year=service_date.year, month=service_date.month).exclude(status=StatementStatus.PREPARED).exists():
         return False, "locked"
     locked = is_tutor_locked(service_date)
-    if locked and not _is_staff(actor):
+    if locked and not is_staff_actor:
         return False, "locked"
-    if locked and _is_staff(actor) and not reason:
+    if locked and is_staff_actor and not reason:
         return False, "reason_required"
     if not is_service_day(service_date, student):
         return False, "unavailable"
@@ -295,6 +297,7 @@ def _update_student_booking(*, actor, student, service_date, action, diet, reaso
             booking.diet_name = selected_diet.name
             booking.updated_by = actor
             booking.override_reason = reason
+            booking.regularized_after_service = booking.regularized_after_service or regularized_after_service
             booking.unit_price = PriceRule.amount_for(student, service_date)
             booking.save()
         else:
@@ -302,9 +305,10 @@ def _update_student_booking(*, actor, student, service_date, action, diet, reaso
                 student=student, date=service_date, diet=selected_diet,
                 diet_name=selected_diet.name, created_by=actor,
                 updated_by=actor, override_reason=reason,
+                regularized_after_service=regularized_after_service,
             )
-        log_event(actor, "booking.created_or_updated", booking, {
-            "after_cutoff": locked, "reason": reason,
+        log_event(actor, "booking.regularized_after_service" if regularized_after_service else "booking.created_or_updated", booking, {
+            "after_cutoff": locked, "reason": reason, "regularized_after_service": regularized_after_service,
         })
     DailyReport.objects.filter(date=service_date, sent_at__isnull=False).update(is_outdated=True)
     return True, "updated"
@@ -331,7 +335,7 @@ def admin_required(view):
 
 
 def _family_for_user_or_404(user, family_id):
-    if user.is_superuser or _is_admin(user):
+    if _is_staff(user):
         return get_object_or_404(Family, pk=family_id)
     return get_object_or_404(Family, pk=family_id, memberships__user=user, active=True)
 
@@ -984,6 +988,7 @@ def family_calendar(request, family_id):
         "previous_month": previous_month,
         "next_month": next_month,
         "has_siblings": len(students) > 1,
+        "staff_can_regularize": _is_staff(request.user),
         "today_change_notice": today_change_notice if not _is_staff(request.user) else None,
     })
 
@@ -999,6 +1004,7 @@ def _booking_cell_payload(student, service_date):
         "reserved": True,
         "diet_id": booking.diet_id,
         "diet_name": booking.diet_name or (booking.diet.name if booking.diet else ""),
+        "regularized_after_service": booking.regularized_after_service,
     }
 
 
@@ -1047,7 +1053,7 @@ def family_booking_update(request, family_id):
 
     changed, result = _update_student_booking(
         actor=request.user, student=student, service_date=service_date,
-        action=action, diet=diet,
+        action=action, diet=diet, reason=request.POST.get("override_reason", "").strip(),
     )
     if result not in {"updated", "unchanged"}:
         return _booking_json_error(result)
@@ -1069,6 +1075,7 @@ def family_booking_apply(request, family_id):
     except ValueError:
         return JsonResponse({"ok": False, "message": _("La data no és vàlida.")}, status=400)
     students = list(family.students.filter(active=True).select_related("default_diet", "course_group"))
+    reason = request.POST.get("override_reason", "").strip()
     editable = []
     skipped = 0
     for student in students:
@@ -1085,7 +1092,10 @@ def family_booking_apply(request, family_id):
     for student in editable:
         changed, result = _update_student_booking(
             actor=request.user, student=student, service_date=service_date, action=action, diet=None,
+            reason=reason,
         )
+        if result == "reason_required":
+            return _booking_json_error(result)
         if changed:
             updated += 1
         elif result not in {"unchanged"}:
@@ -1281,7 +1291,7 @@ def teacher_booking_update(request):
         booking.diet = diet
         booking.diet_name = diet.name
         booking.updated_by = request.user
-        booking.unit_price = PriceRule.amount_for_category(False, profile.meal_plan, service_date)
+        booking.unit_price = PriceRule.amount_for_teacher(profile, service_date)
         booking.save()
     else:
         TeacherMealBooking.objects.create(
@@ -1328,7 +1338,7 @@ def teacher_bulk_booking(request):
             booking.diet = diet
             booking.diet_name = diet.name
             booking.updated_by = request.user
-            booking.unit_price = PriceRule.amount_for_category(False, profile.meal_plan, service_date)
+            booking.unit_price = PriceRule.amount_for_teacher(profile, service_date)
             booking.save()
             updated += 1
         else:

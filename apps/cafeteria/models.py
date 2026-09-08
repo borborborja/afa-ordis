@@ -722,7 +722,13 @@ class DailyReportRecipient(models.Model):
         return super().save(*args, **kwargs)
 
 
+class PriceAudience(models.TextChoices):
+    STUDENT = "student", _("Alumnat")
+    TEACHER = "teacher", _("Personal docent")
+
+
 class PriceRule(models.Model):
+    audience = models.CharField(max_length=12, choices=PriceAudience.choices, default=PriceAudience.STUDENT)
     scholarship = models.BooleanField(default=False)
     meal_plan = models.CharField(max_length=12, choices=MealPlan.choices)
     effective_from = models.DateField()
@@ -731,16 +737,25 @@ class PriceRule(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_price_rules")
 
     class Meta:
-        ordering = ["-effective_from", "scholarship", "meal_plan"]
-        constraints = [models.UniqueConstraint(fields=["scholarship", "meal_plan", "effective_from"], name="unique_price_effectivity")]
+        ordering = ["-effective_from", "audience", "scholarship", "meal_plan"]
+        constraints = [
+            models.UniqueConstraint(fields=["audience", "scholarship", "meal_plan", "effective_from"], name="unique_price_audience_effectivity"),
+            models.CheckConstraint(
+                condition=models.Q(audience=PriceAudience.STUDENT) | models.Q(scholarship=False),
+                name="teacher_price_has_no_scholarship",
+            ),
+        ]
 
     def __str__(self) -> str:
+        if self.audience == PriceAudience.TEACHER:
+            return f"Personal docent · {self.get_meal_plan_display()} · {self.amount} € des de {self.effective_from:%d/%m/%Y}"
         benefit = "Amb ajut de menjador" if self.scholarship else "Sense ajut de menjador"
         return f"{benefit} · {self.get_meal_plan_display()} · {self.amount} € des de {self.effective_from:%d/%m/%Y}"
 
     @classmethod
     def amount_for_category(cls, scholarship: bool, meal_plan: str, service_date: date) -> Decimal | None:
         rule = cls.objects.filter(
+            audience=PriceAudience.STUDENT,
             scholarship=scholarship,
             meal_plan=meal_plan,
             effective_from__lte=service_date,
@@ -750,6 +765,16 @@ class PriceRule(models.Model):
     @classmethod
     def amount_for(cls, student: Student, service_date: date) -> Decimal | None:
         return cls.amount_for_category(student.is_scholarship, student.meal_plan, service_date)
+
+    @classmethod
+    def amount_for_teacher(cls, teacher: TeacherMealProfile, service_date: date) -> Decimal | None:
+        rule = cls.objects.filter(
+            audience=PriceAudience.TEACHER,
+            scholarship=False,
+            meal_plan=teacher.meal_plan,
+            effective_from__lte=service_date,
+        ).order_by("-effective_from").first()
+        return rule.amount if rule else None
 
 
 class BookingStatus(models.TextChoices):
@@ -767,6 +792,7 @@ class MealBooking(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_bookings")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="updated_bookings")
     override_reason = models.TextField(blank=True)
+    regularized_after_service = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -809,7 +835,7 @@ class TeacherMealBooking(models.Model):
         if self.diet and not self.diet_name:
             self.diet_name = self.diet.name
         if self.unit_price is None and self.status == BookingStatus.ACTIVE:
-            self.unit_price = PriceRule.amount_for_category(False, self.teacher.meal_plan, self.date)
+            self.unit_price = PriceRule.amount_for_teacher(self.teacher, self.date)
         return super().save(*args, **kwargs)
 
     def __str__(self):

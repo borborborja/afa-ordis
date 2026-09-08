@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AFA Ordis\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-07 21:49+0000\n"
+"POT-Creation-Date: 2026-09-08 19:18+0200\n"
 "PO-Revision-Date: 2026-09-03 00:00+0000\n"
 "Last-Translator: AFA Ordis\n"
 "Language-Team: Spanish\n"
@@ -343,14 +343,26 @@ msgstr "El archivo no puede exceder los 2 MB."
 msgid "Cal pujar un fitxer CSV."
 msgstr "Es necesario cargar un archivo CSV."
 
-msgid "Amb ajut de menjador"
-msgstr "Con ayuda de comedor"
+msgid "Alumnat sense ajut de menjador"
+msgstr "Alumnado sin ayuda de comedor"
+
+msgid "Alumnat amb ajut de menjador"
+msgstr "Alumnado con ayuda de comedor"
+
+msgid "Personal docent"
+msgstr "Personal docente"
+
+msgid "Aplicable a"
+msgstr "Aplicable a"
 
 msgid "Vàlida des de"
 msgstr "Válido desde"
 
 msgid "Preu per àpat (€)"
 msgstr "Precio por comida (€)"
+
+msgid "Ja hi ha una tarifa amb aquesta aplicació, modalitat i data."
+msgstr "Ya existe una tarifa con esta aplicación, modalidad y fecha."
 
 msgid "Apuntar a dinar"
 msgstr "Reservar comida"
@@ -376,9 +388,6 @@ msgstr "Gestión del comedor"
 
 msgid "Persona tutora"
 msgstr "Persona tutora"
-
-msgid "Personal docent"
-msgstr "Personal docente"
 
 msgid "Cuina"
 msgstr "Cocina"
@@ -553,6 +562,9 @@ msgstr "Sin valor: no se envía ningún informe diario automático."
 
 msgid "El dia de preparació mensual ha d'estar entre 1 i 28."
 msgstr "El día de preparación mensual debe ser entre 1 y 28."
+
+msgid "Alumnat"
+msgstr "Alumnado"
 
 msgid "Anul·lada"
 msgstr "Cancelado"
@@ -1875,9 +1887,6 @@ msgstr "Validadas"
 msgid "Rebutjades"
 msgstr "Rechazado"
 
-msgid "Alumnat"
-msgstr "Alumni"
-
 msgid "Al·lèrgia declarada"
 msgstr "Alergia declarada"
 
@@ -2459,6 +2468,9 @@ msgstr "Completa"
 msgid "No requerida"
 msgstr "No requerida"
 
+msgid "Regularitza reserves"
+msgstr "Regularizar reservas"
+
 msgid "Consulta o edita"
 msgstr "Consulta o edita"
 
@@ -2770,6 +2782,31 @@ msgstr ""
 "Para gestionar las reservas automáticas, debes habilitar JavaScript en tu "
 "navegador."
 
+msgid "Regularització de dies passats"
+msgstr "Regularización de días pasados"
+
+msgid ""
+"Pots marcar o desmarcar àpats de dies passats abans de tancar el resum "
+"mensual. En marcar un dia sense reserva, es registra com a àpat efectivament "
+"servit per a la facturació i les estadístiques."
+msgstr ""
+"Puedes marcar o desmarcar comidas de días pasados antes de cerrar el resumen "
+"mensual. Al marcar un día sin reserva, se registra como comida efectivamente "
+"servida para la facturación y las estadísticas."
+
+msgid "Motiu de la regularització"
+msgstr "Motivo de la regularización"
+
+msgid "Ex.: s’ha quedat a dinar sense reserva"
+msgstr "Ej.: se ha quedado a comer sin reserva"
+
+msgid ""
+"Obligatori per a canvis passats o després de l’hora límit; queda registrat a "
+"l’auditoria."
+msgstr ""
+"Obligatorio para cambios pasados o posteriores a la hora límite; queda "
+"registrado en la auditoría."
+
 msgid "Mes anterior"
 msgstr "Mes anterior"
 
@@ -2842,6 +2879,12 @@ msgstr "Día sin servicio por"
 
 msgid "Canvia la dieta de"
 msgstr "Cambiar la dieta de"
+
+msgid "Àpat regularitzat després del servei"
+msgstr "Comida regularizada después del servicio"
+
+msgid "Àpat regularitzat"
+msgstr "Comida regularizada"
 
 msgid "Selecciona l’alumnat"
 msgstr "Selecciona al alumnado"
@@ -3324,10 +3367,11 @@ msgstr "Añadir una tarifa"
 
 msgid ""
 "Cada tarifa s'aplica a partir de la data indicada i preserva l'històric dels "
-"àpats ja facturats."
+"àpats ja facturats. Pots definir un preu propi per al personal docent."
 msgstr ""
 "Cada tarifa se aplica a partir de la fecha indicada y conserva el historial "
-"de las comidas ya facturadas."
+"de las comidas ya facturadas. Puedes definir un precio propio para el "
+"personal docente."
 
 msgid "Desa la tarifa"
 msgstr "Guardar tarifa"
@@ -3338,17 +3382,14 @@ msgstr "Historial de tasas"
 msgid "Des de"
 msgstr "Desde"
 
-msgid "Ajut"
-msgstr "Ayuda"
-
 msgid "Preu"
 msgstr "Precio"
 
-msgid "Amb ajut"
-msgstr "Con ayuda"
+msgid "Alumnat amb ajut"
+msgstr "Alumnado con ayuda"
 
-msgid "Sense ajut"
-msgstr "Sin ayuda"
+msgid "Alumnat sense ajut"
+msgstr "Alumnado sin ayuda"
 
 msgid "Encara no hi ha tarifes configurades."
 msgstr "Todavía no hay tarifas configuradas."
@@ -3451,6 +3492,9 @@ msgstr "Sin socio"
 
 msgid "No s'han trobat famílies."
 msgstr "No se han encontrado familias."
+
+msgid "Amb ajut de menjador"
+msgstr "Con ayuda de comedor"
 
 msgid "No s'han trobat alumnes."
 msgstr "No se han encontrado estudiantes."

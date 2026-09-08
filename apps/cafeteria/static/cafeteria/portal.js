@@ -121,6 +121,7 @@
     const applyUrl = bookingCalendar.dataset.applyUrl;
     const isFamilyCalendar = bookingCalendar.dataset.bookingKind === 'family';
     const familyBatchSwitch = bookingCalendar.querySelector('[data-family-batch-switch]');
+    const overrideReason = bookingCalendar.querySelector('[data-booking-override-reason]');
     const familyTabs = [...bookingCalendar.querySelectorAll('[data-family-calendar-tab]')];
     const familyPanels = [...bookingCalendar.querySelectorAll('[data-family-calendar-panel]')];
 
@@ -172,6 +173,7 @@
       if (!cell || !booking) return;
       cell.dataset.state = booking.state;
       cell.dataset.dietName = booking.diet_name || '';
+      cell.dataset.regularizedAfterService = String(Boolean(booking.regularized_after_service));
       cell.dataset.dietChanged = String(
         Boolean(booking.reserved)
         && String(booking.diet_id || '') !== String(cell.dataset.defaultDietId || ''),
@@ -195,7 +197,13 @@
           choice.removeAttribute('aria-current');
         }
       });
+      const regularizationMarker = cell.querySelector('[data-regularization-marker]');
+      if (regularizationMarker) regularizationMarker.hidden = !booking.regularized_after_service;
       closeDietMenus();
+    };
+    const withOverrideReason = (values) => {
+      if (isFamilyCalendar && overrideReason) values.override_reason = overrideReason.value.trim();
+      return values;
     };
     const request = async (url, values) => {
       const body = new URLSearchParams();
@@ -243,11 +251,11 @@
         if (!cell || cell.dataset.locked === 'true') return;
         setBusy(cell, true);
         try {
-          const values = {
+          const values = withOverrideReason({
             service_date: cell.dataset.date,
             operation: 'diet',
             diet_id: dietChoice.dataset.dietId,
-          };
+          });
           if (isFamilyCalendar) values.student_id = cell.dataset.studentId;
           const data = await request(updateUrl, values);
           applyBookingState(cell, data.booking);
@@ -278,13 +286,13 @@
       affectedCells.forEach((item) => setBusy(item, true));
       try {
         if (batch) {
-          const data = await request(applyUrl, { service_date: cell.dataset.date });
+          const data = await request(applyUrl, withOverrideReason({ service_date: cell.dataset.date }));
           data.bookings.forEach((entry) => {
             cellsFor(entry.student_id, cell.dataset.date).forEach((item) => applyBookingState(item, entry.booking));
           });
           setStatus(data.updated ? bookingCalendar.dataset.batchSavedLabel : bookingCalendar.dataset.noChangesLabel);
         } else {
-          const values = { service_date: cell.dataset.date, operation };
+          const values = withOverrideReason({ service_date: cell.dataset.date, operation });
           if (isFamilyCalendar) values.student_id = cell.dataset.studentId;
           const data = await request(updateUrl, values);
           applyBookingState(cell, data.booking);
